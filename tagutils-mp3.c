@@ -34,31 +34,6 @@ struct id3header {
   unsigned char size[4];
 } __attribute((packed));
 
-char *winamp_genre[] = {
-  /*00*/"Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge", "Hip-Hop",
-  /*08*/"Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B", "Rap",
-  /*10*/"Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska", "Death Metal", "Pranks",
-  /*18*/"Soundtrack", "Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance",
-  /*20*/"Classical", "Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise",
-  /*28*/"AlternRock", "Bass", "Soul", "Punk", "Space", "Meditative", "Instrumental Pop", "Instrumental Rock",
-  /*30*/"Ethnic", "Gothic", "Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", "Dream",
-  /*38*/"Southern Rock", "Comedy", "Cult", "Gangsta", "Top 40", "Christian Rap", "Pop/Funk", "Jungle",
-  /*40*/"Native American", "Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes", "Trailer", "Lo-Fi",
-  /*48*/"Tribal", "Acid Punk", "Acid Jazz", "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
-  /*50*/"Folk", "Folk/Rock", "National folk", "Swing", "Fast-fusion", "Bebob", "Latin", "Revival",
-  /*58*/"Celtic", "Bluegrass", "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", "Symphonic Rock", "Slow Rock",
-  /*60*/"Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech", "Chanson", "Opera",
-  /*68*/"Chamber Music", "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove", "Satire", "Slow Jam",
-  /*70*/"Club", "Tango", "Samba", "Folklore", "Ballad", "Powder Ballad", "Rhythmic Soul", "Freestyle",
-  /*78*/"Duet", "Punk Rock", "Drum Solo", "A Capella", "Euro-House", "Dance Hall", "Goa", "Drum & Bass",
-  /*80*/"Club House", "Hardcore", "Terror", "Indie", "BritPop", "NegerPunk", "Polsk Punk", "Beat",
-  /*88*/"Christian Gangsta", "Heavy Metal", "Black Metal", "Crossover", "Contemporary C", "Christian Rock", "Merengue", "Salsa",
-  /*90*/"Thrash Metal", "Anime", "JPop", "SynthPop", "Unknown"
-};
-
-#define WINAMP_GENRE_UNKNOWN ((sizeof(winamp_genre)/sizeof(winamp_genre[0]))-1)
-
-
 static unsigned char*
 _get_utf8_text(const id3_ucs4_t* native_text) {
   unsigned char *utf8_text = NULL;
@@ -132,11 +107,14 @@ _get_mp3tags(char *file, HV *tags)
   struct id3_frame *pid3frame;
   int err;
   int index;
-  unsigned char *utf8_text;
-  int genre=WINAMP_GENRE_UNKNOWN;
-  int have_utf8;
-  int have_text;
-  id3_ucs4_t const *native_text;
+  unsigned int nstrings;
+  
+  id3_ucs4_t const *key;
+  id3_ucs4_t const *value;
+  char *utf8_key;
+  char *utf8_value;
+  SV *bin;
+  
   int got_numeric_genre;
   char *tmp;
 
@@ -158,101 +136,90 @@ _get_mp3tags(char *file, HV *tags)
 
   index = 0;
   while ((pid3frame = id3_tag_findframe(pid3tag, "", index))) {
-    utf8_text = NULL;
-    native_text = NULL;
-    have_utf8 = 0;
-    have_text = 0;
+    key = NULL;
+    value = NULL;
+    utf8_key = NULL;
+    utf8_value = NULL;
     got_numeric_genre = 0;
     
-    // XXX
-    int x;
     fprintf(stderr, "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
-    for (x=0; x<pid3frame->nfields; x++) {
-      fprintf(stderr, "  type %d\n", pid3frame->fields[x].type);
-    }
-
-    if (!strcmp(pid3frame->id, "APIC") &&
-	     pid3frame->fields[4].binary.length &&
-	     pid3frame->fields[4].binary.data) {
-	       // XXX: multiple images?
-         SV *image = newSVpvn( pid3frame->fields[4].binary.data, pid3frame->fields[4].binary.length );
-         hv_store( tags, "image", 5, image, 0 );
-    }
-    else if (((pid3frame->id[0] == 'T') || (strcmp(pid3frame->id, "COMM")==0)) &&
-	     (id3_field_getnstrings(&pid3frame->fields[1]))) {
-      have_text = 1;
-    }
-
-    if (have_text) {
-      native_text = id3_field_getstrings(&pid3frame->fields[1], 0);
-
-      if (native_text) {
-	      have_utf8 = 1;
-	      if (lang_index >=0)
-	        utf8_text = _get_utf8_text(native_text); // through iconv
-	      else
-	        utf8_text = (unsigned char*) id3_ucs4_utf8duplicate(native_text);
-	
-        //fprintf(stderr, "(text) %s = %s\n", pid3frame->id, (char *)utf8_text);
+    
+    // Special handling for TXXX frames
+    if ( !strcmp(pid3frame->id, "TXXX") ) {
+      key = id3_field_getstring(&pid3frame->fields[1]);
+      if (key) {
+        // Get the key
+        utf8_key = (char *)id3_ucs4_utf8duplicate(key);
+        hv_store( tags, utf8_key, strlen(utf8_key), NULL, 0 );
         
-        if (!strcmp(pid3frame->id, "TCON")) {
-          tmp = (char *)utf8_text;
-      	  if (tmp) {
-      	    if (!strlen(tmp)) {
-      	      genre = WINAMP_GENRE_UNKNOWN;
-      	      got_numeric_genre = 1;
-      	    }
-      	    else if (isdigit(tmp[0])) {
-      	      genre = atoi(tmp);
-      	      got_numeric_genre = 1;
-      	    }
-      	    else if ((tmp[0] == '(') && (isdigit(tmp[1]))) {
-      	      genre = atoi((char*)&tmp[1]);
-      	      got_numeric_genre = 1;
-      	    }
-    	    }
-    	  }
-
-  	    if (got_numeric_genre) {
-  	      if((genre < 0) || (genre > WINAMP_GENRE_UNKNOWN))
-  		      genre = WINAMP_GENRE_UNKNOWN;
-  	      
-          hv_store( tags, "genre", 5, newSVpv( winamp_genre[genre], 0 ), 0 );
-  	    }
-      	else {
-      	  hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( (char *)utf8_text, 0 ), 0 ); 
-    	  }
+        // Get the value
+        value = id3_field_getstring(&pid3frame->fields[2]);
+        if (!value) {
+          hv_delete( tags, utf8_key, strlen(utf8_key), 0 );
+        }
+        else {
+          utf8_value = (char *)id3_ucs4_utf8duplicate(value);
+          hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( utf8_value, 0 ), 0 );
+          free(utf8_value);
+        }
+        
+        free(utf8_key);
       }
     }
-
-    // check if text tag
-    if ((have_utf8) && (utf8_text))
-      free(utf8_text);
-
-    // v2 COMM
-    if ((!strcmp(pid3frame->id, "COMM")) && (pid3frame->nfields == 4)) {
-      native_text = id3_field_getstring(&pid3frame->fields[2]);
-      if (native_text) {
-	      utf8_text = (unsigned char*) id3_ucs4_utf8duplicate(native_text);
-	      if ((utf8_text) && (strncasecmp((char*)utf8_text, "iTun", 4) != 0)) {
-	        // read comment
-	        if (utf8_text)
-	          free(utf8_text);
-
-	        native_text = id3_field_getfullstring(&pid3frame->fields[3]);
-      	  if (native_text) {
-      	    //if (psong->comment)
-      	    //  free(psong->comment);
-      	    utf8_text = (unsigned char*) id3_ucs4_utf8duplicate(native_text);
-      	    if (utf8_text) {
-      	      hv_store( tags, "comment", 7, newSVpv( (char *)utf8_text, 0 ), 0 );
-      	    }
-      	  }
-      	}
-      	else {
-      	  if (utf8_text)
-      	    free(utf8_text);
-      	}
+    
+    // All other frames
+    else {
+      if (pid3frame->nfields == 1) {
+        // unknown frames (i.e. XSOP) that are just available as binary data
+        bin = newSVpvn( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
+        hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+      }
+      else if (pid3frame->nfields == 2) {
+        switch (pid3frame->fields[1].type) {
+          case ID3_FIELD_TYPE_STRINGLIST:
+            nstrings = id3_field_getnstrings(&pid3frame->fields[1]);
+            if (nstrings > 1) {
+              // XXX, how to handle this?
+              fprintf(stderr, "STRINGLIST, %d strings\n", nstrings );
+            }
+            else {
+              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
+              hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+              free(utf8_value);
+            }
+            break;
+        
+          case ID3_FIELD_TYPE_STRING:
+            utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[1]) );
+            hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+            free(utf8_value);
+            break;
+      
+          case ID3_FIELD_TYPE_LATIN1:
+            hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[1]), 0 ), 0 );
+            break;
+          
+          case ID3_FIELD_TYPE_BINARYDATA:
+            bin = newSVpvn( pid3frame->fields[1].binary.data, pid3frame->fields[1].binary.length );
+            hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+            break;
+      
+          default:
+            fprintf(stderr, "Unknown type: %d\n", pid3frame->fields[1].type);
+            break;
+        }
+      }
+      else {
+        // special handling for APIC
+        if ( !strcmp(pid3frame->id, "APIC") ) {
+          // XXX: also save other info
+          bin = newSVpvn( pid3frame->fields[4].binary.data, pid3frame->fields[4].binary.length );
+          hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+        }
+        else {
+          // XXX
+          fprintf(stderr, "  > 2 fields\n");
+        }
       }
     }
 

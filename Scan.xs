@@ -24,7 +24,7 @@ struct _types audio_types[] = {
   {"ogg", {"ogg", "oga", 0}},
   {"flc", {"flc", "flac", "fla", 0}},
   {"asf", {"wma", 0}},
-  {0, 0, {0}}
+  {0, {0, 0}}
 };
 
 static taghandler taghandlers[] = {
@@ -33,7 +33,7 @@ static taghandler taghandlers[] = {
   { "ogg", 0, 0 },
   { "flc", 0, 0 },
   { "asf", 0, 0 },
-  { NULL, 0 }
+  { NULL, 0, 0 }
 };
 
 MODULE = Audio::Scan		PACKAGE = Audio::Scan		
@@ -42,13 +42,13 @@ HV *
 _scan (char *klass, SV *path)
 CODE:
 {
-  HV *data = newHV();
-  HV *info = newHV();
-  HV *tags = newHV();
-  
+  RETVAL = newHV();  
   int typeindex = -1;
   int i, j;
   char *suffix = strrchr( SvPVX(path), '.' );
+  
+  // don't leak
+  sv_2mortal( (SV*)RETVAL );
   
   if ( !suffix ) {
     XSRETURN_UNDEF;
@@ -72,18 +72,18 @@ CODE:
       if (!strcmp(hdl->type, audio_types[typeindex].type))
         break;
 
-    if (hdl->get_fileinfo)
+    if (hdl->get_fileinfo) {
+      HV *info = newHV();
       hdl->get_fileinfo(SvPVX(path), info);
+      hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );
+    }
     
-    if (hdl->get_tags)
+    if (hdl->get_tags) {
+      HV *tags = newHV();
       hdl->get_tags(SvPVX(path), tags);
+      hv_store( RETVAL, "tags", 4, newRV_noinc( (SV *)tags ), 0 );
+    }
   }
-  
-  // XXX
-  //hv_store( data, "info", 4, (SV *)info, 0 );
-  //hv_store( data, "tags", 4, (SV *)tags, 0 );
-  
-  RETVAL = tags;
 }
 OUTPUT:
   RETVAL
