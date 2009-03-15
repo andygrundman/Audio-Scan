@@ -1,0 +1,11 @@
+Changes
+lib/Audio/Scan.pm
+Makefile.PL
+MANIFEST
+ppport.h
+README
+Scan.xs
+t/Audio-Scan.t
+tagutils-misc.c
+tagutils-mp3.c
+tagutils-mp3.h
