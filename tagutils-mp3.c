@@ -327,15 +327,15 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 
   if (pfi->mpeg_version == 0x10) {
     if (pfi->stereo)
-      pfi->xing_offset = 32;
+      pfi->xing_offset = 36;
     else
-      pfi->xing_offset = 17;
+      pfi->xing_offset = 21;
   }
   else {
     if (pfi->stereo)
-      pfi->xing_offset = 17;
+      pfi->xing_offset = 21;
     else
-      pfi->xing_offset = 9;
+      pfi->xing_offset = 13;
   }
 
   pfi->crc_protected = frame[1] & 0xFE;
@@ -439,7 +439,6 @@ _get_mp3fileinfo(char *file, HV *info)
   off_t fp_size=0;
   off_t file_size;
   off_t audio_size;
-  int vbr_scale;
   int song_length = 0;
   unsigned char buffer[1024];
   int index;
@@ -533,9 +532,9 @@ _get_mp3fileinfo(char *file, HV *info)
 
       if (!_decode_mp3_frame(&buffer[index], &fi)) {
         if (
-          !strncmp((char*)&buffer[index+fi.xing_offset+4], "Xing",4)
+          !strncmp((char*)&buffer[index+fi.xing_offset], "Xing",4)
           ||
-          !strncmp((char*)&buffer[index+fi.xing_offset+4], "Info",4)
+          !strncmp((char*)&buffer[index+fi.xing_offset], "Info",4)
         ) {
 	        /* no need to check further... if there is a xing header there,
 	         * this is definately a valid frame */
@@ -595,24 +594,40 @@ _get_mp3fileinfo(char *file, HV *info)
     return 0;
   }
 
-  /* now check for an XING header */
-  vbr_scale = -1;
+  /* now check for Xing header */
   if (
-    !strncmp((char*)&buffer[index+fi.xing_offset+4], "Xing",4)
+    !strncmp((char*)&buffer[index+fi.xing_offset], "Xing",4)
     ||
-    !strncmp((char*)&buffer[index+fi.xing_offset+4], "Info",4)
+    !strncmp((char*)&buffer[index+fi.xing_offset], "Info",4)
   ) {
-    xing_flags = *((int*)&buffer[index+fi.xing_offset+4+4]);
+    fi.xing_offset += 4;
+    
+    xing_flags = *((int*)&buffer[index+fi.xing_offset]);
     xing_flags = ntohl(xing_flags);
-    vbr_scale = 78;
+    
+    fi.xing_offset += 4;
     
     if (xing_flags & XING_FRAMES) {
-      /* Frames field is valid... */
-      fi.number_of_frames = *((int*)&buffer[index+fi.xing_offset+4+8]);
-      fi.number_of_frames = ntohl(fi.number_of_frames);
+      fi.xing_frames = *((int*)&buffer[index+fi.xing_offset]);
+      fi.xing_frames = ntohl(fi.xing_frames);
+      fi.xing_offset += 4;
     }
     
-    // XXX: more Xing frames
+    if (xing_flags & XING_BYTES) {
+      fi.xing_bytes = *((int*)&buffer[index+fi.xing_offset]);
+      fi.xing_bytes = ntohl(fi.xing_bytes);
+      fi.xing_offset += 4;
+    }
+    
+    if (xing_flags & XING_TOC) {
+      // skip it
+      fi.xing_offset += 100;
+    }
+    
+    if (xing_flags & XING_QUALITY) {
+      fi.xing_quality = *((int*)&buffer[index+fi.xing_offset]);
+      fi.xing_quality = ntohl(fi.xing_quality);
+    }
   }
   
   // XXX: LAME tag
@@ -621,10 +636,9 @@ _get_mp3fileinfo(char *file, HV *info)
   _mp3_get_average_bitrate(infile, &fi);
 
   if (!song_length) {
-    if (fi.number_of_frames) {
-      song_length = (int) ((double)(fi.number_of_frames * fi.samples_per_frame * 1000.)/
+    if (fi.xing_frames) {
+      song_length = (int) ((double)(fi.xing_frames * fi.samples_per_frame * 1000.)/
 				  (double) fi.samplerate);
-      vbr_scale = 78;
     }
     else {
       song_length = (int) ((double) (file_size - fp_size) * 8. /
@@ -634,10 +648,6 @@ _get_mp3fileinfo(char *file, HV *info)
   
   hv_store( info, "song_length_ms", 14, newSViv(song_length), 0 );
   
-  if (fi.number_of_frames) {
-    hv_store( info, "number_of_frames", 16, newSViv(fi.number_of_frames), 0 );
-  }
-  
   hv_store( info, "layer", 5, newSViv(fi.layer), 0 );
   hv_store( info, "stereo", 6, newSViv(fi.stereo), 0 );
   hv_store( info, "samples_per_frame", 17, newSViv(fi.samples_per_frame), 0 );
@@ -646,6 +656,18 @@ _get_mp3fileinfo(char *file, HV *info)
   hv_store( info, "audio_offset", 12, newSViv(fi.frame_offset), 0 );
   hv_store( info, "bitrate", 7, newSViv( fi.bitrate ), 0 );
   hv_store( info, "samplerate", 10, newSViv( fi.samplerate ), 0 );
+  
+  if (fi.xing_frames) {
+    hv_store( info, "xing_frames", 11, newSViv(fi.xing_frames), 0 );
+  }
+  
+  if (fi.xing_bytes) {
+    hv_store( info, "xing_bytes", 10, newSViv(fi.xing_bytes), 0 );
+  }
+  
+  if (fi.xing_quality) {
+    hv_store( info, "xing_quality", 12, newSViv(fi.xing_quality), 0 );
+  }
 
   fclose(infile);
 

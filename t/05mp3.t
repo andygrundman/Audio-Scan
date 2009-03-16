@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 8;
+use Test::More tests => 11;
 
 use Audio::Scan;
 
@@ -46,6 +46,11 @@ use Audio::Scan;
     
     is( $info->{bitrate}, 40, 'MPEG1, Layer 3 VBR bitrate ok' );
     is( $info->{samplerate}, 32000, 'MPEG1, Layer 3 VBR samplerate ok' );
+    
+    # Xing header
+    is( $info->{xing_bytes}, $info->{audio_size}, 'Xing bytes field ok' );
+    is( $info->{xing_frames}, 30, 'Xing frames field ok' );
+    is( $info->{xing_quality}, 57, 'Xing quality field ok' );
     
     # XXX: LAME tag tests
 }

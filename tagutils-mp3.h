@@ -38,8 +38,12 @@ struct mp3_frameinfo {
   int crc_protected;				// flag
   int samples_per_frame;			// calculated
   int padding;					// flag
-  int xing_offset;				// for xing hdr
-  int number_of_frames;
+  
+  // Xing header
+  int xing_offset;
+  int xing_frames;
+  int xing_bytes;
+  int xing_quality;
 
   int frame_offset;
 
