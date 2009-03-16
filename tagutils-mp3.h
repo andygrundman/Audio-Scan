@@ -23,6 +23,11 @@
 
 #include <id3tag.h>
 
+#define XING_FRAMES  0x01
+#define XING_BYTES   0x02
+#define XING_TOC     0x04
+#define XING_QUALITY 0x08
+
 struct mp3_frameinfo {
   int layer;					// 1,2,3
   int bitrate;					// unit=kbps

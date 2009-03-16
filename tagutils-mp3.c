@@ -284,7 +284,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
     return -1;
   }
 
-  if ((sample_index < 0) || (sample_index >= 2)) {
+  if ((sample_index < 0) || (sample_index > 2)) {
     pfi->is_valid = 0;
     return -1;
   }
@@ -300,7 +300,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 
   bitrate_index = (frame[2] & 0xF0) >> 4;
   samplerate_index = (frame[2] & 0x0C) >> 2;
-
+  
   if ((bitrate_index == 0xF) || (bitrate_index==0x0)) {
     pfi->is_valid = 0;
     return -1;
@@ -427,62 +427,6 @@ static void _mp3_get_average_bitrate(FILE *infile, struct mp3_frameinfo *pfi)
   return;
 }
 
-// _mp3_get_frame_count
-//   do brute scan
-static void __attribute__((unused))
-_mp3_get_frame_count(FILE *infile, struct mp3_frameinfo *pfi)
-{
-  int pos;
-  int frames=0;
-  unsigned char frame_buffer[4];
-  struct mp3_frameinfo fi;
-  off_t file_size;
-  int err=0;
-  int cbr=1;
-  int last_bitrate=0;
-
-  fseek(infile,0,SEEK_END);
-  file_size=ftell(infile);
-
-  pos=pfi->frame_offset;
-
-  while (1) {
-    err=1;
-
-    fseek(infile,pos,SEEK_SET);
-    if (fread(frame_buffer, 1, sizeof(frame_buffer),infile) == sizeof(frame_buffer)) {
-      // valid frame?
-      if (!_decode_mp3_frame(frame_buffer, &fi)) {
-	frames++;
-	pos += fi.frame_length;
-	err=0;
-
-	if ((last_bitrate) && (fi.bitrate != last_bitrate))
-	  cbr=0;
-	last_bitrate=fi.bitrate;
-
-	// no sense to scan cbr
-	if (cbr && (frames > 100)) {
-	  fprintf(stderr, "File appears to be CBR... quitting frame _mp3_get_frame_count()\n");
-	  return;
-	}
-      }
-    }
-
-    if (err) {
-      if (pos > (file_size - 4096)) {
-	pfi->number_of_frames=frames;
-	return;
-      }
-      else {
-	      fprintf(stderr, "Frame count aborted on error.  Pos=%d, Count=%d\n",
-		pos, frames);
-	return;
-      }
-    }
-  }
-}
-
 // _get_mp3fileinfo
 static int
 _get_mp3fileinfo(char *file, HV *info)
@@ -547,7 +491,7 @@ _get_mp3fileinfo(char *file, HV *info)
     snprintf(tagversion, sizeof(tagversion), "ID3v2.%d.%d",
 	     pid3->version[0], pid3->version[1]);
 	    
-    hv_store( info, "tagversion", 10, newSVpv( tagversion, 0 ), 0 );
+    hv_store( info, "id3_version", 10, newSVpv( tagversion, 0 ), 0 );
   }
 
   index = 0;
@@ -588,14 +532,18 @@ _get_mp3fileinfo(char *file, HV *info)
       }
 
       if (!_decode_mp3_frame(&buffer[index], &fi)) {
-	      if (!strncasecmp((char*)&buffer[index+fi.xing_offset+4], "XING",4)) {
+        if (
+          !strncmp((char*)&buffer[index+fi.xing_offset+4], "Xing",4)
+          ||
+          !strncmp((char*)&buffer[index+fi.xing_offset+4], "Info",4)
+        ) {
 	        /* no need to check further... if there is a xing header there,
 	         * this is definately a valid frame */
 	        found = 1;
 	        fp_size += index;
 	      }
 	      else {
-	        /* No Xing... check for next frame to validate current fram is correct */
+	        /* No Xing... check for next frame to validate current frame is correct */
 	        fseek(infile, fp_size + index + fi.frame_length, SEEK_SET);
 	        if (fread(frame_buffer, 1, sizeof(frame_buffer), infile) == sizeof(frame_buffer)) {
 	          if (!_decode_mp3_frame((unsigned char*)frame_buffer, &fi)) {
@@ -631,8 +579,6 @@ _get_mp3fileinfo(char *file, HV *info)
 
   fi.frame_offset = fp_size;
   
-  hv_store( info, "audio_offset", 12, newSViv(fi.frame_offset), 0 );
-  
   audio_size = file_size - fp_size;
   
   // check if last 128 bytes is ID3v1.0 ID3v1.1 tag
@@ -642,8 +588,6 @@ _get_mp3fileinfo(char *file, HV *info)
       audio_size -= 128;
     }
   }
-  
-  hv_store( info, "audio_size", 10, newSViv(audio_size), 0 );
 
   if (_decode_mp3_frame(&buffer[index], &fi)) {
     fclose(infile);
@@ -653,24 +597,28 @@ _get_mp3fileinfo(char *file, HV *info)
 
   /* now check for an XING header */
   vbr_scale = -1;
-  if (!strncasecmp((char*)&buffer[index+fi.xing_offset+4], "XING",4)) {
+  if (
+    !strncmp((char*)&buffer[index+fi.xing_offset+4], "Xing",4)
+    ||
+    !strncmp((char*)&buffer[index+fi.xing_offset+4], "Info",4)
+  ) {
     xing_flags = *((int*)&buffer[index+fi.xing_offset+4+4]);
-    xing_flags = ntohs(xing_flags);
+    xing_flags = ntohl(xing_flags);
     vbr_scale = 78;
-
-    if (xing_flags & 0x1) {
+    
+    if (xing_flags & XING_FRAMES) {
       /* Frames field is valid... */
       fi.number_of_frames = *((int*)&buffer[index+fi.xing_offset+4+8]);
-      fi.number_of_frames = ntohs(fi.number_of_frames);
+      fi.number_of_frames = ntohl(fi.number_of_frames);
     }
+    
+    // XXX: more Xing frames
   }
+  
+  // XXX: LAME tag
 
-  if ((fi.number_of_frames == 0) && (!song_length)) {
-    _mp3_get_average_bitrate(infile, &fi);
-  }
-
-  hv_store( info, "bitrate", 7, newSViv( fi.bitrate ), 0 );
-  hv_store( info, "samplerate", 10, newSViv( fi.samplerate ), 0 );
+  // XXX: Unless we know bitrate from LAME tag
+  _mp3_get_average_bitrate(infile, &fi);
 
   if (!song_length) {
     if (fi.number_of_frames) {
@@ -684,7 +632,20 @@ _get_mp3fileinfo(char *file, HV *info)
     }
   }
   
-  hv_store( info, "song_length", 11, newSViv(song_length), 0 );
+  hv_store( info, "song_length_ms", 14, newSViv(song_length), 0 );
+  
+  if (fi.number_of_frames) {
+    hv_store( info, "number_of_frames", 16, newSViv(fi.number_of_frames), 0 );
+  }
+  
+  hv_store( info, "layer", 5, newSViv(fi.layer), 0 );
+  hv_store( info, "stereo", 6, newSViv(fi.stereo), 0 );
+  hv_store( info, "samples_per_frame", 17, newSViv(fi.samples_per_frame), 0 );
+  hv_store( info, "padding", 7, newSViv(fi.padding), 0 );
+  hv_store( info, "audio_size", 10, newSViv(audio_size), 0 );
+  hv_store( info, "audio_offset", 12, newSViv(fi.frame_offset), 0 );
+  hv_store( info, "bitrate", 7, newSViv( fi.bitrate ), 0 );
+  hv_store( info, "samplerate", 10, newSViv( fi.samplerate ), 0 );
 
   fclose(infile);
 
