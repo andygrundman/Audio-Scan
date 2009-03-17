@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 11;
+use Test::More tests => 14;
 
 use Audio::Scan;
 
@@ -53,6 +53,18 @@ use Audio::Scan;
     is( $info->{xing_quality}, 57, 'Xing quality field ok' );
     
     # XXX: LAME tag tests
+}
+
+# MPEG2, Layer 3, 64k / 24kHz CBR with LAME Info tag
+{
+    my $s = Audio::Scan->scan( _f('no-tags-mp1l3-infotag.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{bitrate}, 64, 'Info tag bitrate ok' );
+    is( $info->{samplerate}, 24000, 'Info tag samplerate ok' );
+    
+    is( $info->{lame_encoder_version}, 'LAME3.97 ', 'Info tag LAME version ok' );
 }
 
 sub _f {    

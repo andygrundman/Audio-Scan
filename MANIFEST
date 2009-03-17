@@ -11,7 +11,9 @@ t/03podcoverage.t
 t/04critic.rc
 t/04critic.t
 t/05mp3.t
+t/mp3/no-tags-mp1l3-infotag.mp3
 t/mp3/no-tags-mp1l3-vbr.mp3
+t/mp3/no-tags-mp1l3-vbri.mp3
 t/mp3/no-tags-mp1l3.mp3
 t/mp3/no-tags-mp2.5l3.mp3
 t/mp3/no-tags-mp2l3.mp3

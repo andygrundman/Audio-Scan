@@ -627,10 +627,29 @@ _get_mp3fileinfo(char *file, HV *info)
     if (xing_flags & XING_QUALITY) {
       fi.xing_quality = *((int*)&buffer[index+fi.xing_offset]);
       fi.xing_quality = ntohl(fi.xing_quality);
+      fi.xing_offset += 4;
+    }
+    
+    // LAME tag
+    if ( !strncmp((char*)&buffer[index+fi.xing_offset], "LAME",4) ) {
+      strncpy(fi.lame_encoder_version, (char*)&buffer[index+fi.xing_offset], 9);
+      fi.xing_offset += 9;
+      
+      // Skip revision/vbr method byte
+      fi.xing_offset++;
+      
+      fi.lame_lowpass = *((int*)&buffer[index+fi.xing_offset]) * 100;
+      fi.xing_offset++;
+      
+      // XXX more
     }
   }
-  
-  // XXX: LAME tag
+  // Check for VBRI header from Fhg encoders
+  else if (
+    !strncmp((char*)&buffer[index+fi.xing_offset], "VBRI",4)
+  ) {
+    // XXX
+  }
 
   // XXX: Unless we know bitrate from LAME tag
   _mp3_get_average_bitrate(infile, &fi);
@@ -667,6 +686,11 @@ _get_mp3fileinfo(char *file, HV *info)
   
   if (fi.xing_quality) {
     hv_store( info, "xing_quality", 12, newSViv(fi.xing_quality), 0 );
+  }
+  
+  if (fi.lame_encoder_version[0]) {
+    hv_store( info, "lame_encoder_version", 20, newSVpvn(fi.lame_encoder_version, 9), 0 );
+    hv_store( info, "lame_lowpass", 12, newSViv(fi.lame_lowpass), 0 );
   }
 
   fclose(infile);

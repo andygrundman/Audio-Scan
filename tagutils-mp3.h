@@ -44,6 +44,10 @@ struct mp3_frameinfo {
   int xing_frames;
   int xing_bytes;
   int xing_quality;
+  
+  // LAME header
+  char lame_encoder_version[9];
+  int lame_lowpass;
 
   int frame_offset;
 
