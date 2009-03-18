@@ -23,12 +23,20 @@
 
 #include <id3tag.h>
 
+#define BLOCK_SIZE 4096
+
 #define XING_FRAMES  0x01
 #define XING_BYTES   0x02
 #define XING_TOC     0x04
 #define XING_QUALITY 0x08
 
+#define GET_INT32BE(b) \
+(i = (b[0] << 24) | (b[1] << 16) | b[2] << 8 | b[3], b += 4, i)
+
+#define MAKE_SHORT(b) ((((unsigned short) b[0]) << 8) | ((unsigned short) b[1]))
+
 struct mp3_frameinfo {
+  short mpeg_version;
   int layer;					// 1,2,3
   int bitrate;					// unit=kbps
   int samplerate;				// samp/sec
@@ -38,6 +46,8 @@ struct mp3_frameinfo {
   int crc_protected;				// flag
   int samples_per_frame;			// calculated
   int padding;					// flag
+
+  short id3_version;
   
   // Xing header
   int xing_offset;
@@ -47,14 +57,12 @@ struct mp3_frameinfo {
   
   // LAME header
   char lame_encoder_version[9];
+  unsigned char lame_tag_revision;
+  unsigned char lame_vbr_method;
   int lame_lowpass;
-
-  int frame_offset;
-
-  short mpeg_version;
-  short id3_version;
-
-  int is_valid;
+  float lame_replay_gain[2];
+  int lame_encoder_delay;
+  int lame_encoder_padding;
 };
 
 static int _get_mp3tags(char *file, HV *tags);
