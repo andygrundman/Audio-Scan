@@ -426,7 +426,7 @@ _get_mp3fileinfo(char *file, HV *info)
   unsigned int id3_size = 0; // size of leading ID3 data
   unsigned int buf_size = 0; // amount of data left in buf
   
-  off_t file_size;           // total filie size
+  off_t file_size;           // total file size
   off_t audio_offset = 0;    // offset to first audio frame
   off_t audio_size;          // size of all audio frames
   
@@ -638,6 +638,14 @@ _get_mp3fileinfo(char *file, HV *info)
   else if ( buf[0] == 'V' && buf[1] == 'B' && buf[2] == 'R' && buf[3] == 'I' ) {
     // XXX
     fprintf(stderr, "found VBRI\n");
+  }
+  
+  // XXX: use LAME ABR value for bitrate if available
+  
+  // If we have a Xing header, use it to determine bitrate
+  if (fi.xing_frames && fi.xing_bytes) {
+    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
+    fi.bitrate = (int)( fi.xing_bytes / fi.xing_frames * mfs );
   }
   
 /*
