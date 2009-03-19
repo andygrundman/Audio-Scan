@@ -630,8 +630,9 @@ _get_mp3fileinfo(char *file, HV *info)
             else
               continue;
             
-            // XXX: wrong
-            fi.lame_replay_gain[gt] = ((buf[0] & 0x2) ? -0.1 : 0.1) * (MAKE_SHORT(buf) & 0x1f);
+            fi.lame_replay_gain[gt] 
+              = (( (buf[0] & 0x4) >> 2 ) ? -0.1 : 0.1)
+              * ( (buf[0] & 0x3) | buf[1] );
           }
           
           buf += 2;
@@ -756,8 +757,19 @@ _get_mp3fileinfo(char *file, HV *info)
     hv_store( info, "lame_tag_revision", 17, newSViv(fi.lame_tag_revision), 0 );
     hv_store( info, "lame_vbr_method", 15, newSVpv( vbr_methods[fi.lame_vbr_method], 0 ), 0 );
     hv_store( info, "lame_lowpass", 12, newSViv(fi.lame_lowpass), 0 );
-    hv_store( info, "lame_replay_gain_radio", 22, newSVnv( fi.lame_replay_gain[0] ), 0 );
-    hv_store( info, "lame_replay_gain_audiophile", 27, newSVnv(fi.lame_replay_gain[1]), 0 );
+    
+    if (fi.lame_replay_gain[0]) {
+      char tmp[8];
+      sprintf(tmp, "%.1f dB", fi.lame_replay_gain[0]);
+      hv_store( info, "lame_replay_gain_radio", 22, newSVpv( tmp, 0 ), 0 );
+    }
+    
+    if (fi.lame_replay_gain[1]) {
+      char tmp[8];
+      sprintf(tmp, "%.1f dB", fi.lame_replay_gain[1]);
+      hv_store( info, "lame_replay_gain_audiophile", 27, newSVpv( tmp, 0 ), 0 );
+    }
+    
     hv_store( info, "lame_encoder_delay", 18, newSViv(fi.lame_encoder_delay), 0 );
     hv_store( info, "lame_encoder_padding", 20, newSViv(fi.lame_encoder_padding), 0 );
     

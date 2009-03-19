@@ -37,8 +37,6 @@
 #define GET_INT32BE(b) \
 (i = (b[0] << 24) | (b[1] << 16) | b[2] << 8 | b[3], b += 4, i)
 
-#define MAKE_SHORT(b) ((((unsigned short) b[0]) << 8) | ((unsigned short) b[1]))
-
 struct mp3_frameinfo {
   short mpeg_version;
   unsigned char layer;

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 19;
+use Test::More tests => 20;
 
 use Audio::Scan;
 
@@ -58,6 +58,7 @@ use Audio::Scan;
 	is( $info->{lame_vbr_method}, 'Average Bitrate', 'LAME VBR method ok' );
 	is( $info->{vbr}, 1, 'LAME VBR flag ok' );
 	is( $info->{lame_preset}, 'ABR 40', 'LAME preset ok' );
+	is( $info->{lame_replay_gain_radio}, '-4.6 dB', 'LAME ReplayGain ok' );
     
     # XXX: LAME tag tests
 }
