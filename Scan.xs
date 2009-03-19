@@ -42,10 +42,11 @@ HV *
 _scan (char *klass, SV *path)
 CODE:
 {
-  RETVAL = newHV();  
   int typeindex = -1;
   int i, j;
   char *suffix = strrchr( SvPVX(path), '.' );
+
+  RETVAL = newHV();  
   
   // don't leak
   sv_2mortal( (SV*)RETVAL );

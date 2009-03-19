@@ -444,7 +444,7 @@ _get_mp3fileinfo(char *file, HV *info)
     fprintf(stderr, "Could not open %s for reading\n",file);
     return -1;
   }
-
+  
   memset((void*)&fi, 0, sizeof(fi));
 
   fseek(infile,0,SEEK_END);
@@ -558,8 +558,11 @@ _get_mp3fileinfo(char *file, HV *info)
       ||
       ( buf[1] == 'n' && buf[2] == 'f' && buf[3] == 'o' )
     ) {
+      // It's VBR if tag is Xing, and CBR if Info
+      fi.vbr = buf[1] == 'i' ? VBR : CBR;
+      
       buf += 4;
-    
+      
       xing_flags = GET_INT32BE(buf);
     
       if (xing_flags & XING_FRAMES) {
@@ -581,14 +584,28 @@ _get_mp3fileinfo(char *file, HV *info)
     
       // LAME tag
       if ( buf[0] == 'L' && buf[1] == 'A' && buf[2] == 'M' && buf[3] == 'E' ) {
-        strncpy(fi.lame_encoder_version, buf, 9);
+        strncpy(fi.lame_encoder_version, (char *)buf, 9);
         buf += 9;
       
         // revision/vbr method byte
         fi.lame_tag_revision = buf[0] >> 4;
         fi.lame_vbr_method   = buf[0] & 15;
         buf++;
-      
+        
+        // Determine vbr status
+        switch (fi.lame_vbr_method) {
+          case 1:
+          case 8:
+            fi.vbr = CBR;
+            break;
+          case 2:
+          case 9:
+            fi.vbr = ABR;
+            break;
+          default:
+            fi.vbr = VBR;
+        }
+        
         fi.lame_lowpass = buf[0] * 100;
         buf++;
         
@@ -613,7 +630,7 @@ _get_mp3fileinfo(char *file, HV *info)
             else
               continue;
             
-            // XXX: this may be wrong, eyeD3 gives different results
+            // XXX: wrong
             fi.lame_replay_gain[gt] = ((buf[0] & 0x2) ? -0.1 : 0.1) * (MAKE_SHORT(buf) & 0x1f);
           }
           
@@ -623,14 +640,50 @@ _get_mp3fileinfo(char *file, HV *info)
         // Skip encoding flags
         buf++;
         
-        // Skip ABR rate
+        // ABR rate/VBR minimum
+        fi.lame_abr_rate = (int)buf[0];
         buf++;
         
         // Encoder delay/padding
         fi.lame_encoder_delay = ((((int)buf[0]) << 4) | (((int)buf[1]) >> 4));
         fi.lame_encoder_padding = (((((int)buf[1]) << 8) | (((int)buf[2]))) & 0xfff);
-      
-        // XXX more?
+        // sanity check
+        if (fi.lame_encoder_delay < 0 || fi.lame_encoder_delay > 3000) {
+          fi.lame_encoder_delay = -1;
+        }
+        if (fi.lame_encoder_padding < 0 || fi.lame_encoder_padding > 3000) {
+          fi.lame_encoder_padding = -1;
+        }
+        buf += 3;
+        
+        // Misc
+        fi.lame_noise_shaping = buf[0] & 0x3;
+        fi.lame_stereo_mode   = (buf[0] & 0x1C) >> 2;
+        fi.lame_unwise        = (buf[0] & 0x20) >> 5;
+        fi.lame_source_freq   = (buf[0] & 0xC0) >> 6;
+        buf++;
+        
+        // XXX MP3 Gain, can't find a test file, current
+        // mp3gain doesn't write this data
+/*
+        unsigned char sign = (buf[0] & 0x80) >> 7;
+        fi.lame_mp3gain = buf[0] & 0x7F;
+        if (sign) {
+          fi.lame_mp3gain *= -1;
+        }
+        fi.lame_mp3gain_db = fi.lame_mp3gain * 1.5;
+*/
+        buf++;
+        
+        // Preset/Surround
+        fi.lame_surround = (buf[0] & 0x38) >> 3;
+        fi.lame_preset   = ((buf[0] << 8) | buf[1]) & 0x7ff;
+        buf += 2;
+        
+        // Music Length
+        fi.lame_music_length = GET_INT32BE(buf);
+        
+        // Skip CRCs
       }
     }
   }
@@ -640,18 +693,29 @@ _get_mp3fileinfo(char *file, HV *info)
     fprintf(stderr, "found VBRI\n");
   }
   
-  // XXX: use LAME ABR value for bitrate if available
+  // use LAME CBR/ABR value for bitrate if available
+  if ( (fi.vbr == CBR || fi.vbr == ABR) && fi.lame_abr_rate) {
+    if (fi.lame_abr_rate >= 255) {
+      // ABR rate field only codes up to 255, use preset value instead
+      if (fi.lame_preset <= 320) {
+        fi.bitrate = fi.lame_preset;
+      }
+    }
+    else {
+      fi.bitrate = fi.lame_abr_rate;
+    }
+  }
   
-  // If we have a Xing header, use it to determine bitrate
-  if (fi.xing_frames && fi.xing_bytes) {
+  // Or if we have a Xing header, use it to determine bitrate
+  else if (fi.xing_frames && fi.xing_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
     fi.bitrate = (int)( fi.xing_bytes / fi.xing_frames * mfs );
   }
   
-/*
-  // XXX: Unless we know bitrate from LAME tag
-  _mp3_get_average_bitrate(infile, &fi);
-*/
+  // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
+  if (!fi.bitrate ) {
+    //_mp3_get_average_bitrate(infile, &fi);
+  }
 
   if (!song_length_ms) {
     if (fi.xing_frames) {
@@ -690,12 +754,50 @@ _get_mp3fileinfo(char *file, HV *info)
   if (fi.lame_encoder_version[0]) {
     hv_store( info, "lame_encoder_version", 20, newSVpvn(fi.lame_encoder_version, 9), 0 );
     hv_store( info, "lame_tag_revision", 17, newSViv(fi.lame_tag_revision), 0 );
-    hv_store( info, "lame_vbr_method", 15, newSViv(fi.lame_vbr_method), 0 );
+    hv_store( info, "lame_vbr_method", 15, newSVpv( vbr_methods[fi.lame_vbr_method], 0 ), 0 );
     hv_store( info, "lame_lowpass", 12, newSViv(fi.lame_lowpass), 0 );
     hv_store( info, "lame_replay_gain_radio", 22, newSVnv( fi.lame_replay_gain[0] ), 0 );
     hv_store( info, "lame_replay_gain_audiophile", 27, newSVnv(fi.lame_replay_gain[1]), 0 );
     hv_store( info, "lame_encoder_delay", 18, newSViv(fi.lame_encoder_delay), 0 );
     hv_store( info, "lame_encoder_padding", 20, newSViv(fi.lame_encoder_padding), 0 );
+    
+    hv_store( info, "lame_noise_shaping", 18, newSViv(fi.lame_noise_shaping), 0 );
+    hv_store( info, "lame_stereo_mode", 16, newSVpv( stereo_modes[fi.lame_stereo_mode], 0 ), 0 );
+    hv_store( info, "lame_unwise_settings", 20, newSViv(fi.lame_unwise), 0 );
+    hv_store( info, "lame_source_freq", 16, newSVpv( source_freqs[fi.lame_source_freq], 0 ), 0 );
+    
+/*
+    hv_store( info, "lame_mp3gain", 12, newSViv(fi.lame_mp3gain), 0 );
+    hv_store( info, "lame_mp3gain_db", 15, newSVnv(fi.lame_mp3gain_db), 0 );
+*/
+  
+    hv_store( info, "lame_surround", 13, newSVpv( surround[fi.lame_surround], 0 ), 0 );
+    
+    if (fi.lame_preset < 8) {
+      hv_store( info, "lame_preset", 11, newSVpvn( "Unknown", 7 ), 0 );
+    }
+    else if (fi.lame_preset <= 320) {
+      char tmp[8];
+      sprintf(tmp, "ABR %d", fi.lame_preset);
+      hv_store( info, "lame_preset", 11, newSVpv( tmp, 0 ), 0 );
+    }
+    else if (fi.lame_preset <= 500) {
+      fi.lame_preset /= 10;
+      fi.lame_preset -= 41;
+      if ( presets_v[fi.lame_preset] ) {
+        hv_store( info, "lame_preset", 11, newSVpv( presets_v[fi.lame_preset], 0 ), 0 );
+      }
+    }
+    else if (fi.lame_preset <= 1007) {
+      fi.lame_preset -= 1000;
+      if ( presets_old[fi.lame_preset] ) {
+        hv_store( info, "lame_preset", 11, newSVpv( presets_old[fi.lame_preset], 0 ), 0 );
+      }
+    }
+    
+    if (fi.vbr == ABR || fi.vbr == VBR) {
+      hv_store( info, "vbr", 3, newSViv(1), 0 );
+    }
   }
 
   fclose(infile);

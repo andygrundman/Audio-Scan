@@ -30,6 +30,10 @@
 #define XING_TOC     0x04
 #define XING_QUALITY 0x08
 
+#define CBR 1
+#define ABR 2
+#define VBR 3
+
 #define GET_INT32BE(b) \
 (i = (b[0] << 24) | (b[1] << 16) | b[2] << 8 | b[3], b += 4, i)
 
@@ -37,32 +41,111 @@
 
 struct mp3_frameinfo {
   short mpeg_version;
-  int layer;					// 1,2,3
-  int bitrate;					// unit=kbps
-  int samplerate;				// samp/sec
-  int stereo;					// flag
+  unsigned char layer;
+  unsigned short bitrate;
+  unsigned int samplerate;	
+  unsigned char stereo;
+  unsigned char vbr;
 
-  int frame_length;				// bytes
-  int crc_protected;				// flag
-  int samples_per_frame;			// calculated
-  int padding;					// flag
-
-  short id3_version;
+  unsigned short frame_length;
+  unsigned char crc_protected;
+  unsigned short samples_per_frame;
+  unsigned char padding;
   
   // Xing header
-  int xing_offset;
-  int xing_frames;
-  int xing_bytes;
-  int xing_quality;
+  unsigned int xing_offset;
+  unsigned int xing_frames;
+  unsigned int xing_bytes;
+  unsigned short xing_quality;
   
   // LAME header
   char lame_encoder_version[9];
   unsigned char lame_tag_revision;
   unsigned char lame_vbr_method;
-  int lame_lowpass;
+  unsigned int lame_lowpass;
   float lame_replay_gain[2];
-  int lame_encoder_delay;
-  int lame_encoder_padding;
+  unsigned short lame_abr_rate;
+  short lame_encoder_delay;
+  short lame_encoder_padding;
+  unsigned char lame_noise_shaping;
+  unsigned char lame_stereo_mode;
+  unsigned char lame_unwise;
+  unsigned char lame_source_freq;
+  int lame_mp3gain;
+  float lame_mp3gain_db;
+  unsigned char lame_surround;
+  unsigned short lame_preset;
+  unsigned int lame_music_length;
+};
+
+// LAME lookup tables
+const char *stereo_modes[] = {
+  "Mono",
+  "Stereo",
+  "Dual",
+  "Joint",
+  "Force",
+  "Auto",
+  "Intensity",
+  "Undefined"
+};
+
+const char *source_freqs[] = {
+  "<= 32 kHz",
+  "44.1 kHz",
+  "48 kHz",
+  "> 48 kHz"
+};
+
+const char *surround[] = {
+  "None",
+  "DPL encoding",
+  "DPL2 encoding",
+  "Ambisonic encoding",
+  "Reserved"
+};
+
+const char *vbr_methods[] = {
+  "Unknown",
+  "Constant Bitrate",
+  "Average Bitrate",
+  "Variable Bitrate method1 (old/rh)",
+  "Variable Bitrate method2 (mtrh)",
+  "Variable Bitrate method3 (mt)",
+  "Variable Bitrate method4",
+  NULL,
+  "Constant Bitrate (2 pass)",
+  "Average Bitrate (2 pass)",
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  "Reserved"
+};
+
+const char *presets_v[] = {
+  "V9",
+  "V8",
+  "V7",
+  "V6",
+  "V5",
+  "V4",
+  "V3",
+  "V2",
+  "V1",
+  "V0"
+};
+
+const char *presets_old[] = {
+  "r3mix",
+  "standard",
+  "extreme",
+  "insane",
+  "standard/fast",
+  "extreme/fast",
+  "medium",
+  "medium/fast"
 };
 
 static int _get_mp3tags(char *file, HV *tags);

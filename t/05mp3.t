@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 14;
+use Test::More tests => 19;
 
 use Audio::Scan;
 
@@ -51,18 +51,25 @@ use Audio::Scan;
     is( $info->{xing_bytes}, $info->{audio_size}, 'Xing bytes field ok' );
     is( $info->{xing_frames}, 30, 'Xing frames field ok' );
     is( $info->{xing_quality}, 57, 'Xing quality field ok' );
+
+	# LAME header
+	is( $info->{lame_encoder_delay}, 576, 'LAME encoder delay ok' );
+	is( $info->{lame_encoder_padding}, 1191, 'LAME encoder padding ok' );
+	is( $info->{lame_vbr_method}, 'Average Bitrate', 'LAME VBR method ok' );
+	is( $info->{vbr}, 1, 'LAME VBR flag ok' );
+	is( $info->{lame_preset}, 'ABR 40', 'LAME preset ok' );
     
     # XXX: LAME tag tests
 }
 
-# MPEG2, Layer 3, 64k / 24kHz CBR with LAME Info tag
+# MPEG2, Layer 3, 320k / 44.1kHz CBR with LAME Info tag
 {
-    my $s = Audio::Scan->scan( _f('no-tags-mp1l3-infotag.mp3') );
+    my $s = Audio::Scan->scan( _f('no-tags-mp1l3-cbr320.mp3') );
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 64, 'Info tag bitrate ok' );
-    is( $info->{samplerate}, 24000, 'Info tag samplerate ok' );
+    is( $info->{bitrate}, 320, 'Info tag bitrate ok' );
+    is( $info->{samplerate}, 44100, 'Info tag samplerate ok' );
     
     is( $info->{lame_encoder_version}, 'LAME3.97 ', 'Info tag LAME version ok' );
 }
