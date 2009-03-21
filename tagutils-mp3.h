@@ -75,6 +75,12 @@ struct mp3_frameinfo {
   unsigned char lame_surround;
   unsigned short lame_preset;
   unsigned int lame_music_length;
+  
+  // VBRI header
+  unsigned short vbri_delay;
+  unsigned short vbri_quality;
+  unsigned int vbri_bytes;
+  unsigned int vbri_frames;
 };
 
 // LAME lookup tables

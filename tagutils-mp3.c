@@ -547,8 +547,20 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
   }
   // Check for VBRI header from Fhg encoders
   else if ( buf[0] == 'V' && buf[1] == 'B' && buf[2] == 'R' && buf[3] == 'I' ) {
-    // XXX
-    fprintf(stderr, "found VBRI\n");
+    // Skip tag and version ID
+    buf += 6;
+        
+    pfi->vbri_delay = (buf[0] << 8) | buf[1];
+    buf += 2;
+    
+    pfi->vbri_quality = (buf[0] << 8) | buf[1];
+    buf += 2;
+    
+    pfi->vbri_bytes = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+    buf += 4;
+    
+    pfi->vbri_frames = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+    buf += 4;
   }
 }
 
@@ -693,6 +705,12 @@ get_mp3fileinfo(char *file, HV *info)
     bitrate = (short)( fi.xing_bytes / fi.xing_frames * mfs );
   }
   
+  // Or use VBRI header
+  else if (fi.vbri_frames && fi.vbri_bytes) {
+    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
+    bitrate = (short)( fi.vbri_bytes / fi.vbri_frames * mfs );
+  }
+  
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
   if ( !bitrate ) {
     if (audio_size >= WANTED_FOR_AVG) {
@@ -711,6 +729,10 @@ get_mp3fileinfo(char *file, HV *info)
       song_length_ms = (int) ((double)(fi.xing_frames * fi.samples_per_frame * 1000.)/
 				  (double) fi.samplerate);
     }
+    else if (fi.vbri_frames) {
+      song_length_ms = (int) ((double)(fi.vbri_frames * fi.samples_per_frame * 1000.)/
+				  (double) fi.samplerate);
+		}
     else {
       song_length_ms = (int) ((double) (file_size - audio_offset) * 8. /
 				  (double)bitrate);
@@ -739,6 +761,13 @@ get_mp3fileinfo(char *file, HV *info)
   if (fi.xing_quality) {
     hv_store( info, "xing_quality", 12, newSViv(fi.xing_quality), 0 );
   }
+  
+  if (fi.vbri_frames) {
+    hv_store( info, "vbri_delay", 10, newSViv(fi.vbri_delay), 0 );
+    hv_store( info, "vbri_frames", 11, newSViv(fi.vbri_frames), 0 );
+    hv_store( info, "vbri_bytes", 10, newSViv(fi.vbri_bytes), 0 );
+    hv_store( info, "vbri_quality", 12, newSViv(fi.vbri_quality), 0 );
+  }    
   
   if (fi.lame_encoder_version[0]) {
     hv_store( info, "lame_encoder_version", 20, newSVpvn(fi.lame_encoder_version, 9), 0 );

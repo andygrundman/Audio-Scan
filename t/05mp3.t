@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 24;
+use Test::More tests => 34;
 
 use Audio::Scan;
 
@@ -99,6 +99,37 @@ use Audio::Scan;
     open STDERR, '>&', OLD_STDERR;
 }
 
+# MPEG1 Xing mono file to test xing_offset works properly
+{
+    my $s = Audio::Scan->scan_info( _f('no-tags-mp1l3-mono.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{stereo}, 0, 'MPEG1 Xing mono file ok' );
+    is( $info->{xing_frames}, 42, 'MPEG1 Xing mono frames ok' );    
+}
+
+# MPEG2 Xing mono file to test xing_offset
+{
+    my $s = Audio::Scan->scan_info( _f('no-tags-mp2l3-mono.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{stereo}, 0, 'MPEG2 Xing mono file ok' );
+    is( $info->{xing_frames}, 30, 'MPEG2 Xing mono frames ok' );    
+}
+
+# MPEG2 Xing stereo file to test xing_offset
+{
+    my $s = Audio::Scan->scan_info( _f('no-tags-mp2l3-vbr.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{stereo}, 1, 'MPEG2 Xing stereo file ok' );
+    is( $info->{xing_frames}, 30, 'MPEG2 Xing stereo frames ok' );
+    is( $info->{vbr}, 1, 'MPEG2 Xing vbr ok' );
+}
+
 # VBRI mono file
 {
     my $s = Audio::Scan->scan_info( _f('no-tags-vbri-mono.mp3') );
@@ -106,6 +137,19 @@ use Audio::Scan;
     my $info = $s->{info};
     
     is( $info->{stereo}, 0, 'VBRI mono file ok' );
+    
+    # XXX: VBRI mono files do not seem to put the VBRI tag at the correct place
+}
+
+# VBRI stereo file
+{
+    my $s = Audio::Scan->scan_info( _f('no-tags-vbri-stereo.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{vbri_delay}, 2353, 'VBRI delay ok' );
+    is( $info->{bitrate}, 61, 'VBRI bitrate ok' );
+    is( $info->{song_length_ms}, 1071, 'VBRI duration ok' );
 }
 
 sub _f {    
