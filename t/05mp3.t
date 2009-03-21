@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 23;
+use Test::More tests => 24;
 
 use Audio::Scan;
 
@@ -97,6 +97,15 @@ use Audio::Scan;
     
     # Restore stderr
     open STDERR, '>&', OLD_STDERR;
+}
+
+# VBRI mono file
+{
+    my $s = Audio::Scan->scan_info( _f('no-tags-vbri-mono.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{stereo}, 0, 'VBRI mono file ok' );
 }
 
 sub _f {    

@@ -238,6 +238,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 
   ver = (frame[1] & 0x18) >> 3;
   pfi->layer = 4 - ((frame[1] & 0x6) >> 1);
+  pfi->crc_protected = !(frame[1] & 0x1);
   
   layer_index = sample_index = -1;
 
@@ -302,7 +303,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
   pfi->bitrate = bitrate_tbl[layer_index][bitrate_index];
   pfi->samplerate = sample_rate_tbl[sample_index][samplerate_index];
 
-  if ((frame[3] & 0xC0 >> 6) == 3)
+  if (((frame[3] & 0xC0) >> 6) == 3)
     pfi->stereo = 0;
   else
     pfi->stereo = 1;
@@ -324,8 +325,6 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
     else
       pfi->xing_offset = 13;
   }
-
-  pfi->crc_protected = frame[1] & 0xFE;
 
   if (pfi->layer == 1)
     pfi->frame_length = (12 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding) * 4;
@@ -561,6 +560,7 @@ get_mp3fileinfo(char *file, HV *info)
   
   unsigned char *buf = malloc(BLOCK_SIZE);
   unsigned char *buf_ptr = buf;
+  char id3v1taghdr[4];
   
   unsigned int id3_size = 0; // size of leading ID3 data
   unsigned int buf_size = 0; // amount of data left in buf
@@ -573,10 +573,6 @@ get_mp3fileinfo(char *file, HV *info)
   short bitrate      = 0;    // actual bitrate of song
   
   int found;
-
-  char frame_buffer[4];
-
-  char id3v1taghdr[4];
 
   if (!(infile=fopen(file, "rb"))) {
     fprintf(stderr, "Could not open %s for reading\n",file);
@@ -618,7 +614,7 @@ get_mp3fileinfo(char *file, HV *info)
     
     snprintf(tagversion, sizeof(tagversion), "ID3v2.%d.%d", buf[3], buf[4]);
     hv_store( info, "id3_version", 11, newSVpv( tagversion, 0 ), 0 );
-    
+        
     // Always seek past the ID3 tags
     fseek(infile, id3_size, SEEK_SET);
     buf_size = fread(buf, 1, BLOCK_SIZE, infile);
@@ -660,7 +656,7 @@ get_mp3fileinfo(char *file, HV *info)
   
   audio_size = file_size - audio_offset;
   
-  // check if last 128 bytes is ID3v1.0 ID3v1.1 tag
+  // check if last 128 bytes is ID3v1.0 or ID3v1.1 tag
   fseek(infile, file_size - 128, SEEK_SET);
   if (fread(id3v1taghdr, 1, 4, infile) == 4) {
     if (id3v1taghdr[0]=='T' && id3v1taghdr[1]=='A' && id3v1taghdr[2]=='G') {
@@ -668,7 +664,7 @@ get_mp3fileinfo(char *file, HV *info)
     }
   }
 
-  if (_decode_mp3_frame(buf, &fi)) {
+  if ( _decode_mp3_frame(buf, &fi) ) {
     fclose(infile);
     fprintf(stderr, "Could not find sync frame: %s\n", file);
     free(buf_ptr);
