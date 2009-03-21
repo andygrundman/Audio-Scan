@@ -372,6 +372,8 @@ static short _mp3_get_average_bitrate(FILE *infile)
       buf_size--;
       
       if ( !buf_size ) {
+        fclose(infile);
+        free(buf_ptr);
         return -1;
       }
     }
@@ -645,6 +647,8 @@ get_mp3fileinfo(char *file, HV *info)
       
       if ( !buf_size ) {
         fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+        fclose(infile);
+        free(buf_ptr);
         return -1;
       }
     }
@@ -663,6 +667,8 @@ get_mp3fileinfo(char *file, HV *info)
   
   if ( !found ) {
     fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+    fclose(infile);
+    free(buf_ptr);
     return -1;
   }
   
