@@ -85,7 +85,8 @@ use Audio::Scan;
 # File with no audio frames, test is rejected properly
 {
     # Hide stderr
-    open OLD_STDERR, ">&STDERR";
+    no warnings;
+    open OLD_STDERR, '>&', STDERR;
     close STDERR;
     
     my $s = Audio::Scan->scan_info( _f('v2.3-no-audio-frames.mp3') );
@@ -95,7 +96,7 @@ use Audio::Scan;
     is( $info->{bitrate}, undef, 'File with no audio frames ok' );
     
     # Restore stderr
-    open STDERR, ">&OLD_STDERR";
+    open STDERR, '>&', OLD_STDERR;
 }
 
 sub _f {    

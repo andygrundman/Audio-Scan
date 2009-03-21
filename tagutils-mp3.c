@@ -618,16 +618,10 @@ get_mp3fileinfo(char *file, HV *info)
     
     snprintf(tagversion, sizeof(tagversion), "ID3v2.%d.%d", buf[3], buf[4]);
     hv_store( info, "id3_version", 11, newSVpv( tagversion, 0 ), 0 );
-	    
-	  if ( buf_size <= id3_size ) {
-	    // ID3 is larger than the amount we read
-      fseek(infile, id3_size, SEEK_SET);
-      buf_size = fread(buf, 1, BLOCK_SIZE, infile);
-    }
-    else {
-      buf += id3_size;
-      buf_size -= id3_size;
-    }
+    
+    // Always seek past the ID3 tags
+    fseek(infile, id3_size, SEEK_SET);
+    buf_size = fread(buf, 1, BLOCK_SIZE, infile);
     
     audio_offset += id3_size;
   }
