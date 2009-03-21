@@ -23,7 +23,8 @@
 
 #include <id3tag.h>
 
-#define BLOCK_SIZE 4096
+#define BLOCK_SIZE     4096
+#define WANTED_FOR_AVG 32768
 
 #define XING_FRAMES  0x01
 #define XING_BYTES   0x02

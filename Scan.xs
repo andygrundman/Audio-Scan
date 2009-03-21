@@ -29,7 +29,7 @@ struct _types audio_types[] = {
 
 static taghandler taghandlers[] = {
   { "aac", 0, 0 },
-  { "mp3", _get_mp3tags, _get_mp3fileinfo },
+  { "mp3", get_mp3tags, get_mp3fileinfo },
   { "ogg", 0, 0 },
   { "flc", 0, 0 },
   { "asf", 0, 0 },

@@ -91,9 +91,8 @@ _get_utf8_text(const id3_ucs4_t* native_text) {
   return utf8_text;
 }
 
-// _get_mp3tags
 static int
-_get_mp3tags(char *file, HV *tags)
+get_mp3tags(char *file, HV *tags)
 {
   struct id3_file *pid3file;
   struct id3_tag *pid3tag;
@@ -341,81 +340,217 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 }
 
 // _mp3_get_average_bitrate
-//    read from midle of file, and estimate
-static void _mp3_get_average_bitrate(FILE *infile, struct mp3_frameinfo *pfi)
+// average bitrate from a large chunk of the middle of the file
+static short _mp3_get_average_bitrate(FILE *infile)
 {
-  off_t file_size;
-  unsigned char frame_buffer[2900];
-  unsigned char header[4];
-  int index = 0;
-  int found = 0;
-  off_t pos;
   struct mp3_frameinfo fi;
-  int frame_count=0;
-  int bitrate_total=0;
-
-  fseek(infile,0,SEEK_END);
-  file_size=ftell(infile);
-
-  pos = file_size>>1;
-
-  /* now, find the first frame */
-  fseek(infile,pos,SEEK_SET);
-  if (fread(frame_buffer, 1, sizeof(frame_buffer), infile) != sizeof(frame_buffer))
-    return;
-
-  while (!found) {
-    while ((frame_buffer[index] != 0xFF) && (index < (sizeof(frame_buffer)-4)))
-      index++;
-
-    if (index >= (sizeof(frame_buffer)-4)) { // max mp3 framesize = 2880
-      fprintf(stderr, "Could not find frame... quitting\n");
-      return;
+  int frame_count   = 0;
+  int bitrate_total = 0;
+  
+  unsigned char *buf = malloc(WANTED_FOR_AVG);
+  unsigned char *buf_ptr = buf;
+  unsigned int buf_size = 0;
+  
+  // Seek to middle of file
+  fseek(infile, 0, SEEK_END);
+  fseek(infile, ftell(infile) >> 1, SEEK_SET);
+  
+  if ((buf_size = fread(buf, 1, WANTED_FOR_AVG, infile)) == 0) {
+    if (ferror(infile)) {
+      fprintf(stderr, "Error reading: %s\n", strerror(errno));
+    }
+    else {
+      fprintf(stderr, "File too small. Probably corrupted.\n");
+    }
+    fclose(infile);
+    free(buf_ptr);
+    return -1;
+  }
+  
+  while (buf_size >= 4) {
+    while ( *buf != 0xFF ) {
+      buf++;
+      buf_size--;
     }
 
-    if (!_decode_mp3_frame(&frame_buffer[index],&fi)) {
-      /* see if next frame is valid */
-      fseek(infile,pos + index + fi.frame_length, SEEK_SET);
-      if (fread(header, 1, sizeof(header), infile) != sizeof(header)) {
-        fprintf(stderr, "Could not read frame header\n");
-        return;
+    if ( !_decode_mp3_frame(buf, &fi) ) {
+      // Found a valid frame
+      frame_count++;
+      bitrate_total += fi.bitrate;
+      
+      if (fi.frame_length > buf_size) {
+        break;
       }
-
-      if (!_decode_mp3_frame(header, &fi))
-	      found=1;
+      
+      buf += fi.frame_length;
+      buf_size -= fi.frame_length;
     }
-
-    if (!found)
-      index++;
+    else {
+      // Not a valid frame, stray 0xFF
+      buf++;
+      buf_size--;
+    }
   }
-
-  pos += index;
-
-  // got first frame
-  while (frame_count < 10) {
-    fseek(infile,pos,SEEK_SET);
-    if (fread(header,1,sizeof(header),infile) != sizeof(header)) {
-      fprintf(stderr, "Could not read frame header\n");
-      return;
-    }
-    if (_decode_mp3_frame(header,&fi)) {
-      fprintf(stderr, "Invalid frame header while averaging\n");
-      return;
-    }
-
-    bitrate_total += fi.bitrate;
-    frame_count++;
-    pos += fi.frame_length;
-  }
-
-  pfi->bitrate = bitrate_total/frame_count;
-
-  return;
+  
+  fclose(infile);
+  free(buf_ptr);
+  
+  return bitrate_total / frame_count;
 }
 
-// _get_mp3fileinfo
+static void
+_parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
+{
+  int i;
+  int xing_flags;
+    
+  buf += pfi->xing_offset;
+
+  if ( buf[0] == 'X' || buf[0] == 'I' ) {
+    if (
+      ( buf[1] == 'i' && buf[2] == 'n' && buf[3] == 'g' )
+      ||
+      ( buf[1] == 'n' && buf[2] == 'f' && buf[3] == 'o' )
+    ) {
+      // It's VBR if tag is Xing, and CBR if Info
+      pfi->vbr = buf[1] == 'i' ? VBR : CBR;
+
+      buf += 4;
+
+      xing_flags = GET_INT32BE(buf);
+
+      if (xing_flags & XING_FRAMES) {
+        pfi->xing_frames = GET_INT32BE(buf);
+      }
+
+      if (xing_flags & XING_BYTES) {
+        pfi->xing_bytes = GET_INT32BE(buf);
+      }
+
+      if (xing_flags & XING_TOC) {
+        // skip it
+        buf += 100;
+      }
+
+      if (xing_flags & XING_QUALITY) {
+        pfi->xing_quality = GET_INT32BE(buf);
+      }
+
+      // LAME tag
+      if ( buf[0] == 'L' && buf[1] == 'A' && buf[2] == 'M' && buf[3] == 'E' ) {
+        strncpy(pfi->lame_encoder_version, (char *)buf, 9);
+        buf += 9;
+
+        // revision/vbr method byte
+        pfi->lame_tag_revision = buf[0] >> 4;
+        pfi->lame_vbr_method   = buf[0] & 15;
+        buf++;
+
+        // Determine vbr status
+        switch (pfi->lame_vbr_method) {
+          case 1:
+          case 8:
+            pfi->vbr = CBR;
+            break;
+          case 2:
+          case 9:
+            pfi->vbr = ABR;
+            break;
+          default:
+            pfi->vbr = VBR;
+        }
+
+        pfi->lame_lowpass = buf[0] * 100;
+        buf++;
+
+        // Skip peak
+        buf += 4;
+
+        // Replay Gain, code from mpg123
+        pfi->lame_replay_gain[0] = 0;
+        pfi->lame_replay_gain[1] = 0;
+
+        for (i=0; i<2; i++) {
+          // Originator
+          unsigned char origin = (buf[0] >> 2) & 0x7;
+
+          if (origin != 0) {
+            // Gain type
+            unsigned char gt = buf[0] >> 5;
+            if (gt == 1)
+              gt = 0; /* radio */
+            else if (gt == 2)
+              gt = 1; /* audiophile */
+            else
+              continue;
+
+            pfi->lame_replay_gain[gt] 
+              = (( (buf[0] & 0x4) >> 2 ) ? -0.1 : 0.1)
+              * ( (buf[0] & 0x3) | buf[1] );
+          }
+
+          buf += 2;
+        }
+
+        // Skip encoding flags
+        buf++;
+
+        // ABR rate/VBR minimum
+        pfi->lame_abr_rate = (int)buf[0];
+        buf++;
+
+        // Encoder delay/padding
+        pfi->lame_encoder_delay = ((((int)buf[0]) << 4) | (((int)buf[1]) >> 4));
+        pfi->lame_encoder_padding = (((((int)buf[1]) << 8) | (((int)buf[2]))) & 0xfff);
+        // sanity check
+        if (pfi->lame_encoder_delay < 0 || pfi->lame_encoder_delay > 3000) {
+          pfi->lame_encoder_delay = -1;
+        }
+        if (pfi->lame_encoder_padding < 0 || pfi->lame_encoder_padding > 3000) {
+          pfi->lame_encoder_padding = -1;
+        }
+        buf += 3;
+
+        // Misc
+        pfi->lame_noise_shaping = buf[0] & 0x3;
+        pfi->lame_stereo_mode   = (buf[0] & 0x1C) >> 2;
+        pfi->lame_unwise        = (buf[0] & 0x20) >> 5;
+        pfi->lame_source_freq   = (buf[0] & 0xC0) >> 6;
+        buf++;
+
+        // XXX MP3 Gain, can't find a test file, current
+        // mp3gain doesn't write this data
+/*
+        unsigned char sign = (buf[0] & 0x80) >> 7;
+        pfi->lame_mp3gain = buf[0] & 0x7F;
+        if (sign) {
+          pfi->lame_mp3gain *= -1;
+        }
+        pfi->lame_mp3gain_db = pfi->lame_mp3gain * 1.5;
+*/
+        buf++;
+
+        // Preset/Surround
+        pfi->lame_surround = (buf[0] & 0x38) >> 3;
+        pfi->lame_preset   = ((buf[0] << 8) | buf[1]) & 0x7ff;
+        buf += 2;
+
+        // Music Length
+        pfi->lame_music_length = GET_INT32BE(buf);
+
+        // Skip CRCs
+      }
+    }
+  }
+  // Check for VBRI header from Fhg encoders
+  else if ( buf[0] == 'V' && buf[1] == 'B' && buf[2] == 'R' && buf[3] == 'I' ) {
+    // XXX
+    fprintf(stderr, "found VBRI\n");
+  }
+}
+
 static int
-_get_mp3fileinfo(char *file, HV *info)
+get_mp3fileinfo(char *file, HV *info)
 {
   FILE *infile;
   struct mp3_frameinfo fi;
@@ -431,9 +566,8 @@ _get_mp3fileinfo(char *file, HV *info)
   off_t audio_size;          // size of all audio frames
   
   int song_length_ms = 0;    // duration of song in ms
+  short bitrate      = 0;    // actual bitrate of song
   
-  int i;
-  int xing_flags;
   int found;
 
   char frame_buffer[4];
@@ -499,9 +633,10 @@ _get_mp3fileinfo(char *file, HV *info)
    * weren't so many crappy mp3 files out there
    */
   while (!found) {
-    if ( buf_size < 4 ) {
-      // Not enough data for a header, read more
-      if ((buf_size += fread(buf, 1, BLOCK_SIZE, infile)) == 0) {
+    if (!buf_size) {
+      // Read more data
+      fprintf(stderr, "Reading more data\n");
+      if ((buf_size = fread(buf, 1, BLOCK_SIZE, infile)) == 0) {
         if (ferror(infile)) {
           fprintf(stderr, "Error reading: %s\n", strerror(errno));
         }
@@ -512,6 +647,7 @@ _get_mp3fileinfo(char *file, HV *info)
         free(buf_ptr);
         return -1;
       }
+      fprintf(stderr, "Read %d bytes\n", buf_size);
     }
     
     while ( *buf != 0xFF ) {
@@ -548,174 +684,40 @@ _get_mp3fileinfo(char *file, HV *info)
     free(buf_ptr);
     return 0;
   }
+  
+  // now check for Xing/Info/VBRI/LAME headers
+  _parse_xing(buf, &fi);
 
-  /* now check for Xing/Info/VBRI headers */
-  buf += fi.xing_offset;
-  
-  if ( buf[0] == 'X' || buf[0] == 'I' ) {
-    if (
-      ( buf[1] == 'i' && buf[2] == 'n' && buf[3] == 'g' )
-      ||
-      ( buf[1] == 'n' && buf[2] == 'f' && buf[3] == 'o' )
-    ) {
-      // It's VBR if tag is Xing, and CBR if Info
-      fi.vbr = buf[1] == 'i' ? VBR : CBR;
-      
-      buf += 4;
-      
-      xing_flags = GET_INT32BE(buf);
-    
-      if (xing_flags & XING_FRAMES) {
-        fi.xing_frames = GET_INT32BE(buf);
-      }
-    
-      if (xing_flags & XING_BYTES) {
-        fi.xing_bytes = GET_INT32BE(buf);
-      }
-    
-      if (xing_flags & XING_TOC) {
-        // skip it
-        buf += 100;
-      }
-    
-      if (xing_flags & XING_QUALITY) {
-        fi.xing_quality = GET_INT32BE(buf);
-      }
-    
-      // LAME tag
-      if ( buf[0] == 'L' && buf[1] == 'A' && buf[2] == 'M' && buf[3] == 'E' ) {
-        strncpy(fi.lame_encoder_version, (char *)buf, 9);
-        buf += 9;
-      
-        // revision/vbr method byte
-        fi.lame_tag_revision = buf[0] >> 4;
-        fi.lame_vbr_method   = buf[0] & 15;
-        buf++;
-        
-        // Determine vbr status
-        switch (fi.lame_vbr_method) {
-          case 1:
-          case 8:
-            fi.vbr = CBR;
-            break;
-          case 2:
-          case 9:
-            fi.vbr = ABR;
-            break;
-          default:
-            fi.vbr = VBR;
-        }
-        
-        fi.lame_lowpass = buf[0] * 100;
-        buf++;
-        
-        // Skip peak
-        buf += 4;
-        
-        // Replay Gain, code from mpg123
-        fi.lame_replay_gain[0] = 0;
-        fi.lame_replay_gain[1] = 0;
-        
-        for (i=0; i<2; i++) {
-          // Originator
-          unsigned char origin = (buf[0] >> 2) & 0x7;
-          
-          if (origin != 0) {
-            // Gain type
-            unsigned char gt = buf[0] >> 5;
-            if (gt == 1)
-              gt = 0; /* radio */
-            else if (gt == 2)
-              gt = 1; /* audiophile */
-            else
-              continue;
-            
-            fi.lame_replay_gain[gt] 
-              = (( (buf[0] & 0x4) >> 2 ) ? -0.1 : 0.1)
-              * ( (buf[0] & 0x3) | buf[1] );
-          }
-          
-          buf += 2;
-        }
-        
-        // Skip encoding flags
-        buf++;
-        
-        // ABR rate/VBR minimum
-        fi.lame_abr_rate = (int)buf[0];
-        buf++;
-        
-        // Encoder delay/padding
-        fi.lame_encoder_delay = ((((int)buf[0]) << 4) | (((int)buf[1]) >> 4));
-        fi.lame_encoder_padding = (((((int)buf[1]) << 8) | (((int)buf[2]))) & 0xfff);
-        // sanity check
-        if (fi.lame_encoder_delay < 0 || fi.lame_encoder_delay > 3000) {
-          fi.lame_encoder_delay = -1;
-        }
-        if (fi.lame_encoder_padding < 0 || fi.lame_encoder_padding > 3000) {
-          fi.lame_encoder_padding = -1;
-        }
-        buf += 3;
-        
-        // Misc
-        fi.lame_noise_shaping = buf[0] & 0x3;
-        fi.lame_stereo_mode   = (buf[0] & 0x1C) >> 2;
-        fi.lame_unwise        = (buf[0] & 0x20) >> 5;
-        fi.lame_source_freq   = (buf[0] & 0xC0) >> 6;
-        buf++;
-        
-        // XXX MP3 Gain, can't find a test file, current
-        // mp3gain doesn't write this data
-/*
-        unsigned char sign = (buf[0] & 0x80) >> 7;
-        fi.lame_mp3gain = buf[0] & 0x7F;
-        if (sign) {
-          fi.lame_mp3gain *= -1;
-        }
-        fi.lame_mp3gain_db = fi.lame_mp3gain * 1.5;
-*/
-        buf++;
-        
-        // Preset/Surround
-        fi.lame_surround = (buf[0] & 0x38) >> 3;
-        fi.lame_preset   = ((buf[0] << 8) | buf[1]) & 0x7ff;
-        buf += 2;
-        
-        // Music Length
-        fi.lame_music_length = GET_INT32BE(buf);
-        
-        // Skip CRCs
-      }
-    }
-  }
-  // Check for VBRI header from Fhg encoders
-  else if ( buf[0] == 'V' && buf[1] == 'B' && buf[2] == 'R' && buf[3] == 'I' ) {
-    // XXX
-    fprintf(stderr, "found VBRI\n");
-  }
-  
   // use LAME CBR/ABR value for bitrate if available
-  if ( (fi.vbr == CBR || fi.vbr == ABR) && fi.lame_abr_rate) {
+  if ( (fi.vbr == CBR || fi.vbr == ABR) && fi.lame_abr_rate ) {
     if (fi.lame_abr_rate >= 255) {
       // ABR rate field only codes up to 255, use preset value instead
       if (fi.lame_preset <= 320) {
-        fi.bitrate = fi.lame_preset;
+        bitrate = fi.lame_preset;
       }
     }
     else {
-      fi.bitrate = fi.lame_abr_rate;
+      bitrate = fi.lame_abr_rate;
     }
   }
   
   // Or if we have a Xing header, use it to determine bitrate
   else if (fi.xing_frames && fi.xing_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
-    fi.bitrate = (int)( fi.xing_bytes / fi.xing_frames * mfs );
+    bitrate = (short)( fi.xing_bytes / fi.xing_frames * mfs );
   }
   
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
-  if (!fi.bitrate ) {
-    //_mp3_get_average_bitrate(infile, &fi);
+  if ( !bitrate ) {
+    if (audio_size >= WANTED_FOR_AVG) {
+      bitrate = _mp3_get_average_bitrate(infile);
+    }
+    
+    if (bitrate <= 0) {
+      // Couldn't determine bitrate, just use
+      // the bitrate from the last frame we parsed
+      bitrate = fi.bitrate;
+    }
   }
 
   if (!song_length_ms) {
@@ -725,7 +727,7 @@ _get_mp3fileinfo(char *file, HV *info)
     }
     else {
       song_length_ms = (int) ((double) (file_size - audio_offset) * 8. /
-				  (double) fi.bitrate);
+				  (double)bitrate);
     }
   }
 
@@ -737,7 +739,7 @@ _get_mp3fileinfo(char *file, HV *info)
   hv_store( info, "padding", 7, newSViv(fi.padding), 0 );
   hv_store( info, "audio_size", 10, newSViv(audio_size), 0 );
   hv_store( info, "audio_offset", 12, newSViv(audio_offset), 0 );
-  hv_store( info, "bitrate", 7, newSViv( fi.bitrate ), 0 );
+  hv_store( info, "bitrate", 7, newSViv( bitrate ), 0 );
   hv_store( info, "samplerate", 10, newSViv( fi.samplerate ), 0 );
   
   if (fi.xing_frames) {
@@ -813,7 +815,6 @@ _get_mp3fileinfo(char *file, HV *info)
   }
 
   fclose(infile);
-  
   free(buf_ptr);
 
   return 0;

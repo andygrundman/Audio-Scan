@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 20;
+use Test::More tests => 22;
 
 use Audio::Scan;
 
@@ -52,15 +52,13 @@ use Audio::Scan;
     is( $info->{xing_frames}, 30, 'Xing frames field ok' );
     is( $info->{xing_quality}, 57, 'Xing quality field ok' );
 
-	# LAME header
-	is( $info->{lame_encoder_delay}, 576, 'LAME encoder delay ok' );
-	is( $info->{lame_encoder_padding}, 1191, 'LAME encoder padding ok' );
-	is( $info->{lame_vbr_method}, 'Average Bitrate', 'LAME VBR method ok' );
-	is( $info->{vbr}, 1, 'LAME VBR flag ok' );
-	is( $info->{lame_preset}, 'ABR 40', 'LAME preset ok' );
-	is( $info->{lame_replay_gain_radio}, '-4.6 dB', 'LAME ReplayGain ok' );
-    
-    # XXX: LAME tag tests
+    # LAME header
+    is( $info->{lame_encoder_delay}, 576, 'LAME encoder delay ok' );
+    is( $info->{lame_encoder_padding}, 1191, 'LAME encoder padding ok' );
+    is( $info->{lame_vbr_method}, 'Average Bitrate', 'LAME VBR method ok' );
+    is( $info->{vbr}, 1, 'LAME VBR flag ok' );
+    is( $info->{lame_preset}, 'ABR 40', 'LAME preset ok' );
+    is( $info->{lame_replay_gain_radio}, '-4.6 dB', 'LAME ReplayGain ok' );
 }
 
 # MPEG2, Layer 3, 320k / 44.1kHz CBR with LAME Info tag
@@ -69,10 +67,19 @@ use Audio::Scan;
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 320, 'Info tag bitrate ok' );
-    is( $info->{samplerate}, 44100, 'Info tag samplerate ok' );
+    is( $info->{bitrate}, 320, 'CBR file bitrate ok' );
+    is( $info->{samplerate}, 44100, 'CBR file samplerate ok' );
+    is( $info->{vbr}, undef, 'CBR file does not have VBR flag' );
+    is( $info->{lame_encoder_version}, 'LAME3.97 ', 'CBR file LAME Info tag version ok' );
+}
+
+# Non-Xing/LAME VBR file to test average bitrate calculation
+{
+	my $s = Audio::Scan->scan( _f('no-tags-no-xing-vbr.mp3') );
     
-    is( $info->{lame_encoder_version}, 'LAME3.97 ', 'Info tag LAME version ok' );
+    my $info = $s->{info};
+    
+    is( $info->{bitrate}, 229, 'Non-Xing VBR average bitrate calc ok' );
 }
 
 sub _f {    
