@@ -2,11 +2,34 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 34;
+use Test::More tests => 41;
 
 use Audio::Scan;
 
 ## Test file info on non-tagged files
+
+# MPEG1, Layer 2, 192k / 44.1kHz
+{
+    my $s = Audio::Scan->scan( _f('no-tags-mp1l2.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{layer}, 2, 'MPEG1, Layer 2 ok' );
+    is( $info->{bitrate}, 192, 'MPEG1, Layer 2 bitrate ok' );
+    is( $info->{samplerate}, 44100, 'MPEG1, Layer 2 samplerate ok' );
+}
+
+# MPEG2, Layer 2, 96k / 16khz mono
+{
+    my $s = Audio::Scan->scan( _f('no-tags-mp1l2-mono.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{layer}, 2, 'MPEG2, Layer 2 ok' );
+    is( $info->{bitrate}, 96, 'MPEG2, Layer 2 bitrate ok' );
+    is( $info->{samplerate}, 16000, 'MPEG2, Layer 2 samplerate ok' );
+    is( $info->{stereo}, 0, 'MPEG2, Layer 2 mono ok' );
+}
 
 # MPEG1, Layer 3, 32k / 32kHz
 {
