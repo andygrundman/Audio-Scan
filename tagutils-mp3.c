@@ -345,6 +345,7 @@ static short _mp3_get_average_bitrate(FILE *infile)
   struct mp3_frameinfo fi;
   int frame_count   = 0;
   int bitrate_total = 0;
+  int err;
   
   unsigned char *buf = malloc(WANTED_FOR_AVG);
   unsigned char *buf_ptr = buf;
@@ -361,9 +362,8 @@ static short _mp3_get_average_bitrate(FILE *infile)
     else {
       fprintf(stderr, "File too small. Probably corrupted.\n");
     }
-    fclose(infile);
-    free(buf_ptr);
-    return -1;
+    err = -1;
+    goto out;
   }
   
   while (buf_size >= 4) {
@@ -372,9 +372,8 @@ static short _mp3_get_average_bitrate(FILE *infile)
       buf_size--;
       
       if ( !buf_size ) {
-        fclose(infile);
-        free(buf_ptr);
-        return -1;
+        err = -1;
+        goto out;
       }
     }
 
@@ -397,8 +396,12 @@ static short _mp3_get_average_bitrate(FILE *infile)
     }
   }
   
+out:
+  
   fclose(infile);
   free(buf_ptr);
+  
+  if (err) return err;
   
   return bitrate_total / frame_count;
 }
@@ -587,10 +590,12 @@ get_mp3fileinfo(char *file, HV *info)
   short bitrate      = 0;    // actual bitrate of song
   
   int found;
+  int err;
 
   if (!(infile=fopen(file, "rb"))) {
     fprintf(stderr, "Could not open %s for reading\n",file);
-    return -1;
+    err = -1;
+    goto out;
   }
   
   memset((void*)&fi, 0, sizeof(fi));
@@ -606,9 +611,9 @@ get_mp3fileinfo(char *file, HV *info)
     else {
       fprintf(stderr, "File too small. Probably corrupted.\n");
     }
-    fclose(infile);
-    free(buf_ptr);
-    return -1;
+    
+    err = -1;
+    goto out;
   }
   
   if (
@@ -647,9 +652,8 @@ get_mp3fileinfo(char *file, HV *info)
       
       if ( !buf_size ) {
         fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
-        fclose(infile);
-        free(buf_ptr);
-        return -1;
+        err = -1;
+        goto out;
       }
     }
 
@@ -667,9 +671,8 @@ get_mp3fileinfo(char *file, HV *info)
   
   if ( !found ) {
     fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
-    fclose(infile);
-    free(buf_ptr);
-    return -1;
+    err = -1;
+    goto out;
   }
   
   audio_size = file_size - audio_offset;
@@ -683,10 +686,8 @@ get_mp3fileinfo(char *file, HV *info)
   }
 
   if ( _decode_mp3_frame(buf, &fi) ) {
-    fclose(infile);
     fprintf(stderr, "Could not find sync frame: %s\n", file);
-    free(buf_ptr);
-    return 0;
+    goto out;
   }
   
   // now check for Xing/Info/VBRI/LAME headers
@@ -835,8 +836,11 @@ get_mp3fileinfo(char *file, HV *info)
     }
   }
 
-  fclose(infile);
+out:
+  if (infile) fclose(infile);
   free(buf_ptr);
+  
+  if (err) return err;
 
   return 0;
 }
