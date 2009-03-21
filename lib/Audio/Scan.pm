@@ -8,10 +8,13 @@ our $VERSION = '0.01';
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
 
-sub scan {
-    my ( $class, $path ) = @_;
+use constant FILTER_INFO_ONLY => 1;
+use constant FILTER_TAGS_ONLY => 2;
+
+sub scan_info {
+    my ( $class, $file ) = @_;
     
-    return $class->_scan( $path );
+    $class->scan( $file, FILTER_INFO_ONLY );
 }
 
 1;
@@ -32,7 +35,8 @@ Audio::Scan - Fast parsing of audio file information and tags
 =head1 THANKS
 
 Some of the file format parsing code was derived from the mt-daapd project,
-and adapted by Netgear.
+and adapted by Netgear.  It has been heavily rewritten to fix bugs and add
+more features.
 
 =head1 AUTHOR
 
@@ -40,7 +44,7 @@ Andy Grundman, E<lt>andy@slimdevices.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009 by Andy Grundman
+Copyright (C) 2009 by Andy Grundman, Logitech, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

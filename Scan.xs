@@ -7,6 +7,9 @@
 #include "tagutils-misc.c"
 #include "tagutils-mp3.c"
 
+#define FILTER_TYPE_INFO 0x01
+#define FILTER_TYPE_TAGS 0x02
+
 struct _types {
   char *type;
   char *suffix[7];
@@ -39,14 +42,20 @@ static taghandler taghandlers[] = {
 MODULE = Audio::Scan		PACKAGE = Audio::Scan		
 
 HV *
-_scan (char *klass, SV *path)
+scan (char *klass, SV *path, ...)
 CODE:
 {
   int typeindex = -1;
   int i, j;
+  int filter = FILTER_TYPE_INFO | FILTER_TYPE_TAGS;
   char *suffix = strrchr( SvPVX(path), '.' );
+  
+  // Check for filter to only run one of the scan types
+  if ( items == 3 && SvOK(ST(2)) ) {
+    filter = SvIV(ST(2));
+  }
 
-  RETVAL = newHV();  
+  RETVAL = newHV();
   
   // don't leak
   sv_2mortal( (SV*)RETVAL );
@@ -73,13 +82,13 @@ CODE:
       if (!strcmp(hdl->type, audio_types[typeindex].type))
         break;
 
-    if (hdl->get_fileinfo) {
+    if ( hdl->get_fileinfo && (filter & FILTER_TYPE_INFO) ) {
       HV *info = newHV();
       hdl->get_fileinfo(SvPVX(path), info);
       hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );
     }
     
-    if (hdl->get_tags) {
+    if ( hdl->get_tags && (filter & FILTER_TYPE_TAGS) ) {
       HV *tags = newHV();
       hdl->get_tags(SvPVX(path), tags);
       hv_store( RETVAL, "tags", 4, newRV_noinc( (SV *)tags ), 0 );

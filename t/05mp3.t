@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 22;
+use Test::More tests => 23;
 
 use Audio::Scan;
 
@@ -80,6 +80,22 @@ use Audio::Scan;
     my $info = $s->{info};
     
     is( $info->{bitrate}, 229, 'Non-Xing VBR average bitrate calc ok' );
+}
+
+# File with no audio frames, test is rejected properly
+{
+    # Hide stderr
+    open OLD_STDERR, ">&STDERR";
+    close STDERR;
+    
+    my $s = Audio::Scan->scan_info( _f('v2.3-no-audio-frames.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{bitrate}, undef, 'File with no audio frames ok' );
+    
+    # Restore stderr
+    open STDERR, ">&OLD_STDERR";
 }
 
 sub _f {    
