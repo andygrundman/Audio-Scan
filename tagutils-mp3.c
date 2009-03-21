@@ -371,6 +371,10 @@ static short _mp3_get_average_bitrate(FILE *infile)
     while ( *buf != 0xFF ) {
       buf++;
       buf_size--;
+      
+      if ( !buf_size ) {
+        return -1;
+      }
     }
 
     if ( !_decode_mp3_frame(buf, &fi) ) {
@@ -596,8 +600,6 @@ get_mp3fileinfo(char *file, HV *info)
     free(buf_ptr);
     return -1;
   }
-
-  found = 0;
   
   if (
     (buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3') &&
@@ -623,37 +625,26 @@ get_mp3fileinfo(char *file, HV *info)
       buf_size = fread(buf, 1, BLOCK_SIZE, infile);
     }
     else {
-	    buf += id3_size;
+      buf += id3_size;
+      buf_size -= id3_size;
     }
     
     audio_offset += id3_size;
   }
-
-  /* Here we start the brute-force header seeking.  Sure wish there
-   * weren't so many crappy mp3 files out there
-   */
-  while (!found) {
-    if (!buf_size) {
-      // Read more data
-      fprintf(stderr, "Reading more data\n");
-      if ((buf_size = fread(buf, 1, BLOCK_SIZE, infile)) == 0) {
-        if (ferror(infile)) {
-          fprintf(stderr, "Error reading: %s\n", strerror(errno));
-        }
-        else {
-          fprintf(stderr, "Unable to find MP3 frame in file.\n");
-        }
-        fclose(infile);
-        free(buf_ptr);
-        return -1;
-      }
-      fprintf(stderr, "Read %d bytes\n", buf_size);
-    }
-    
+  
+  found = 0;
+  
+  // Find an MP3 frame
+  while ( !found && buf_size ) {
     while ( *buf != 0xFF ) {
       buf++;
       buf_size--;
       audio_offset++;
+      
+      if ( !buf_size ) {
+        fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+        return -1;
+      }
     }
 
     if ( !_decode_mp3_frame(buf, &fi) ) {
@@ -666,6 +657,11 @@ get_mp3fileinfo(char *file, HV *info)
       buf_size--;
       audio_offset++;
     }
+  }
+  
+  if ( !found ) {
+    fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+    return -1;
   }
   
   audio_size = file_size - audio_offset;
