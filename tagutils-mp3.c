@@ -345,7 +345,7 @@ static short _mp3_get_average_bitrate(FILE *infile)
   struct mp3_frameinfo fi;
   int frame_count   = 0;
   int bitrate_total = 0;
-  int err;
+  int err = 0;
   
   unsigned char *buf = malloc(WANTED_FOR_AVG);
   unsigned char *buf_ptr = buf;
@@ -590,7 +590,7 @@ get_mp3fileinfo(char *file, HV *info)
   short bitrate      = 0;    // actual bitrate of song
   
   int found;
-  int err;
+  int err = 0;
 
   if (!(infile=fopen(file, "rb"))) {
     fprintf(stderr, "Could not open %s for reading\n",file);
