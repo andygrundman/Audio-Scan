@@ -17,7 +17,7 @@
 /*
  * This file is derived from mt-daap project.
  */
- 
+
 #include "tagutils-mp3.h"
 
 static unsigned char*
@@ -94,13 +94,13 @@ get_mp3tags(char *file, HV *info, HV *tags)
   int index;
   unsigned int nstrings;
   unsigned char trck_found = 0; // whether we found a track tag, used to determine ID3v1 from ID3v1.1
-  
+
   id3_ucs4_t const *key;
   id3_ucs4_t const *value;
   char *utf8_key;
   char *utf8_value;
   SV *bin;
-  
+
   int got_numeric_genre;
   char *tmp;
 
@@ -127,9 +127,9 @@ get_mp3tags(char *file, HV *info, HV *tags)
     utf8_key = NULL;
     utf8_value = NULL;
     got_numeric_genre = 0;
-    
+
     //fprintf(stderr, "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
-    
+
     // Special handling for TXXX frames
     if ( !strcmp(pid3frame->id, "TXXX") ) {
       key = id3_field_getstring(&pid3frame->fields[1]);
@@ -137,7 +137,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
         // Get the key
         utf8_key = (char *)id3_ucs4_utf8duplicate(key);
         hv_store( tags, utf8_key, strlen(utf8_key), NULL, 0 );
-        
+
         // Get the value
         value = id3_field_getstring(&pid3frame->fields[2]);
         if (!value) {
@@ -148,17 +148,17 @@ get_mp3tags(char *file, HV *info, HV *tags)
           hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( utf8_value, 0 ), 0 );
           free(utf8_value);
         }
-        
+
         free(utf8_key);
       }
     }
-    
+
     // Special handling for TCON genre frame, lookup the genre string
     else if ( !strcmp(pid3frame->id, "TCON") ) {
       char *genre_string;
-      
+
       utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
-      
+
       if ( isdigit(utf8_value[0]) ) {
         // Convert to genre string
         genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name( id3_field_getstrings(&pid3frame->fields[1], 0) ) );
@@ -169,15 +169,15 @@ get_mp3tags(char *file, HV *info, HV *tags)
       else {
         hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
       }
-      
+
       free(utf8_value);
     }
-    
+
     // Ignore ZOBS (obsolete) frames
     else if ( !strcmp(pid3frame->id, "ZOBS") ) {
-      
+
     }
-    
+
     // All other frames
     else {
       if (pid3frame->nfields == 1) {
@@ -190,7 +190,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
         if ( !strcmp(pid3frame->id, "TRCK") ) {
           trck_found = 1;
         }
-        
+
         //fprintf(stderr, "  type %d\n", pid3frame->fields[1].type);
         switch (pid3frame->fields[1].type) {
           case ID3_FIELD_TYPE_STRINGLIST:
@@ -205,22 +205,22 @@ get_mp3tags(char *file, HV *info, HV *tags)
               free(utf8_value);
             }
             break;
-        
+
           case ID3_FIELD_TYPE_STRING:
             utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[1]) );
             hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
             free(utf8_value);
             break;
-      
+
           case ID3_FIELD_TYPE_LATIN1:
             hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[1]), 0 ), 0 );
             break;
-          
+
           case ID3_FIELD_TYPE_BINARYDATA:
             bin = newSVpvn( pid3frame->fields[1].binary.data, pid3frame->fields[1].binary.length );
             hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
             break;
-      
+
           default:
             fprintf(stderr, "Unknown type: %d\n", pid3frame->fields[1].type);
             break;
@@ -235,13 +235,13 @@ get_mp3tags(char *file, HV *info, HV *tags)
               hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
               free(utf8_value);
               break;
-              
+
             default:
               fprintf(stderr, "Unsupported COMM type %d\n", pid3frame->fields[3].type);
               break;
           }
         }
-        
+
         // special handling for APIC
         else if ( !strcmp(pid3frame->id, "APIC") ) {
           // XXX: also save other info
@@ -257,7 +257,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
 
     index++;
   }
-  
+
   // Update id3_version field if we found a v1 tag
   if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 ) {
     if (trck_found == 1) {
@@ -281,7 +281,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
   int sample_index;
   int bitrate_index;
   int samplerate_index;
-  
+
   if ((frame[0] != 0xFF) || (frame[1] < 224)) {
     return -1;
   }
@@ -289,7 +289,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
   ver = (frame[1] & 0x18) >> 3;
   pfi->layer = 4 - ((frame[1] & 0x6) >> 1);
   pfi->crc_protected = !(frame[1] & 0x1);
-  
+
   layer_index = sample_index = -1;
 
   switch(ver) {
@@ -340,7 +340,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 
   bitrate_index = (frame[2] & 0xF0) >> 4;
   samplerate_index = (frame[2] & 0x0C) >> 2;
-  
+
   if ((bitrate_index == 0xF) || (bitrate_index==0x0)) {
     return -1;
   }
@@ -396,15 +396,15 @@ static short _mp3_get_average_bitrate(FILE *infile)
   int frame_count   = 0;
   int bitrate_total = 0;
   int err = 0;
-  
+
   unsigned char *buf = malloc(WANTED_FOR_AVG);
   unsigned char *buf_ptr = buf;
   unsigned int buf_size = 0;
-  
+
   // Seek to middle of file
   fseek(infile, 0, SEEK_END);
   fseek(infile, ftell(infile) >> 1, SEEK_SET);
-  
+
   if ((buf_size = fread(buf, 1, WANTED_FOR_AVG, infile)) == 0) {
     if (ferror(infile)) {
       fprintf(stderr, "Error reading: %s\n", strerror(errno));
@@ -415,12 +415,12 @@ static short _mp3_get_average_bitrate(FILE *infile)
     err = -1;
     goto out;
   }
-  
+
   while (buf_size >= 4) {
     while ( *buf != 0xFF ) {
       buf++;
       buf_size--;
-      
+
       if ( !buf_size ) {
         err = -1;
         goto out;
@@ -431,11 +431,11 @@ static short _mp3_get_average_bitrate(FILE *infile)
       // Found a valid frame
       frame_count++;
       bitrate_total += fi.bitrate;
-      
+
       if (fi.frame_length > buf_size) {
         break;
       }
-      
+
       buf += fi.frame_length;
       buf_size -= fi.frame_length;
     }
@@ -445,14 +445,14 @@ static short _mp3_get_average_bitrate(FILE *infile)
       buf_size--;
     }
   }
-  
+
 out:
-  
+
   fclose(infile);
   free(buf_ptr);
-  
+
   if (err) return err;
-  
+
   return bitrate_total / frame_count;
 }
 
@@ -461,7 +461,7 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
 {
   int i;
   int xing_flags;
-    
+
   buf += pfi->xing_offset;
 
   if ( buf[0] == 'X' || buf[0] == 'I' ) {
@@ -542,7 +542,7 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
             else
               continue;
 
-            pfi->lame_replay_gain[gt] 
+            pfi->lame_replay_gain[gt]
               = (( (buf[0] & 0x4) >> 2 ) ? -0.1 : 0.1)
               * ( (buf[0] & 0x3) | buf[1] );
           }
@@ -604,10 +604,10 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
   else if ( buf[0] == 'V' && buf[1] == 'B' && buf[2] == 'R' && buf[3] == 'I' ) {
     // Skip tag and version ID
     buf += 6;
-        
-    pfi->vbri_delay   = GET_INT16BE(buf);    
-    pfi->vbri_quality = GET_INT16BE(buf);    
-    pfi->vbri_bytes   = GET_INT32BE(buf);    
+
+    pfi->vbri_delay   = GET_INT16BE(buf);
+    pfi->vbri_quality = GET_INT16BE(buf);
+    pfi->vbri_bytes   = GET_INT32BE(buf);
     pfi->vbri_frames  = GET_INT32BE(buf);
   }
 }
@@ -617,21 +617,21 @@ get_mp3fileinfo(char *file, HV *info)
 {
   FILE *infile;
   struct mp3_frameinfo fi;
-  
+
   unsigned char *buf = malloc(BLOCK_SIZE);
   unsigned char *buf_ptr = buf;
   char id3v1taghdr[4];
-  
+
   unsigned int id3_size = 0; // size of leading ID3 data
   unsigned int buf_size = 0; // amount of data left in buf
-  
+
   off_t file_size;           // total file size
   off_t audio_offset = 0;    // offset to first audio frame
   off_t audio_size;          // size of all audio frames
-  
+
   int song_length_ms = 0;    // duration of song in ms
   short bitrate      = 0;    // actual bitrate of song
-  
+
   int found;
   int err = 0;
 
@@ -640,7 +640,7 @@ get_mp3fileinfo(char *file, HV *info)
     err = -1;
     goto out;
   }
-  
+
   memset((void*)&fi, 0, sizeof(fi));
 
   fseek(infile,0,SEEK_END);
@@ -654,11 +654,11 @@ get_mp3fileinfo(char *file, HV *info)
     else {
       fprintf(stderr, "File too small. Probably corrupted.\n");
     }
-    
+
     err = -1;
     goto out;
   }
-  
+
   if (
     (buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3') &&
     buf[3] < 0xff && buf[4] < 0xff &&
@@ -668,31 +668,31 @@ get_mp3fileinfo(char *file, HV *info)
 
     /* found an ID3 header... */
     id3_size = 10 + (buf[6]<<21) + (buf[7]<<14) + (buf[8]<<7) + buf[9];
-    
+
     if (buf[5] & 0x10) {
       // footer present
       id3_size += 10;
     }
-    
+
     snprintf(tagversion, sizeof(tagversion), "ID3v2.%d.%d", buf[3], buf[4]);
     hv_store( info, "id3_version", 11, newSVpv( tagversion, 0 ), 0 );
-        
+
     // Always seek past the ID3 tags
     fseek(infile, id3_size, SEEK_SET);
     buf_size = fread(buf, 1, BLOCK_SIZE, infile);
-    
+
     audio_offset += id3_size;
   }
-  
+
   found = 0;
-  
+
   // Find an MP3 frame
   while ( !found && buf_size ) {
     while ( *buf != 0xFF ) {
       buf++;
       buf_size--;
       audio_offset++;
-      
+
       if ( !buf_size ) {
         fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
         err = -1;
@@ -711,15 +711,15 @@ get_mp3fileinfo(char *file, HV *info)
       audio_offset++;
     }
   }
-  
+
   if ( !found ) {
     fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
     err = -1;
     goto out;
   }
-  
+
   audio_size = file_size - audio_offset;
-  
+
   // check if last 128 bytes is ID3v1.0 or ID3v1.1 tag
   fseek(infile, file_size - 128, SEEK_SET);
   if (fread(id3v1taghdr, 1, 4, infile) == 4) {
@@ -732,7 +732,7 @@ get_mp3fileinfo(char *file, HV *info)
     fprintf(stderr, "Could not find sync frame: %s\n", file);
     goto out;
   }
-  
+
   // now check for Xing/Info/VBRI/LAME headers
   _parse_xing(buf, &fi);
 
@@ -748,25 +748,25 @@ get_mp3fileinfo(char *file, HV *info)
       bitrate = fi.lame_abr_rate;
     }
   }
-  
+
   // Or if we have a Xing header, use it to determine bitrate
   else if (fi.xing_frames && fi.xing_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = (short)( fi.xing_bytes / fi.xing_frames * mfs );
   }
-  
+
   // Or use VBRI header
   else if (fi.vbri_frames && fi.vbri_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = (short)( fi.vbri_bytes / fi.vbri_frames * mfs );
   }
-  
+
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
   if ( !bitrate ) {
     if (audio_size >= WANTED_FOR_AVG) {
       bitrate = _mp3_get_average_bitrate(infile);
     }
-    
+
     if (bitrate <= 0) {
       // Couldn't determine bitrate, just use
       // the bitrate from the last frame we parsed
@@ -790,7 +790,7 @@ get_mp3fileinfo(char *file, HV *info)
   }
 
   hv_store( info, "song_length_ms", 14, newSViv(song_length_ms), 0 );
-  
+
   hv_store( info, "layer", 5, newSViv(fi.layer), 0 );
   hv_store( info, "stereo", 6, newSViv(fi.stereo), 0 );
   hv_store( info, "samples_per_frame", 17, newSViv(fi.samples_per_frame), 0 );
@@ -799,59 +799,59 @@ get_mp3fileinfo(char *file, HV *info)
   hv_store( info, "audio_offset", 12, newSViv(audio_offset), 0 );
   hv_store( info, "bitrate", 7, newSViv( bitrate ), 0 );
   hv_store( info, "samplerate", 10, newSViv( fi.samplerate ), 0 );
-  
+
   if (fi.xing_frames) {
     hv_store( info, "xing_frames", 11, newSViv(fi.xing_frames), 0 );
   }
-  
+
   if (fi.xing_bytes) {
     hv_store( info, "xing_bytes", 10, newSViv(fi.xing_bytes), 0 );
   }
-  
+
   if (fi.xing_quality) {
     hv_store( info, "xing_quality", 12, newSViv(fi.xing_quality), 0 );
   }
-  
+
   if (fi.vbri_frames) {
     hv_store( info, "vbri_delay", 10, newSViv(fi.vbri_delay), 0 );
     hv_store( info, "vbri_frames", 11, newSViv(fi.vbri_frames), 0 );
     hv_store( info, "vbri_bytes", 10, newSViv(fi.vbri_bytes), 0 );
     hv_store( info, "vbri_quality", 12, newSViv(fi.vbri_quality), 0 );
-  }    
-  
+  }
+
   if (fi.lame_encoder_version[0]) {
     hv_store( info, "lame_encoder_version", 20, newSVpvn(fi.lame_encoder_version, 9), 0 );
     hv_store( info, "lame_tag_revision", 17, newSViv(fi.lame_tag_revision), 0 );
     hv_store( info, "lame_vbr_method", 15, newSVpv( vbr_methods[fi.lame_vbr_method], 0 ), 0 );
     hv_store( info, "lame_lowpass", 12, newSViv(fi.lame_lowpass), 0 );
-    
+
     if (fi.lame_replay_gain[0]) {
       char tmp[8];
       sprintf(tmp, "%.1f dB", fi.lame_replay_gain[0]);
       hv_store( info, "lame_replay_gain_radio", 22, newSVpv( tmp, 0 ), 0 );
     }
-    
+
     if (fi.lame_replay_gain[1]) {
       char tmp[8];
       sprintf(tmp, "%.1f dB", fi.lame_replay_gain[1]);
       hv_store( info, "lame_replay_gain_audiophile", 27, newSVpv( tmp, 0 ), 0 );
     }
-    
+
     hv_store( info, "lame_encoder_delay", 18, newSViv(fi.lame_encoder_delay), 0 );
     hv_store( info, "lame_encoder_padding", 20, newSViv(fi.lame_encoder_padding), 0 );
-    
+
     hv_store( info, "lame_noise_shaping", 18, newSViv(fi.lame_noise_shaping), 0 );
     hv_store( info, "lame_stereo_mode", 16, newSVpv( stereo_modes[fi.lame_stereo_mode], 0 ), 0 );
     hv_store( info, "lame_unwise_settings", 20, newSViv(fi.lame_unwise), 0 );
     hv_store( info, "lame_source_freq", 16, newSVpv( source_freqs[fi.lame_source_freq], 0 ), 0 );
-    
+
 /*
     hv_store( info, "lame_mp3gain", 12, newSViv(fi.lame_mp3gain), 0 );
     hv_store( info, "lame_mp3gain_db", 15, newSVnv(fi.lame_mp3gain_db), 0 );
 */
-  
+
     hv_store( info, "lame_surround", 13, newSVpv( surround[fi.lame_surround], 0 ), 0 );
-    
+
     if (fi.lame_preset < 8) {
       hv_store( info, "lame_preset", 11, newSVpvn( "Unknown", 7 ), 0 );
     }
@@ -873,7 +873,7 @@ get_mp3fileinfo(char *file, HV *info)
         hv_store( info, "lame_preset", 11, newSVpv( presets_old[fi.lame_preset], 0 ), 0 );
       }
     }
-    
+
     if (fi.vbr == ABR || fi.vbr == VBR) {
       hv_store( info, "vbr", 3, newSViv(1), 0 );
     }
@@ -882,7 +882,7 @@ get_mp3fileinfo(char *file, HV *info)
 out:
   if (infile) fclose(infile);
   free(buf_ptr);
-  
+
   if (err) return err;
 
   return 0;

@@ -38,7 +38,7 @@ struct mp3_frameinfo {
   short mpeg_version;
   unsigned char layer;
   unsigned short bitrate;
-  unsigned int samplerate;	
+  unsigned int samplerate;
   unsigned char stereo;
   unsigned char vbr;
 
@@ -46,13 +46,13 @@ struct mp3_frameinfo {
   unsigned char crc_protected;
   unsigned short samples_per_frame;
   unsigned char padding;
-  
+
   // Xing header
   unsigned int xing_offset;
   unsigned int xing_frames;
   unsigned int xing_bytes;
   unsigned short xing_quality;
-  
+
   // LAME header
   char lame_encoder_version[9];
   unsigned char lame_tag_revision;
@@ -71,7 +71,7 @@ struct mp3_frameinfo {
   unsigned char lame_surround;
   unsigned short lame_preset;
   unsigned int lame_music_length;
-  
+
   // VBRI header
   unsigned short vbri_delay;
   unsigned short vbri_quality;

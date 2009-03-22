@@ -54,31 +54,31 @@ static taghandler taghandlers[] = {
   { NULL, 0, 0 }
 };
 
-MODULE = Audio::Scan		PACKAGE = Audio::Scan		
+MODULE = Audio::Scan		PACKAGE = Audio::Scan
 
 HV *
-scan (char *klass, SV *path, ...)
+scan (char * /*klass*/, SV *path, ...)
 CODE:
 {
   int typeindex = -1;
   int i, j;
   int filter = FILTER_TYPE_INFO | FILTER_TYPE_TAGS;
   char *suffix = strrchr( SvPVX(path), '.' );
-  
+
   // Check for filter to only run one of the scan types
   if ( items == 3 && SvOK(ST(2)) ) {
     filter = SvIV(ST(2));
   }
 
   RETVAL = newHV();
-  
+
   // don't leak
   sv_2mortal( (SV*)RETVAL );
-  
+
   if ( !suffix ) {
     XSRETURN_UNDEF;
   }
-  
+
   suffix++;
   for (i=0; typeindex==-1 && audio_types[i].type; i++) {
     for (j=0; typeindex==-1 && audio_types[i].suffix[j]; j++) {
@@ -88,7 +88,7 @@ CODE:
       }
     }
   }
-  
+
   if (typeindex > 0) {
     taghandler *hdl;
     HV *info = newHV();
@@ -101,13 +101,13 @@ CODE:
     if ( hdl->get_fileinfo && (filter & FILTER_TYPE_INFO) ) {
       hdl->get_fileinfo(SvPVX(path), info);
     }
-    
+
     if ( hdl->get_tags && (filter & FILTER_TYPE_TAGS) ) {
       HV *tags = newHV();
       hdl->get_tags(SvPVX(path), info, tags);
       hv_store( RETVAL, "tags", 4, newRV_noinc( (SV *)tags ), 0 );
     }
-    
+
     // Info may be used in tag function, i.e. to find tag version
     hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );
   }
