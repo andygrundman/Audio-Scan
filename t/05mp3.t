@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 47;
+use Test::More tests => 66;
 
 use Audio::Scan;
 
@@ -179,16 +179,64 @@ use Audio::Scan;
 
 # ID3v1
 {
-    my $s = Audio::Scan->scan_tags( _f('v1.mp3') );
+    my $s = Audio::Scan->scan( _f('v1.mp3') );
     
+    my $info = $s->{info};
     my $tags = $s->{tags};
     
+    is( $info->{id3_version}, 'ID3v1', 'ID3v1 version ok' );
     is( $tags->{TPE1}, 'Artist Name', 'ID3v1 artist ok' );
     is( $tags->{TIT2}, 'Track Title', 'ID3v1 title ok' );
     is( $tags->{TALB}, 'Album Name', 'ID3v1 album ok' );
     is( $tags->{TDRC}, 2009, 'ID3v1 year ok' );
     is( $tags->{TCON}, 'Ambient', 'ID3v1 genre ok' );
     is( $tags->{COMM}, 'This is a comment', 'ID3v1 comment ok' );
+}
+
+# ID3v1.1 (adds track number)
+{
+    my $s = Audio::Scan->scan( _f('v1.1.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v1.1', 'ID3v1.1 version ok' );
+    is( $tags->{TPE1}, 'Artist Name', 'ID3v1.1 artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v1.1 title ok' );
+    is( $tags->{TALB}, 'Album Name', 'ID3v1.1 album ok' );
+    is( $tags->{TDRC}, 2009, 'ID3v1.1 year ok' );
+    is( $tags->{TCON}, 'Ambient', 'ID3v1.1 genre ok' );
+    is( $tags->{COMM}, 'This is a comment', 'ID3v1.1 comment ok' );
+    is( $tags->{TRCK}, 16, 'ID3v1.1 track number ok' );
+}
+
+# ID3v1 with ISO-8859-1 encoding
+{
+    my $s = Audio::Scan->scan_tags( _f('v1-iso-8859-1.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, 'pâté', 'ID3v1 ISO-8859-1 artist ok' );
+    
+    # Make sure it's been converted to UTF-8
+    is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v1 ISO-8859-1 is valid UTF-8' );
+    is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v1 ISO-8859-1 converted to UTF-8 ok' );
+}
+
+# ID3v2.2 (libid3tag converts them to v2.4-equivalent tags)
+{
+    my $s = Audio::Scan->scan( _f('v2.2.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.2.0', 'ID3v2.2 version ok' );
+    is( $tags->{TPE1}, 'Pudge', 'ID3v2.2 artist ok' );
+    is( $tags->{TIT2}, 'Test v2.2.0', 'ID3v2.2 title ok' );
+    is( $tags->{TDRC}, 1998, 'ID3v2.2 year ok' );
+    is( $tags->{TCON}, 'Sound Clip', 'ID3v2.2 genre ok' );
+    is( $tags->{COMM}, 'All Rights Reserved', 'ID3v2.2 comment ok' );
+    is( $tags->{TRCK}, 2, 'ID3v2.2 track number ok' );
 }
 
 sub _f {    

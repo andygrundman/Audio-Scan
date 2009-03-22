@@ -20,7 +20,7 @@ struct _types {
 
 typedef struct {
   char*	type;
-  int (*get_tags)(char* file, HV *tags);
+  int (*get_tags)(char* file, HV *info, HV *tags);
   int (*get_fileinfo)(char* file, HV *tags);
 } taghandler;
 
@@ -91,6 +91,7 @@ CODE:
   
   if (typeindex > 0) {
     taghandler *hdl;
+    HV *info = newHV();
 
     // dispatch to appropriate tag handler
     for (hdl = taghandlers; hdl->type; ++hdl)
@@ -98,16 +99,17 @@ CODE:
         break;
 
     if ( hdl->get_fileinfo && (filter & FILTER_TYPE_INFO) ) {
-      HV *info = newHV();
       hdl->get_fileinfo(SvPVX(path), info);
-      hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );
     }
     
     if ( hdl->get_tags && (filter & FILTER_TYPE_TAGS) ) {
       HV *tags = newHV();
-      hdl->get_tags(SvPVX(path), tags);
+      hdl->get_tags(SvPVX(path), info, tags);
       hv_store( RETVAL, "tags", 4, newRV_noinc( (SV *)tags ), 0 );
     }
+    
+    // Info may be used in tag function, i.e. to find tag version
+    hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );
   }
   else {
     croak("Audio::Scan unsupported file type: %s", SvPVX(path));

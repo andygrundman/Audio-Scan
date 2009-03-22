@@ -85,7 +85,7 @@ _get_utf8_text(const id3_ucs4_t* native_text) {
 }
 
 static int
-get_mp3tags(char *file, HV *tags)
+get_mp3tags(char *file, HV *info, HV *tags)
 {
   struct id3_file *pid3file;
   struct id3_tag *pid3tag;
@@ -93,6 +93,7 @@ get_mp3tags(char *file, HV *tags)
   int err;
   int index;
   unsigned int nstrings;
+  unsigned char trck_found = 0; // whether we found a track tag, used to determine ID3v1 from ID3v1.1
   
   id3_ucs4_t const *key;
   id3_ucs4_t const *value;
@@ -172,6 +173,11 @@ get_mp3tags(char *file, HV *tags)
       free(utf8_value);
     }
     
+    // Ignore ZOBS (obsolete) frames
+    else if ( !strcmp(pid3frame->id, "ZOBS") ) {
+      
+    }
+    
     // All other frames
     else {
       if (pid3frame->nfields == 1) {
@@ -180,6 +186,11 @@ get_mp3tags(char *file, HV *tags)
         hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
       }
       else if (pid3frame->nfields == 2) {
+        // Remember if TRCK tag is found for ID3v1.1
+        if ( !strcmp(pid3frame->id, "TRCK") ) {
+          trck_found = 1;
+        }
+        
         //fprintf(stderr, "  type %d\n", pid3frame->fields[1].type);
         switch (pid3frame->fields[1].type) {
           case ID3_FIELD_TYPE_STRINGLIST:
@@ -245,6 +256,16 @@ get_mp3tags(char *file, HV *tags)
     }
 
     index++;
+  }
+  
+  // Update id3_version field if we found a v1 tag
+  if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 ) {
+    if (trck_found == 1) {
+      hv_store( info, "id3_version", 11, newSVpv( "ID3v1.1", 0 ), 0 );
+    }
+    else {
+      hv_store( info, "id3_version", 11, newSVpv( "ID3v1", 0 ), 0 );
+    }
   }
 
   id3_file_close(pid3file);
