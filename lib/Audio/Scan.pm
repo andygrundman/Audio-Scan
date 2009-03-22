@@ -17,18 +17,30 @@ sub scan_info {
     $class->scan( $file, FILTER_INFO_ONLY );
 }
 
+sub scan_tags {
+    my ( $class, $file ) = @_;
+    
+    $class->scan( $file, FILTER_TAGS_ONLY );
+}
+
 1;
 __END__
 
 =head1 NAME
 
-Audio::Scan - Fast parsing of audio file information and tags
+Audio::Scan - Fast parsing of audio file information and/or tags
 
 =head1 SYNOPSIS
 
   use Audio::Scan;
   
   my $data = Audio::Scan->scan('/path/to/file.mp3');
+  
+  # Just file info
+  my $info = Audio::Scan->scan_info('/path/to/file.mp3');
+  
+  # Just tags
+  my $tags = Audio::Scan->scan_tags('/path/to/file.mp3');
 
 =head1 DESCRIPTION
 

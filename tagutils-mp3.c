@@ -1,10 +1,3 @@
-//=========================================================================
-// FILENAME	: tagutils-mp3.c
-// DESCRIPTION	: MP3 metadata reader
-//=========================================================================
-// Copyright (c) 2008- NETGEAR, Inc. All Rights Reserved.
-//=========================================================================
-
 /*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -555,17 +548,10 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
     // Skip tag and version ID
     buf += 6;
         
-    pfi->vbri_delay = (buf[0] << 8) | buf[1];
-    buf += 2;
-    
-    pfi->vbri_quality = (buf[0] << 8) | buf[1];
-    buf += 2;
-    
-    pfi->vbri_bytes = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
-    buf += 4;
-    
-    pfi->vbri_frames = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
-    buf += 4;
+    pfi->vbri_delay   = GET_INT16BE(buf);    
+    pfi->vbri_quality = GET_INT16BE(buf);    
+    pfi->vbri_bytes   = GET_INT32BE(buf);    
+    pfi->vbri_frames  = GET_INT32BE(buf);
   }
 }
 

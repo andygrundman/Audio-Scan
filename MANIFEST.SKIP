@@ -28,3 +28,8 @@
 # No tarballs!
 \.gz$
 
+# Dev stuff
+TODO
+\.pl
+t/mp3/source.mp3
+t/mp3/ext
