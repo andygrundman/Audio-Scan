@@ -1,6 +1,6 @@
 use strict;
-use Config;
-use ExtUtils::MakeMaker qw(prompt WriteMakefile);
+
+use ExtUtils::MakeMaker qw(WriteMakefile);
 use File::Spec::Functions;
 use Getopt::Long;
 
