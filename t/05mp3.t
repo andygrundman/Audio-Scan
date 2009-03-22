@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 41;
+use Test::More tests => 47;
 
 use Audio::Scan;
 
@@ -173,6 +173,22 @@ use Audio::Scan;
     is( $info->{vbri_delay}, 2353, 'VBRI delay ok' );
     is( $info->{bitrate}, 61, 'VBRI bitrate ok' );
     is( $info->{song_length_ms}, 1071, 'VBRI duration ok' );
+}
+
+### ID3 tag tests
+
+# ID3v1
+{
+    my $s = Audio::Scan->scan_tags( _f('v1.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, 'Artist Name', 'ID3v1 artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v1 title ok' );
+    is( $tags->{TALB}, 'Album Name', 'ID3v1 album ok' );
+    is( $tags->{TDRC}, 2009, 'ID3v1 year ok' );
+    is( $tags->{TCON}, 'Ambient', 'ID3v1 genre ok' );
+    is( $tags->{COMM}, 'This is a comment', 'ID3v1 comment ok' );
 }
 
 sub _f {    

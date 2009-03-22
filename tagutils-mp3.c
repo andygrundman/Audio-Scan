@@ -152,6 +152,26 @@ get_mp3tags(char *file, HV *tags)
       }
     }
     
+    // Special handling for TCON genre frame, lookup the genre string
+    else if ( !strcmp(pid3frame->id, "TCON") ) {
+      char *genre_string;
+      
+      utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
+      
+      if ( isdigit(utf8_value[0]) ) {
+        // Convert to genre string
+        genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name( id3_field_getstrings(&pid3frame->fields[1], 0) ) );
+        hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( genre_string, 0 ), 0 );
+        free(genre_string);
+      }
+      // XXX support '(23) Ambient'
+      else {
+        hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+      }
+      
+      free(utf8_value);
+    }
+    
     // All other frames
     else {
       if (pid3frame->nfields == 1) {
@@ -160,6 +180,7 @@ get_mp3tags(char *file, HV *tags)
         hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
       }
       else if (pid3frame->nfields == 2) {
+        //fprintf(stderr, "  type %d\n", pid3frame->fields[1].type);
         switch (pid3frame->fields[1].type) {
           case ID3_FIELD_TYPE_STRINGLIST:
             nstrings = id3_field_getnstrings(&pid3frame->fields[1]);
@@ -195,8 +216,23 @@ get_mp3tags(char *file, HV *tags)
         }
       }
       else {
+        // special handling for COMM
+        if ( !strcmp(pid3frame->id, "COMM") ) {
+          switch (pid3frame->fields[3].type) {
+            case ID3_FIELD_TYPE_STRINGFULL:
+              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[3]) );
+              hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+              free(utf8_value);
+              break;
+              
+            default:
+              fprintf(stderr, "Unsupported COMM type %d\n", pid3frame->fields[3].type);
+              break;
+          }
+        }
+        
         // special handling for APIC
-        if ( !strcmp(pid3frame->id, "APIC") ) {
+        else if ( !strcmp(pid3frame->id, "APIC") ) {
           // XXX: also save other info
           bin = newSVpvn( pid3frame->fields[4].binary.data, pid3frame->fields[4].binary.length );
           hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );

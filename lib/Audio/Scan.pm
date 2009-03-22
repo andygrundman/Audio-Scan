@@ -50,6 +50,9 @@ Some of the file format parsing code was derived from the mt-daapd project,
 and adapted by Netgear.  It has been heavily rewritten to fix bugs and add
 more features.
 
+The source to the original Netgear C scanner for SqueezeCenter is located
+at L<http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/contrib/scanner>
+
 =head1 AUTHOR
 
 Andy Grundman, E<lt>andy@slimdevices.comE<gt>
