@@ -5,7 +5,10 @@
 #include "ppport.h"
 
 #include "tagutils-misc.c"
+
+#ifdef HAVE_MP3
 #include "tagutils-mp3.c"
+#endif
 
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02
@@ -23,18 +26,30 @@ typedef struct {
 
 struct _types audio_types[] = {
   {"aac", {"mp4", "mp4", "m4a", "m4p", 0}},
+#ifdef HAVE_MP3
   {"mp3", {"mp3", "mp2", 0}},
+#endif
+#ifdef HAVE_OGG
   {"ogg", {"ogg", "oga", 0}},
+#endif
+#ifdef HAVE_FLAC
   {"flc", {"flc", "flac", "fla", 0}},
+#endif
   {"asf", {"wma", 0}},
   {0, {0, 0}}
 };
 
 static taghandler taghandlers[] = {
   { "aac", 0, 0 },
+#ifdef HAVE_MP3
   { "mp3", get_mp3tags, get_mp3fileinfo },
+#endif
+#ifdef HAVE_OGG
   { "ogg", 0, 0 },
+#endif
+#ifdef HAVE_FLAC
   { "flc", 0, 0 },
+#endif
   { "asf", 0, 0 },
   { NULL, 0, 0 }
 };
@@ -93,6 +108,9 @@ CODE:
       hdl->get_tags(SvPVX(path), tags);
       hv_store( RETVAL, "tags", 4, newRV_noinc( (SV *)tags ), 0 );
     }
+  }
+  else {
+    croak("Audio::Scan unsupported file type: %s", SvPVX(path));
   }
 }
 OUTPUT:
