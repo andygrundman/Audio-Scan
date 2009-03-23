@@ -90,17 +90,17 @@ get_mp3tags(char *file, HV *info, HV *tags)
       if (key) {
         // Get the key
         utf8_key = (char *)id3_ucs4_utf8duplicate(key);
-        hv_store( tags, utf8_key, strlen(utf8_key), NULL, 0 );
+        my_hv_store( tags, utf8_key, NULL );
 
         // Get the value
         switch (pid3frame->fields[2].type) {
           case ID3_FIELD_TYPE_LATIN1:
-            hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ), 0 );
+            my_hv_store( tags, utf8_key, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ) );
             break;
           
           case ID3_FIELD_TYPE_STRING:
             utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstring(&pid3frame->fields[2]) );
-            hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( utf8_value, 0 ), 0 );
+            my_hv_store( tags, utf8_key, newSVpv( utf8_value, 0 ) );
             free(utf8_value);
             break;
             
@@ -122,7 +122,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
       if ( isdigit(utf8_value[0]) ) {
         // Convert to genre string
         genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name( id3_field_getstrings(&pid3frame->fields[1], 0) ) );
-        hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( genre_string, 0 ), 0 );
+        my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
         free(genre_string);
       }
       else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
@@ -130,12 +130,12 @@ get_mp3tags(char *file, HV *info, HV *tags)
         id3_ucs4_t *ucs4_num = malloc(sizeof(id3_ucs4_t));
         id3_ucs4_putnumber( ucs4_num, strtol( (char *)&utf8_value[1], NULL, 0 ) );
         genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(ucs4_num) );
-        hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( genre_string, 0 ), 0 );
+        my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
         free(genre_string);
         free(ucs4_num);
       }
       else {
-        hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+        my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
       }
 
       free(utf8_value);
@@ -153,21 +153,21 @@ get_mp3tags(char *file, HV *info, HV *tags)
       if (pid3frame->nfields == 1) {
         switch (pid3frame->fields[0].type) {
           case ID3_FIELD_TYPE_LATIN1:
-            hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[0]), 0 ), 0 );
+            my_hv_store( tags, pid3frame->id, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[0]), 0 ) );
             break;
             
           case ID3_FIELD_TYPE_INT32PLUS:
-            hv_store( 
-              tags, pid3frame->id, strlen(pid3frame->id),
-              newSViv( _varint( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length ) ),
-              0
+            my_hv_store( 
+              tags,
+              pid3frame->id,
+              newSViv( _varint( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length ) )
             );
             break;
            
           case ID3_FIELD_TYPE_BINARYDATA:
             // unknown frames (i.e. XSOP) that are just available as binary data
             bin = newSVpvn( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
-            hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+            my_hv_store( tags, pid3frame->id, bin );
           
           default:
             PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[0].type);
@@ -189,24 +189,24 @@ get_mp3tags(char *file, HV *info, HV *tags)
             }
             else {
               utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
-              hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+              my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
               free(utf8_value);
             }
             break;
 
           case ID3_FIELD_TYPE_STRING:
             utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[1]) );
-            hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+            my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
             free(utf8_value);
             break;
 
           case ID3_FIELD_TYPE_LATIN1:
-            hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[1]), 0 ), 0 );
+            my_hv_store( tags, pid3frame->id, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[1]), 0 ) );
             break;
 
           case ID3_FIELD_TYPE_BINARYDATA:
             bin = newSVpvn( pid3frame->fields[1].binary.data, pid3frame->fields[1].binary.length );
-            hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+            my_hv_store( tags, pid3frame->id, bin );
             break;
 
           default:
@@ -220,7 +220,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
           switch (pid3frame->fields[3].type) {
             case ID3_FIELD_TYPE_STRINGFULL:
               utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[3]) );
-              hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
+              my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
               free(utf8_value);
               break;
 
@@ -234,7 +234,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
         else if ( !strcmp(pid3frame->id, "APIC") ) {
           // XXX: also save other info
           bin = newSVpvn( pid3frame->fields[4].binary.data, pid3frame->fields[4].binary.length );
-          hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+          my_hv_store( tags, pid3frame->id, bin );
         }
         else {
           // XXX
@@ -249,10 +249,10 @@ get_mp3tags(char *file, HV *info, HV *tags)
   // Update id3_version field if we found a v1 tag
   if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 ) {
     if (trck_found == 1) {
-      hv_store( info, "id3_version", 11, newSVpv( "ID3v1.1", 0 ), 0 );
+      my_hv_store( info, "id3_version", newSVpv( "ID3v1.1", 0 ) );
     }
     else {
-      hv_store( info, "id3_version", 11, newSVpv( "ID3v1", 0 ), 0 );
+      my_hv_store( info, "id3_version", newSVpv( "ID3v1", 0 ) );
     }
   }
 
@@ -661,7 +661,7 @@ get_mp3fileinfo(char *file, HV *info)
     }
 
     snprintf(tagversion, sizeof(tagversion), "ID3v2.%d.%d", buf[3], buf[4]);
-    hv_store( info, "id3_version", 11, newSVpv( tagversion, 0 ), 0 );
+    my_hv_store( info, "id3_version", newSVpv( tagversion, 0 ) );
 
     // Always seek past the ID3 tags
     PerlIO_seek(infile, id3_size, SEEK_SET);
@@ -775,93 +775,93 @@ get_mp3fileinfo(char *file, HV *info)
     }
   }
 
-  hv_store( info, "song_length_ms", 14, newSViv(song_length_ms), 0 );
+  my_hv_store( info, "song_length_ms", newSViv(song_length_ms) );
 
-  hv_store( info, "layer", 5, newSViv(fi.layer), 0 );
-  hv_store( info, "stereo", 6, newSViv(fi.stereo), 0 );
-  hv_store( info, "samples_per_frame", 17, newSViv(fi.samples_per_frame), 0 );
-  hv_store( info, "padding", 7, newSViv(fi.padding), 0 );
-  hv_store( info, "audio_size", 10, newSViv(audio_size), 0 );
-  hv_store( info, "audio_offset", 12, newSViv(audio_offset), 0 );
-  hv_store( info, "bitrate", 7, newSViv( bitrate ), 0 );
-  hv_store( info, "samplerate", 10, newSViv( fi.samplerate ), 0 );
+  my_hv_store( info, "layer", newSViv(fi.layer) );
+  my_hv_store( info, "stereo", newSViv(fi.stereo) );
+  my_hv_store( info, "samples_per_frame", newSViv(fi.samples_per_frame) );
+  my_hv_store( info, "padding", newSViv(fi.padding) );
+  my_hv_store( info, "audio_size", newSViv(audio_size) );
+  my_hv_store( info, "audio_offset", newSViv(audio_offset) );
+  my_hv_store( info, "bitrate", newSViv( bitrate ) );
+  my_hv_store( info, "samplerate", newSViv( fi.samplerate ) );
 
   if (fi.xing_frames) {
-    hv_store( info, "xing_frames", 11, newSViv(fi.xing_frames), 0 );
+    my_hv_store( info, "xing_frames", newSViv(fi.xing_frames) );
   }
 
   if (fi.xing_bytes) {
-    hv_store( info, "xing_bytes", 10, newSViv(fi.xing_bytes), 0 );
+    my_hv_store( info, "xing_bytes", newSViv(fi.xing_bytes) );
   }
 
   if (fi.xing_quality) {
-    hv_store( info, "xing_quality", 12, newSViv(fi.xing_quality), 0 );
+    my_hv_store( info, "xing_quality", newSViv(fi.xing_quality) );
   }
 
   if (fi.vbri_frames) {
-    hv_store( info, "vbri_delay", 10, newSViv(fi.vbri_delay), 0 );
-    hv_store( info, "vbri_frames", 11, newSViv(fi.vbri_frames), 0 );
-    hv_store( info, "vbri_bytes", 10, newSViv(fi.vbri_bytes), 0 );
-    hv_store( info, "vbri_quality", 12, newSViv(fi.vbri_quality), 0 );
+    my_hv_store( info, "vbri_delay", newSViv(fi.vbri_delay) );
+    my_hv_store( info, "vbri_frames", newSViv(fi.vbri_frames) );
+    my_hv_store( info, "vbri_bytes", newSViv(fi.vbri_bytes) );
+    my_hv_store( info, "vbri_quality", newSViv(fi.vbri_quality) );
   }
 
   if (fi.lame_encoder_version[0]) {
-    hv_store( info, "lame_encoder_version", 20, newSVpvn(fi.lame_encoder_version, 9), 0 );
-    hv_store( info, "lame_tag_revision", 17, newSViv(fi.lame_tag_revision), 0 );
-    hv_store( info, "lame_vbr_method", 15, newSVpv( vbr_methods[fi.lame_vbr_method], 0 ), 0 );
-    hv_store( info, "lame_lowpass", 12, newSViv(fi.lame_lowpass), 0 );
+    my_hv_store( info, "lame_encoder_version", newSVpvn(fi.lame_encoder_version, 9) );
+    my_hv_store( info, "lame_tag_revision", newSViv(fi.lame_tag_revision) );
+    my_hv_store( info, "lame_vbr_method", newSVpv( vbr_methods[fi.lame_vbr_method], 0 ) );
+    my_hv_store( info, "lame_lowpass", newSViv(fi.lame_lowpass) );
 
     if (fi.lame_replay_gain[0]) {
       char tmp[8];
       sprintf(tmp, "%.1f dB", fi.lame_replay_gain[0]);
-      hv_store( info, "lame_replay_gain_radio", 22, newSVpv( tmp, 0 ), 0 );
+      my_hv_store( info, "lame_replay_gain_radio", newSVpv( tmp, 0 ) );
     }
 
     if (fi.lame_replay_gain[1]) {
       char tmp[8];
       sprintf(tmp, "%.1f dB", fi.lame_replay_gain[1]);
-      hv_store( info, "lame_replay_gain_audiophile", 27, newSVpv( tmp, 0 ), 0 );
+      my_hv_store( info, "lame_replay_gain_audiophile", newSVpv( tmp, 0 ) );
     }
 
-    hv_store( info, "lame_encoder_delay", 18, newSViv(fi.lame_encoder_delay), 0 );
-    hv_store( info, "lame_encoder_padding", 20, newSViv(fi.lame_encoder_padding), 0 );
+    my_hv_store( info, "lame_encoder_delay", newSViv(fi.lame_encoder_delay) );
+    my_hv_store( info, "lame_encoder_padding", newSViv(fi.lame_encoder_padding) );
 
-    hv_store( info, "lame_noise_shaping", 18, newSViv(fi.lame_noise_shaping), 0 );
-    hv_store( info, "lame_stereo_mode", 16, newSVpv( stereo_modes[fi.lame_stereo_mode], 0 ), 0 );
-    hv_store( info, "lame_unwise_settings", 20, newSViv(fi.lame_unwise), 0 );
-    hv_store( info, "lame_source_freq", 16, newSVpv( source_freqs[fi.lame_source_freq], 0 ), 0 );
+    my_hv_store( info, "lame_noise_shaping", newSViv(fi.lame_noise_shaping) );
+    my_hv_store( info, "lame_stereo_mode", newSVpv( stereo_modes[fi.lame_stereo_mode], 0 ) );
+    my_hv_store( info, "lame_unwise_settings", newSViv(fi.lame_unwise) );
+    my_hv_store( info, "lame_source_freq", newSVpv( source_freqs[fi.lame_source_freq], 0 ) );
 
 /*
-    hv_store( info, "lame_mp3gain", 12, newSViv(fi.lame_mp3gain), 0 );
-    hv_store( info, "lame_mp3gain_db", 15, newSVnv(fi.lame_mp3gain_db), 0 );
+    my_hv_store( info, "lame_mp3gain", newSViv(fi.lame_mp3gain) );
+    my_hv_store( info, "lame_mp3gain_db", newSVnv(fi.lame_mp3gain_db) );
 */
 
-    hv_store( info, "lame_surround", 13, newSVpv( surround[fi.lame_surround], 0 ), 0 );
+    my_hv_store( info, "lame_surround", newSVpv( surround[fi.lame_surround], 0 ) );
 
     if (fi.lame_preset < 8) {
-      hv_store( info, "lame_preset", 11, newSVpvn( "Unknown", 7 ), 0 );
+      my_hv_store( info, "lame_preset", newSVpvn( "Unknown", 7 ) );
     }
     else if (fi.lame_preset <= 320) {
       char tmp[8];
       sprintf(tmp, "ABR %d", fi.lame_preset);
-      hv_store( info, "lame_preset", 11, newSVpv( tmp, 0 ), 0 );
+      my_hv_store( info, "lame_preset", newSVpv( tmp, 0 ) );
     }
     else if (fi.lame_preset <= 500) {
       fi.lame_preset /= 10;
       fi.lame_preset -= 41;
       if ( presets_v[fi.lame_preset] ) {
-        hv_store( info, "lame_preset", 11, newSVpv( presets_v[fi.lame_preset], 0 ), 0 );
+        my_hv_store( info, "lame_preset", newSVpv( presets_v[fi.lame_preset], 0 ) );
       }
     }
     else if (fi.lame_preset <= 1007) {
       fi.lame_preset -= 1000;
       if ( presets_old[fi.lame_preset] ) {
-        hv_store( info, "lame_preset", 11, newSVpv( presets_old[fi.lame_preset], 0 ), 0 );
+        my_hv_store( info, "lame_preset", newSVpv( presets_old[fi.lame_preset], 0 ) );
       }
     }
 
     if (fi.vbr == ABR || fi.vbr == VBR) {
-      hv_store( info, "vbr", 3, newSViv(1), 0 );
+      my_hv_store( info, "vbr", newSViv(1) );
     }
   }
 
