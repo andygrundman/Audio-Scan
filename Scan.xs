@@ -4,8 +4,6 @@
 
 #include "ppport.h"
 
-#include "tagutils-misc.c"
-
 #ifdef HAVE_MP3
 #include "tagutils-mp3.c"
 #endif
