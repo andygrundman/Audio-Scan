@@ -12,7 +12,10 @@ else {
     eval { require Test::Perl::Critic };
 
     SKIP: {
-        skip( 'You must install Test::Perl::Critic to run 04critic.t', 1 ) if $@;
+        if ( $@ ) {
+            plan tests => 1;
+            skip( 'You must install Test::Perl::Critic to run 04critic.t', 1 ) if $@;
+        }
 
         my $rcfile = File::Spec->catfile( 't', '04critic.rc' );
         Test::Perl::Critic->import( -profile => $rcfile );
