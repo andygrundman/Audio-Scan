@@ -8,6 +8,10 @@
 #include "tagutils-mp3.c"
 #endif
 
+#ifdef HAVE_FLAC
+#include "tagutils-flac.c"
+#endif
+
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02
 
@@ -46,7 +50,7 @@ static taghandler taghandlers[] = {
   { "ogg", 0, 0 },
 #endif
 #ifdef HAVE_FLAC
-  { "flc", 0, 0 },
+  { "flc", get_flac_metadata, 0 },
 #endif
   { "asf", 0, 0 },
   { NULL, 0, 0 }

@@ -12,6 +12,13 @@ t/03podcoverage.t
 t/04critic.rc
 t/04critic.t
 t/05mp3.t
+t/06flac.t
+t/flac/appId.flac
+t/flac/empty.flac
+t/flac/id3tagged.flac
+t/flac/md5.flac
+t/flac/picture.flac
+t/flac/test.flac
 t/mp3/bug5686/latin/good.mp3
 t/mp3/bug5686/utf/invalid.mp3
 t/mp3/no-tags-mp1l2-mono.mp3
@@ -46,6 +53,8 @@ t/mp3/v2.4-utf16be.mp3
 t/mp3/v2.4-utf16le.mp3
 t/mp3/v2.4-utf8.mp3
 t/mp3/v2.4.mp3
+tagutils-flac.c
+tagutils-flac.h
 tagutils-misc.c
 tagutils-mp3.c
 tagutils-mp3.h
