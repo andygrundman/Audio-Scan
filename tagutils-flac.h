@@ -29,5 +29,6 @@
 /* strlen the length automatically */
 #define my_hv_store(a,b,c)   hv_store(a,b,strlen(b),c,0)
 #define my_hv_fetch(a,b)     hv_fetch(a,b,strlen(b),0)
+#define my_hv_exists(a,b)    hv_exists(a,b,strlen(b))
 
 static int get_flac_metadata(char *file, HV *info, HV *tags);

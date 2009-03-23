@@ -163,8 +163,8 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
           tag = hv_fetch(tags, entry, half - entry, 0);
 
           /* fetch the multi-value separator or default and append to the entry */
-          if (hv_exists(tags, "separator", 9)) {
-            separator = hv_fetch(tags, "separator", 9, 0);
+          if (my_hv_exists(tags, "separator")) {
+            separator = my_hv_fetch(tags, "separator");
             sv_catsv(*tag, *separator);
           } else {
             sv_catpv(*tag, "/");
@@ -286,7 +286,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       storePicture = 1;
 
       /* update allpictures */
-      if (hv_exists(tags, "allpictures", 11)) {
+      if (my_hv_exists(tags, "allpictures")) {
         allpicturesContainer = (AV *) SvRV(*my_hv_fetch(tags, "allpictures"));
       } else {
         allpicturesContainer = newAV();
@@ -492,7 +492,7 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     my_hv_store(info, "startAudioData", newSVnv(len));
 
     /* Now calculate the bit rate and file size */
-    if (hv_exists(tags, "trackTotalLengthSeconds", 24)) {
+    if (my_hv_exists(info, "trackTotalLengthSeconds")) {
 
       totalSeconds = (float)SvIV(*(my_hv_fetch(info, "trackTotalLengthSeconds")));
 
