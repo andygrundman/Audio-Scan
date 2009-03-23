@@ -10,13 +10,13 @@ if ( !-e "$FindBin::Bin/../MANIFEST.SKIP" ) {
 }
 else {
     eval { require Test::Perl::Critic };
-    if ( $@ ) {
+
+    SKIP: {
         plan tests => 1;
-        fail( 'You must install Test::Perl::Critic to run 04critic.t' );
-        exit;
+        skip( 'You must install Test::Perl::Critic to run 04critic.t', 1 ) if $@;
+
+        my $rcfile = File::Spec->catfile( 't', '04critic.rc' );
+        Test::Perl::Critic->import( -profile => $rcfile );
+        all_critic_ok();
     }
 }
-
-my $rcfile = File::Spec->catfile( 't', '04critic.rc' );
-Test::Perl::Critic->import( -profile => $rcfile );
-all_critic_ok();
