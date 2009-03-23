@@ -85,6 +85,23 @@ _get_utf8_text(const id3_ucs4_t* native_text) {
 }
 
 static int
+_varint(unsigned char *buf, int length)
+{
+  int i, b, number = 0;
+  
+  if (buf) {
+    for ( i = 0; i < length; i++ ) { 
+      b = length - 1 - i;                                                       
+      number = number | (unsigned int)( buf[i] & 0xff ) << ( 8*b );
+    }
+    return number;
+  }
+  else {
+    return 0;
+  }
+}
+
+static int
 get_mp3tags(char *file, HV *info, HV *tags)
 {
   struct id3_file *pid3file;
@@ -102,7 +119,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
   SV *bin;
 
   int got_numeric_genre;
-  char *tmp;
 
   pid3file = id3_file_open(file, ID3_FILE_MODE_READONLY);
   if (!pid3file) {
@@ -130,8 +146,10 @@ get_mp3tags(char *file, HV *info, HV *tags)
 
     //fprintf(stderr, "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
 
-    // Special handling for TXXX frames
-    if ( !strcmp(pid3frame->id, "TXXX") ) {
+    // Special handling for TXXX/WXXX frames
+    if ( !strcmp(pid3frame->id, "TXXX") || !strcmp(pid3frame->id, "WXXX") ) {
+      //fprintf(stderr, "  type %d / %d\n", pid3frame->fields[1].type, pid3frame->fields[2].type);
+      
       key = id3_field_getstring(&pid3frame->fields[1]);
       if (key) {
         // Get the key
@@ -139,14 +157,20 @@ get_mp3tags(char *file, HV *info, HV *tags)
         hv_store( tags, utf8_key, strlen(utf8_key), NULL, 0 );
 
         // Get the value
-        value = id3_field_getstring(&pid3frame->fields[2]);
-        if (!value) {
-          hv_delete( tags, utf8_key, strlen(utf8_key), 0 );
-        }
-        else {
-          utf8_value = (char *)id3_ucs4_utf8duplicate(value);
-          hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( utf8_value, 0 ), 0 );
-          free(utf8_value);
+        switch (pid3frame->fields[2].type) {
+          case ID3_FIELD_TYPE_LATIN1:
+            hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ), 0 );
+            break;
+          
+          case ID3_FIELD_TYPE_STRING:
+            utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstring(&pid3frame->fields[2]) );
+            hv_store( tags, utf8_key, strlen(utf8_key), newSVpv( utf8_value, 0 ), 0 );
+            free(utf8_value);
+            break;
+            
+          default:
+            fprintf(stderr, "Unhandled field type: %s %d / %d\n", pid3frame->id, pid3frame->fields[1].type, pid3frame->fields[2].type);
+            break;
         }
 
         free(utf8_key);
@@ -165,7 +189,15 @@ get_mp3tags(char *file, HV *info, HV *tags)
         hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( genre_string, 0 ), 0 );
         free(genre_string);
       }
-      // XXX support '(23) Ambient'
+      else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
+        // handle '(26)Ambient'
+        id3_ucs4_t *ucs4_num = malloc(sizeof(id3_ucs4_t));
+        id3_ucs4_putnumber( ucs4_num, strtol( (char *)&utf8_value[1], NULL, 0 ) );
+        genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(ucs4_num) );
+        hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( genre_string, 0 ), 0 );
+        free(genre_string);
+        free(ucs4_num);
+      }
       else {
         hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( utf8_value, 0 ), 0 );
       }
@@ -180,18 +212,38 @@ get_mp3tags(char *file, HV *info, HV *tags)
 
     // All other frames
     else {
+      //fprintf(stderr, "  type %d\n", pid3frame->fields[0].type);
+      
       if (pid3frame->nfields == 1) {
-        // unknown frames (i.e. XSOP) that are just available as binary data
-        bin = newSVpvn( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
-        hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+        switch (pid3frame->fields[0].type) {
+          case ID3_FIELD_TYPE_LATIN1:
+            hv_store( tags, pid3frame->id, strlen(pid3frame->id), newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[0]), 0 ), 0 );
+            break;
+            
+          case ID3_FIELD_TYPE_INT32PLUS:
+            hv_store( 
+              tags, pid3frame->id, strlen(pid3frame->id),
+              newSViv( _varint( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length ) ),
+              0
+            );
+            break;
+           
+          case ID3_FIELD_TYPE_BINARYDATA:
+            // unknown frames (i.e. XSOP) that are just available as binary data
+            bin = newSVpvn( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
+            hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
+          
+          default:
+            fprintf(stderr, "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[0].type);
+            break;
+        }
       }
       else if (pid3frame->nfields == 2) {
         // Remember if TRCK tag is found for ID3v1.1
         if ( !strcmp(pid3frame->id, "TRCK") ) {
           trck_found = 1;
         }
-
-        //fprintf(stderr, "  type %d\n", pid3frame->fields[1].type);
+        
         switch (pid3frame->fields[1].type) {
           case ID3_FIELD_TYPE_STRINGLIST:
             nstrings = id3_field_getnstrings(&pid3frame->fields[1]);
@@ -222,7 +274,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
 
           default:
-            fprintf(stderr, "Unknown type: %d\n", pid3frame->fields[1].type);
+            fprintf(stderr, "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[1].type);
             break;
         }
       }

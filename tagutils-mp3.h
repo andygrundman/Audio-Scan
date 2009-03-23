@@ -149,8 +149,8 @@ const char *presets_old[] = {
   "medium/fast"
 };
 
-static int _get_mp3tags(char *file, HV *tags);
-static int _get_mp3fileinfo(char *file, HV *info);
+static int get_mp3tags(char *file, HV *info, HV *tags);
+static int get_mp3fileinfo(char *file, HV *info);
 static int _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi);
 
 // bitrate_tbl[layer_index][bitrate_index]

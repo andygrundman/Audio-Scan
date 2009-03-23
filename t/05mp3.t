@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 66;
+use Test::More tests => 97;
 
 use Audio::Scan;
 
@@ -238,6 +238,84 @@ use Audio::Scan;
     is( $tags->{COMM}, 'All Rights Reserved', 'ID3v2.2 comment ok' );
     is( $tags->{TRCK}, 2, 'ID3v2.2 track number ok' );
 }
+
+# ID3v2.3
+{
+    my $s = Audio::Scan->scan( _f('v2.3.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 version ok' );
+    is( $tags->{TPE1}, 'Artist Name', 'ID3v2.3 artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.3 title ok' );
+    is( $tags->{TALB}, 'Album Name', 'ID3v2.3 album ok' );
+    is( $tags->{TCON}, 'Ambient', 'ID3v2.3 genre ok' );
+    is( $tags->{TRCK}, '02/10', 'ID3v2.3 track number ok' );
+    is( $tags->{'Tagging time'}, '2009-03-16T17:58:23', 'ID3v2.3 TXXX ok' ); # TXXX tag
+}
+
+# ID3v2.3 ISO-8859-1
+{
+    my $s = Audio::Scan->scan( _f('v2.3-iso-8859-1.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 version ok' );
+    is( $tags->{TPE1}, 'Ester Koèièková a Lubomír Nohavica', 'ID3v2.3 ISO-8859-1 artist ok' );
+    is( $tags->{TALB}, 'Ester Koèièková a Lubomír Nohavica s klavírem', 'ID3v2.3 ISO-8859-1 album ok' );
+    is( $tags->{TIT2}, 'Tøem sestrám', 'ID3v2.3 ISO-8859-1 title ok' );
+    
+    # Make sure it's been converted to UTF-8
+    is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 ISO-8859-1 is valid UTF-8' );
+    is( unpack( 'H*', $tags->{TPE1} ), '4573746572204b6fc3a869c3a86b6f76c3a12061204c75626f6dc3ad72204e6f686176696361', 'ID3v2.3 ISO-8859-1 converted to UTF-8 ok' );
+}
+
+# ID3v2.3 UTF-16BE
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.3-utf16be.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, 'pâté', 'ID3v1 UTF-16BE artist ok' );
+    
+    is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16BE is valid UTF-8' );
+    is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16BE converted to UTF-8 ok' );
+}
+
+# ID3v2.3 UTF-16LE
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.3-utf16le.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, 'pâté', 'ID3v1 UTF-16LE artist ok' );
+    
+    is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16LE is valid UTF-8' );
+    is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16LE converted to UTF-8 ok' );
+}
+
+# ID3v2.4
+{
+    my $s = Audio::Scan->scan( _f('v2.4.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 version ok' );
+    is( $tags->{TPE1}, 'Artist Name', 'ID3v2.4 artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 title ok' );
+    is( $tags->{TALB}, 'Album Name', 'ID3v2.4 album ok' );
+    is( $tags->{TCON}, 'Ambient', 'ID3v2.4 genre ok' );
+    is( $tags->{TRCK}, '02/10', 'ID3v2.4 track number ok' );
+    is( $tags->{PCNT}, 256, 'ID3v2.4 playcount field ok' );
+    is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
+    is( $tags->{UFID}, 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
+    is( $tags->{'User Frame'}, 'User Data', 'ID3v2.4 TXXX ok' );
+    is( $tags->{WCOM}, 'http://www.google.com', 'ID3v2.4 WCOM ok' );
+    is( $tags->{'User URL'}, 'http://www.google.com', 'ID3v2.4 WXXX ok' );
+} 
 
 sub _f {    
     return catfile( $FindBin::Bin, 'mp3', shift );
