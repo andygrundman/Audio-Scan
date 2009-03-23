@@ -1,0 +1,41 @@
+MP3
+---
+Support for reading from a filehandle (without seeking?)
+Lyrics3 support
+APEv2 support
+RIFF-MP3 support
+Free-format support (not reading Xing/LAME tag properly)
+Fix crashers found on huge test files
+TOC tables?
+Support VBRI mono file with wrong offset?
+Is iconv needed?  Need some test files
+Refactor tag reading code, each frame type should be handled in only one place
+
+FLAC
+----
+Memleak
+
+Tests
+ MP3
+  weird/non-standard frames i.e. XSOP
+  CRC
+  mp3gain'ed file
+  non-Xing VBR should set vbr flag to true
+  Test different frame type values:
+    [x] ID3_FIELD_TYPE_TEXTENCODING,	/* small int; used internally */
+    [x] ID3_FIELD_TYPE_LATIN1,		/* single-line Latin-1 string */
+    ID3_FIELD_TYPE_LATIN1FULL,		/* Latin-1 plus newlines allowed */  None?
+    ID3_FIELD_TYPE_LATIN1LIST,		/* Latin-1 string list */  LINK
+    [x] ID3_FIELD_TYPE_STRING,		/* single-line Unicode string */
+    [x] ID3_FIELD_TYPE_STRINGFULL,		/* Unicode plus newlines allowed */
+    ID3_FIELD_TYPE_STRINGLIST,		/* Unicode string list */  any T frame, what has more than 1?
+    ID3_FIELD_TYPE_LANGUAGE,		/* 3-char language ID */   ULST, SYLT, COMM
+    ID3_FIELD_TYPE_FRAMEID,		/* 4-char frame ID */    LINK
+    ID3_FIELD_TYPE_DATE,		/* 8-char date field */  OWNE, COMR
+    ID3_FIELD_TYPE_INT8,		/* 1-byte integer */   ASPI
+    ID3_FIELD_TYPE_INT16,		/* 2-byte integer */   ASPI
+    ID3_FIELD_TYPE_INT24,		/* 3-byte integer */   MLLT, RBUF
+    ID3_FIELD_TYPE_INT32,		/* 4-byte integer */   SEEK, RBUF
+    [x] ID3_FIELD_TYPE_INT32PLUS,		/* variable-length integer */
+    [x] ID3_FIELD_TYPE_BINARYDATA		/* raw binary data */
+    
