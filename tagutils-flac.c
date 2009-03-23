@@ -418,12 +418,13 @@ get_flac_metadata(char *file, HV *info, HV *tags)
 
     if ((fh = PerlIO_open(file, "rb")) == NULL) {
       PerlIO_printf(PerlIO_stderr(), "Couldn't open file [%s] for reading! %s\n", file, strerror(errno));
-      goto out;
+      return -1;
     }
 
     if (PerlIO_read(fh, &buf, 4) == -1) {
       PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
-      goto out;
+      PerlIO_close(fh);
+      return -1;
     }
 
     if (memcmp(buf, ID3HEADERFLAG, 3) == 0) {
@@ -434,7 +435,8 @@ get_flac_metadata(char *file, HV *info, HV *tags)
       /* How big is the ID3 header? Skip the next two bytes */
       if (PerlIO_read(fh, &buf, 2) == -1) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length! %s\n", strerror(errno));
-        goto out;
+        PerlIO_close(fh);
+        return -1;
       }
 
       /* The size of the ID3 tag is a 'synchsafe' 4-byte uint */
@@ -442,7 +444,8 @@ get_flac_metadata(char *file, HV *info, HV *tags)
 
         if (PerlIO_read(fh, &buf, 1) == -1 || buf[0] & 0x80) {
           PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length (syncsafe)! %s\n", strerror(errno));
-          goto out;
+          PerlIO_close(fh);
+          return -1;
         }
 
         id3size <<= 7;
@@ -451,25 +454,29 @@ get_flac_metadata(char *file, HV *info, HV *tags)
 
       if (PerlIO_seek(fh, id3size, SEEK_CUR) < 0) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't seek past ID3 header!\n");
-        goto out;
+        PerlIO_close(fh);
+        return -1;
       }
 
       if (PerlIO_read(fh, &buf, 4) == -1) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
-        goto out;
+        PerlIO_close(fh);
+        return -1;
       }
     }
 
     if (memcmp(buf, FLACHEADERFLAG, 4)) {
       PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header - got gibberish instead!\n");
-      goto out;
+      PerlIO_close(fh);
+      return -1;
     }
 
     while (!is_last) {
 
       if (PerlIO_read(fh, &buf, 4) == -1) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't read 4 bytes of the metadata block!\n");
-        goto out;
+        PerlIO_close(fh);
+        return -1;
       }
 
       is_last = (unsigned int)(buf[0] & 0x80);
@@ -495,13 +502,6 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     }
 
     my_hv_store(info, "bitRate", newSVnv(8.0 * (st.st_size - len) / totalSeconds));
-
-out:
-  if (file) {
-    PerlIO_close(fh);
-    return -1;
-  }
-
   }
 
   return 0;
