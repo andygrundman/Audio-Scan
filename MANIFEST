@@ -17,10 +17,8 @@ t/mp3/bug5686/utf/invalid.mp3
 t/mp3/no-tags-mp1l2-mono.mp3
 t/mp3/no-tags-mp1l2.mp3
 t/mp3/no-tags-mp1l3-cbr320.mp3
-t/mp3/no-tags-mp1l3-infotag.mp3
 t/mp3/no-tags-mp1l3-mono.mp3
 t/mp3/no-tags-mp1l3-vbr.mp3
-t/mp3/no-tags-mp1l3-vbri.mp3
 t/mp3/no-tags-mp1l3.mp3
 t/mp3/no-tags-mp2.5l3.mp3
 t/mp3/no-tags-mp2l3-mono.mp3
