@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 97;
+use Test::More tests => 99;
 
 use Audio::Scan;
 
@@ -190,7 +190,7 @@ use Audio::Scan;
     is( $tags->{TALB}, 'Album Name', 'ID3v1 album ok' );
     is( $tags->{TDRC}, 2009, 'ID3v1 year ok' );
     is( $tags->{TCON}, 'Ambient', 'ID3v1 genre ok' );
-    is( $tags->{COMM}, 'This is a comment', 'ID3v1 comment ok' );
+    is( $tags->{COMM}->[3], 'This is a comment', 'ID3v1 comment ok' );
 }
 
 # ID3v1.1 (adds track number)
@@ -206,7 +206,7 @@ use Audio::Scan;
     is( $tags->{TALB}, 'Album Name', 'ID3v1.1 album ok' );
     is( $tags->{TDRC}, 2009, 'ID3v1.1 year ok' );
     is( $tags->{TCON}, 'Ambient', 'ID3v1.1 genre ok' );
-    is( $tags->{COMM}, 'This is a comment', 'ID3v1.1 comment ok' );
+    is( $tags->{COMM}->[3], 'This is a comment', 'ID3v1.1 comment ok' );
     is( $tags->{TRCK}, 16, 'ID3v1.1 track number ok' );
 }
 
@@ -235,7 +235,8 @@ use Audio::Scan;
     is( $tags->{TIT2}, 'Test v2.2.0', 'ID3v2.2 title ok' );
     is( $tags->{TDRC}, 1998, 'ID3v2.2 year ok' );
     is( $tags->{TCON}, 'Sound Clip', 'ID3v2.2 genre ok' );
-    is( $tags->{COMM}, 'All Rights Reserved', 'ID3v2.2 comment ok' );
+    is( $tags->{COMM}->[1], 'eng', 'ID3v2.2 comment language ok' );
+    is( $tags->{COMM}->[3], 'All Rights Reserved', 'ID3v2.2 comment ok' );
     is( $tags->{TRCK}, 2, 'ID3v2.2 track number ok' );
 }
 
@@ -311,7 +312,8 @@ use Audio::Scan;
     is( $tags->{TRCK}, '02/10', 'ID3v2.4 track number ok' );
     is( $tags->{PCNT}, 256, 'ID3v2.4 playcount field ok' );
     is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
-    is( $tags->{UFID}, 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
+    is( $tags->{UFID}->[0], 'foo@foo.com', 'ID3v2.4 UFID owner id ok' );
+    is( $tags->{UFID}->[1], 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
     is( $tags->{'User Frame'}, 'User Data', 'ID3v2.4 TXXX ok' );
     is( $tags->{WCOM}, 'http://www.google.com', 'ID3v2.4 WCOM ok' );
     is( $tags->{'User URL'}, 'http://www.google.com', 'ID3v2.4 WXXX ok' );

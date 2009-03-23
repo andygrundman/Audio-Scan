@@ -9,7 +9,7 @@ Fix crashers found on huge test files
 TOC tables?
 Support VBRI mono file with wrong offset?
 Is iconv needed?  Need some test files
-Refactor tag reading code, each frame type should be handled in only one place
+RVA* tags
 
 FLAC
 ----
@@ -32,8 +32,8 @@ Tests
     ID3_FIELD_TYPE_LANGUAGE,		/* 3-char language ID */   ULST, SYLT, COMM
     ID3_FIELD_TYPE_FRAMEID,		/* 4-char frame ID */    LINK
     ID3_FIELD_TYPE_DATE,		/* 8-char date field */  OWNE, COMR
-    ID3_FIELD_TYPE_INT8,		/* 1-byte integer */   ASPI
-    ID3_FIELD_TYPE_INT16,		/* 2-byte integer */   ASPI
+    ID3_FIELD_TYPE_INT8,		/* 1-byte integer */   ASPI, MLLT
+    ID3_FIELD_TYPE_INT16,		/* 2-byte integer */   ASPI, MLLT
     ID3_FIELD_TYPE_INT24,		/* 3-byte integer */   MLLT, RBUF
     ID3_FIELD_TYPE_INT32,		/* 4-byte integer */   SEEK, RBUF
     [x] ID3_FIELD_TYPE_INT32PLUS,		/* variable-length integer */

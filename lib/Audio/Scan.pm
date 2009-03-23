@@ -53,13 +53,15 @@ more features.
 The source to the original Netgear C scanner for SqueezeCenter is located
 at L<http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/contrib/scanner>
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Andy Grundman, E<lt>andy@slimdevices.comE<gt>
 
+Dan Sully, E<lt>daniel@cpan.orgE<gt>
+
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009 by Andy Grundman, Logitech, Inc.
+Copyright (C) 2009 Logitech, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

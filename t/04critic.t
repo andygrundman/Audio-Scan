@@ -14,7 +14,7 @@ else {
     SKIP: {
         if ( $@ ) {
             plan tests => 1;
-            skip( 'You must install Test::Perl::Critic to run 04critic.t', 1 ) if $@;
+            skip( 'You must install Test::Perl::Critic to run 04critic.t', 1 );
         }
 
         my $rcfile = File::Spec->catfile( 't', '04critic.rc' );

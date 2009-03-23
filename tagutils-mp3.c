@@ -105,7 +105,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
             
           default:
-            PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d / %d\n", pid3frame->id, pid3frame->fields[1].type, pid3frame->fields[2].type);
             break;
         }
 
@@ -150,96 +149,137 @@ get_mp3tags(char *file, HV *info, HV *tags)
     else {
       //PerlIO_printf(PerlIO_stderr(), "  type %d\n", pid3frame->fields[0].type);
       
-      if (pid3frame->nfields == 1) {
-        switch (pid3frame->fields[0].type) {
+      // 1- and 2-field frames where the first field is TEXTENCODING are mapped to plain hash entries
+      // This covers the following frames:
+      // MCDI - ID3_FIELD_TYPE_BINARYDATA (untested)
+      // PCNT - ID3_FIELD_TYPE_INT32PLUS
+      // SEEK - ID3_FIELD_TYPE_INT32 (untested)
+      // T* (text) - ID3_FIELD_TYPE_TEXTENCODING, ID3_FIELD_TYPE_STRINGLIST
+      // W* (url) - ID3_FIELD_TYPE_LATIN1
+      // unknown - ID3_FIELD_TYPE_BINARYDATA (untested)
+      
+      if ( 
+           pid3frame->nfields == 1 
+        || ( pid3frame->nfields == 2 && (pid3frame->fields[0].type == ID3_FIELD_TYPE_TEXTENCODING) )
+      ) {
+        int i = pid3frame->nfields - 1;
+        
+        switch (pid3frame->fields[i].type) {
           case ID3_FIELD_TYPE_LATIN1:
-            my_hv_store( tags, pid3frame->id, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[0]), 0 ) );
+            my_hv_store( tags, pid3frame->id, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[i]), 0 ) );
             break;
-            
+          
+          case ID3_FIELD_TYPE_STRINGLIST:
+            nstrings = id3_field_getnstrings(&pid3frame->fields[i]);
+            if (nstrings > 1) {
+              // XXX, turn into an arrayref
+              PerlIO_printf(PerlIO_stderr(), "STRINGLIST, %d strings\n", nstrings );
+            }
+            else {
+              // Remember if TRCK tag is found for ID3v1.1
+              if ( !strcmp(pid3frame->id, "TRCK") ) {
+                trck_found = 1;
+              }
+              
+              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[i], 0) );
+              my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
+              free(utf8_value);
+            }
+            break;
+          
+          case ID3_FIELD_TYPE_INT32:
+            my_hv_store( tags, pid3frame->id, newSViv( pid3frame->fields[i].number.value ) );
+            break;
+          
           case ID3_FIELD_TYPE_INT32PLUS:
             my_hv_store( 
               tags,
               pid3frame->id,
-              newSViv( _varint( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length ) )
+              newSViv( _varint( pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length ) )
             );
             break;
-           
+          
           case ID3_FIELD_TYPE_BINARYDATA:
-            // unknown frames (i.e. XSOP) that are just available as binary data
             bin = newSVpvn( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
             my_hv_store( tags, pid3frame->id, bin );
           
           default:
-            PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[0].type);
             break;
         }
       }
-      else if (pid3frame->nfields == 2) {
-        // Remember if TRCK tag is found for ID3v1.1
-        if ( !strcmp(pid3frame->id, "TRCK") ) {
-          trck_found = 1;
-        }
-        
-        switch (pid3frame->fields[1].type) {
-          case ID3_FIELD_TYPE_STRINGLIST:
-            nstrings = id3_field_getnstrings(&pid3frame->fields[1]);
-            if (nstrings > 1) {
-              // XXX, how to handle this?
-              PerlIO_printf(PerlIO_stderr(), "STRINGLIST, %d strings\n", nstrings );
-            }
-            else {
-              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
-              my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
-              free(utf8_value);
-            }
-            break;
-
-          case ID3_FIELD_TYPE_STRING:
-            utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[1]) );
-            my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
-            free(utf8_value);
-            break;
-
-          case ID3_FIELD_TYPE_LATIN1:
-            my_hv_store( tags, pid3frame->id, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[1]), 0 ) );
-            break;
-
-          case ID3_FIELD_TYPE_BINARYDATA:
-            bin = newSVpvn( pid3frame->fields[1].binary.data, pid3frame->fields[1].binary.length );
-            my_hv_store( tags, pid3frame->id, bin );
-            break;
-
-          default:
-            PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[1].type);
-            break;
-        }
-      }
+      
+      // 2+ field frames are mapped to arrayrefs
+      // This covers the following frames:
+      // UFID, ETCO, MLLT, SYTC, USLT, SYLT, COMM, RVA2, EQU2, RVRB,
+      // APIC, GEOB, POPM, AENC, LINK, POSS, USER, OWNE, COMR, ENCR,
+      // GRID, PRIV, SIGN, ASPI
       else {
-        // special handling for COMM
-        if ( !strcmp(pid3frame->id, "COMM") ) {
-          switch (pid3frame->fields[3].type) {
-            case ID3_FIELD_TYPE_STRINGFULL:
-              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[3]) );
-              my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
+        int i;
+        AV *framedata = newAV();
+        
+        for ( i = 0; i < pid3frame->nfields; i++ ) { 
+          //PerlIO_printf(PerlIO_stderr(), "  frame %d, type %d\n", i, pid3frame->fields[i].type);
+          
+          switch (pid3frame->fields[i].type) {
+            case ID3_FIELD_TYPE_LATIN1:
+              av_push( framedata, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[i]), 0 ) );
+              break;
+            
+            // ID3_FIELD_TYPE_LATIN1FULL - not used
+            
+            case ID3_FIELD_TYPE_LATIN1LIST: // XXX untested, LINK frame
+              nstrings = id3_field_getnstrings(&pid3frame->fields[i]);
+              if (nstrings > 1) {
+                // XXX, turn into an arrayref
+                PerlIO_printf(PerlIO_stderr(), "LATIN1LIST, %d strings\n", nstrings );
+              }
+              else {
+                av_push( framedata, newSVpv( pid3frame->fields[i].latin1list.strings[0], 0 ) );
+              }
+              break;
+            
+            case ID3_FIELD_TYPE_STRING:
+              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstring(&pid3frame->fields[i]) );
+              av_push( framedata, newSVpv( utf8_value, 0 ) );
               free(utf8_value);
               break;
+            
+            case ID3_FIELD_TYPE_STRINGFULL:
+              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[i]) );
+              av_push( framedata, newSVpv( utf8_value, 0 ) );
+              free(utf8_value);
+              break;
+            
+            // ID3_FIELD_TYPE_STRINGLIST - only used for text frames, handled above
+          
+            case ID3_FIELD_TYPE_LANGUAGE:
+            case ID3_FIELD_TYPE_FRAMEID: // XXX untested, LINK frame
+            case ID3_FIELD_TYPE_DATE:    // XXX untested, OWNE/COMR
+              av_push( framedata, newSVpv( pid3frame->fields[i].immediate.value, 0 ) );
+              break;
+            
+            case ID3_FIELD_TYPE_INT8: // XXX untested, ETCO, MLLT, SYTC, SYLT, EQU2, RVRB, APIC, POPM, RBUF, POSS, COMR, ENCR, GRID, SIGN, ASPI
+            case ID3_FIELD_TYPE_INT16:
+            case ID3_FIELD_TYPE_INT24:
+            case ID3_FIELD_TYPE_INT32:
+            case ID3_FIELD_TYPE_TEXTENCODING:
+              av_push( framedata, newSViv( pid3frame->fields[i].number.value ) );
+              break;
+              
+            case ID3_FIELD_TYPE_INT32PLUS:
+              av_push( framedata, newSViv( _varint( pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length ) ) );
+              break;
+
+            case ID3_FIELD_TYPE_BINARYDATA:
+              bin = newSVpvn( pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
+              av_push( framedata, bin );
 
             default:
-              PerlIO_printf(PerlIO_stderr(), "Unsupported COMM type %d\n", pid3frame->fields[3].type);
               break;
           }
         }
-
-        // special handling for APIC
-        else if ( !strcmp(pid3frame->id, "APIC") ) {
-          // XXX: also save other info
-          bin = newSVpvn( pid3frame->fields[4].binary.data, pid3frame->fields[4].binary.length );
-          my_hv_store( tags, pid3frame->id, bin );
-        }
-        else {
-          // XXX
-          PerlIO_printf(PerlIO_stderr(), "  > 2 fields\n");
-        }
+        
+        my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)framedata ) );
       }
     }
 
