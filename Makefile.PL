@@ -99,4 +99,7 @@ WriteMakefile(
     INC               => join(' ', @INC),
     LIBS              => [ join(' ', @LIBPATH, @LIBS) ],
     DEFINE            => $DEFINES,
+    depend            => {
+        'Scan.c' => 'tagutils-mp3.h tagutils-mp3.c tagutils-flac.h tagutils-flac.c',
+    },
 );
