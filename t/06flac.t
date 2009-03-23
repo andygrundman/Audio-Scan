@@ -55,8 +55,8 @@ use Data::Dump qw(dump);
 
     is(scalar @{$cue}, 37, 'Cuesheet length ok');
 
-    ok($cue->[35] =~ /REM FLAC__lead-in 88200/);
-    ok($cue->[36] =~ /REM FLAC__lead-out 170 153200460/);
+    ok($cue->[35] =~ /REM FLAC__lead-in 88200/, 'Cuesheet lead-in ok');
+    ok($cue->[36] =~ /REM FLAC__lead-out 170 153200460/, 'Cuesheet lead-out ok');
 }
 
 # FLAC file with ID3 tag
