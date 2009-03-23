@@ -295,11 +295,11 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       break;
   }
 
-  if (storePicture) {
-    /* store the 'picture' hash */
-    if (hv_scalar(pictureContainer)) {
-      my_hv_store(tags, "picture", newRV_noinc((SV*) pictureContainer));
-    }
+  /* store the 'picture' hash */
+  if (storePicture && hv_scalar(pictureContainer)) {
+    my_hv_store(tags, "picture", newRV_noinc((SV*) pictureContainer));
+  } else {
+    SvREFCNT_dec((SV*) pictureContainer);
   }
 }
 
