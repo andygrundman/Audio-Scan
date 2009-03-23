@@ -492,16 +492,19 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     my_hv_store(info, "startAudioData", newSVnv(len));
 
     /* Now calculate the bit rate and file size */
-    totalSeconds = (float)SvIV(*(my_hv_fetch(info, "trackTotalLengthSeconds")));
+    if (hv_exists(tags, "trackTotalLengthSeconds", 24)) {
 
-    /* Find the file size */
-    if (stat(file, &st) == 0) {
-      my_hv_store(info, "fileSize", newSViv(st.st_size));
-    } else {
-      PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
+      totalSeconds = (float)SvIV(*(my_hv_fetch(info, "trackTotalLengthSeconds")));
+
+      /* Find the file size */
+      if (stat(file, &st) == 0) {
+        my_hv_store(info, "fileSize", newSViv(st.st_size));
+      } else {
+        PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
+      }
+
+      my_hv_store(info, "bitRate", newSVnv(8.0 * (st.st_size - len) / totalSeconds));
     }
-
-    my_hv_store(info, "bitRate", newSVnv(8.0 * (st.st_size - len) / totalSeconds));
   }
 
   return 0;
