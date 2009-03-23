@@ -123,11 +123,8 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
 
     case FLAC__METADATA_TYPE_VORBIS_COMMENT:
     {
-      /* store the pointer location of the '=', poor man's split() */
-      char *half;
-      AV   *rawTagArray = newAV();
-      SV   **tag = NULL;
-      SV   **separator = NULL;
+      SV **tag = NULL;
+      SV **separator = NULL;
 
       if (block->data.vorbis_comment.vendor_string.entry) {
         my_hv_store(tags, "VENDOR", newSVpv((char*)block->data.vorbis_comment.vendor_string.entry, 0));
@@ -135,23 +132,15 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
 
       for (i = 0; i < block->data.vorbis_comment.num_comments; i++) {
 
-        char *entry;
-
         if (!block->data.vorbis_comment.comments[i].entry ||
           !block->data.vorbis_comment.comments[i].length){
           PerlIO_printf(PerlIO_stderr(), "Empty comment, skipping...\n");
           continue;
         }
 
-        entry = SvPV_nolen(newSVpv(
-          (char*)block->data.vorbis_comment.comments[i].entry,
-          block->data.vorbis_comment.comments[i].length
-        ));
-
-        /* store the raw tags */
-        av_push(rawTagArray, newSVpv(entry, 0));
-
-        half = strchr(entry, '=');
+        /* store the pointer location of the '=', poor man's split() */
+        char *entry = (char*)block->data.vorbis_comment.comments[i].entry;
+        char *half  = strchr(entry, '=');
 
         if (half == NULL) {
           PerlIO_printf(PerlIO_stderr(), "Comment \"%s\" missing \'=\', skipping...\n", entry);
