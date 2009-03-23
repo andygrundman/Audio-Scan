@@ -73,7 +73,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       totalSeconds = block->data.stream_info.total_samples / (float)block->data.stream_info.sample_rate;
 
       if (totalSeconds <= 0) {
-        fprintf(stderr, "File: %s - %s\n%s\n",
+        PerlIO_printf(PerlIO_stderr(), "File: %s - %s\n%s\n",
           path,
           "totalSeconds is 0 - we couldn't find either TOTALSAMPLES or SAMPLERATE!",
           "setting totalSeconds to 1 to avoid divide by zero error!"
@@ -139,7 +139,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
 
         if (!block->data.vorbis_comment.comments[i].entry ||
           !block->data.vorbis_comment.comments[i].length){
-          fprintf(stderr, "Empty comment, skipping...\n");
+          PerlIO_printf(PerlIO_stderr(), "Empty comment, skipping...\n");
           continue;
         }
 
@@ -154,7 +154,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         half = strchr(entry, '=');
 
         if (half == NULL) {
-          fprintf(stderr, "Comment \"%s\" missing \'=\', skipping...\n", entry);
+          PerlIO_printf(PerlIO_stderr(), "Comment \"%s\" missing \'=\', skipping...\n", entry);
           continue;
         }
 
@@ -323,38 +323,38 @@ void print_error_with_chain_status(FLAC__Metadata_Chain *chain, const char *form
   FLAC__ASSERT(0 != format);
 
   va_start(args, format);
-  (void) vfprintf(stderr, format, args);
+  (void) PerlIO_vprintf(PerlIO_stderr(), format, args);
   va_end(args);
 
-  fprintf(stderr, "status = \"%s\"\n", FLAC__Metadata_ChainStatusString[status]);
+  PerlIO_printf(PerlIO_stderr(), "status = \"%s\"\n", FLAC__Metadata_ChainStatusString[status]);
 
   if (status == FLAC__METADATA_CHAIN_STATUS_ERROR_OPENING_FILE) {
 
-    fprintf(stderr, "The FLAC file could not be opened. Most likely the file does not exist or is not readable.");
+    PerlIO_printf(PerlIO_stderr(), "The FLAC file could not be opened. Most likely the file does not exist or is not readable.");
 
   } else if (status == FLAC__METADATA_CHAIN_STATUS_NOT_A_FLAC_FILE) {
 
-    fprintf(stderr, "The file does not appear to be a FLAC file.");
+    PerlIO_printf(PerlIO_stderr(), "The file does not appear to be a FLAC file.");
 
   } else if (status == FLAC__METADATA_CHAIN_STATUS_NOT_WRITABLE) {
 
-    fprintf(stderr, "The FLAC file does not have write permissions.");
+    PerlIO_printf(PerlIO_stderr(), "The FLAC file does not have write permissions.");
 
   } else if (status == FLAC__METADATA_CHAIN_STATUS_BAD_METADATA) {
 
-    fprintf(stderr, "The metadata to be writted does not conform to the FLAC metadata specifications.");
+    PerlIO_printf(PerlIO_stderr(), "The metadata to be writted does not conform to the FLAC metadata specifications.");
 
   } else if (status == FLAC__METADATA_CHAIN_STATUS_READ_ERROR) {
 
-    fprintf(stderr, "There was an error while reading the FLAC file.");
+    PerlIO_printf(PerlIO_stderr(), "There was an error while reading the FLAC file.");
 
   } else if (status == FLAC__METADATA_CHAIN_STATUS_WRITE_ERROR) {
 
-    fprintf(stderr, "There was an error while writing FLAC file; most probably the disk is full.");
+    PerlIO_printf(PerlIO_stderr(), "There was an error while writing FLAC file; most probably the disk is full.");
 
   } else if (status == FLAC__METADATA_CHAIN_STATUS_UNLINK_ERROR) {
 
-    fprintf(stderr, "There was an error removing the temporary FLAC file.");
+    PerlIO_printf(PerlIO_stderr(), "There was an error removing the temporary FLAC file.");
   }
 }
 
@@ -364,7 +364,7 @@ get_flac_metadata(char *file, HV *info, HV *tags)
   FLAC__Metadata_Chain *chain = FLAC__metadata_chain_new();
 
   if (chain == 0) {
-    fprintf(stderr, "Out of memory allocating chain. Cannot open %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "Out of memory allocating chain. Cannot open %s\n", file);
     return -1;
   }
 
@@ -381,7 +381,7 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     unsigned block_number = 0;
 
     if (iterator == 0) {
-      fprintf(stderr, "Out of memory allocating iterator. Cannot open %s\n", file);
+      PerlIO_printf(PerlIO_stderr(), "Out of memory allocating iterator. Cannot open %s\n", file);
       FLAC__metadata_chain_delete(chain);
       return -1;
     }
@@ -393,7 +393,7 @@ get_flac_metadata(char *file, HV *info, HV *tags)
       ok &= (0 != block);
 
       if (!ok) {
-        fprintf(stderr, "%s: ERROR: couldn't get block from chain.\n", file);
+        PerlIO_printf(PerlIO_stderr(), "%s: ERROR: couldn't get block from chain.\n", file);
       } else {
         _read_metadata(file, info, tags, block, block_number);
       }
@@ -414,16 +414,15 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     long len;
     struct stat st;
     float totalSeconds;
+    PerlIO *fh;
 
-    int fd = open(file, O_RDONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-
-    if (fd == -1) {
-      fprintf(stderr, "Couldn't open file [%s] for reading! %s\n", file, strerror(errno));
+    if ((fh = PerlIO_open(file, "rb")) == NULL) {
+      PerlIO_printf(PerlIO_stderr(), "Couldn't open file [%s] for reading! %s\n", file, strerror(errno));
       goto out;
     }
 
-    if (read(fd, &buf, 4) == -1) {
-      fprintf(stderr, "Couldn't read magic fLaC header! %s\n", strerror(errno));
+    if (PerlIO_read(fh, &buf, 4) == -1) {
+      PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
       goto out;
     }
 
@@ -433,16 +432,16 @@ get_flac_metadata(char *file, HV *info, HV *tags)
       int c = 0;
 
       /* How big is the ID3 header? Skip the next two bytes */
-      if (read(fd, &buf, 2) == -1) {
-        fprintf(stderr, "Couldn't read ID3 header length! %s\n", strerror(errno));
+      if (PerlIO_read(fh, &buf, 2) == -1) {
+        PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length! %s\n", strerror(errno));
         goto out;
       }
 
       /* The size of the ID3 tag is a 'synchsafe' 4-byte uint */
       for (c = 0; c < 4; c++) {
 
-        if (read(fd, &buf, 1) == -1 || buf[0] & 0x80) {
-          fprintf(stderr, "Couldn't read ID3 header length (syncsafe)! %s\n", strerror(errno));
+        if (PerlIO_read(fh, &buf, 1) == -1 || buf[0] & 0x80) {
+          PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length (syncsafe)! %s\n", strerror(errno));
           goto out;
         }
 
@@ -450,26 +449,26 @@ get_flac_metadata(char *file, HV *info, HV *tags)
         id3size |= (buf[0] & 0x7f);
       }
 
-      if (lseek(fd, id3size, SEEK_CUR) < 0) {
-        fprintf(stderr, "Couldn't seek past ID3 header!\n");
+      if (PerlIO_seek(fh, id3size, SEEK_CUR) < 0) {
+        PerlIO_printf(PerlIO_stderr(), "Couldn't seek past ID3 header!\n");
         goto out;
       }
 
-      if (read(fd, &buf, 4) == -1) {
-        fprintf(stderr, "Couldn't read magic fLaC header! %s\n", strerror(errno));
+      if (PerlIO_read(fh, &buf, 4) == -1) {
+        PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
         goto out;
       }
     }
 
     if (memcmp(buf, FLACHEADERFLAG, 4)) {
-      fprintf(stderr, "Couldn't read magic fLaC header - got gibberish instead!\n");
+      PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header - got gibberish instead!\n");
       goto out;
     }
 
     while (!is_last) {
 
-      if (read(fd, &buf, 4) == -1) {
-        fprintf(stderr, "Couldn't read 4 bytes of the metadata block!\n");
+      if (PerlIO_read(fh, &buf, 4) == -1) {
+        PerlIO_printf(PerlIO_stderr(), "Couldn't read 4 bytes of the metadata block!\n");
         goto out;
       }
 
@@ -477,11 +476,11 @@ get_flac_metadata(char *file, HV *info, HV *tags)
 
       len = (long)((buf[1] << 16) | (buf[2] << 8) | (buf[3]));
 
-      lseek(fd, len, SEEK_CUR);
+      PerlIO_seek(fh, len, SEEK_CUR);
     }
 
-    len = lseek(fd, 0, SEEK_CUR);
-    close(fd);
+    len = PerlIO_tell(fh);
+    PerlIO_close(fh);
 
     my_hv_store(info, "startAudioData", newSVnv(len));
 
@@ -492,14 +491,14 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     if (stat(file, &st) == 0) {
       my_hv_store(info, "fileSize", newSViv(st.st_size));
     } else {
-      fprintf(stderr, "Couldn't stat file: [%s], might be more problems ahead!", file);
+      PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
     }
 
     my_hv_store(info, "bitRate", newSVnv(8.0 * (st.st_size - len) / totalSeconds));
 
 out:
   if (file) {
-    close(fd);
+    PerlIO_close(fh);
     return -1;
   }
 

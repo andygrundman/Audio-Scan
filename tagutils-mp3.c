@@ -58,7 +58,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
 
   pid3file = id3_file_open(file, ID3_FILE_MODE_READONLY);
   if (!pid3file) {
-    fprintf(stderr, "Cannot open %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "Cannot open %s\n", file);
     return -1;
   }
 
@@ -68,7 +68,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
     err = errno;
     id3_file_close(pid3file);
     errno = err;
-    fprintf(stderr, "Cannot get ID3 tag for %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "Cannot get ID3 tag for %s\n", file);
     return -1;
   }
 
@@ -80,11 +80,11 @@ get_mp3tags(char *file, HV *info, HV *tags)
     utf8_value = NULL;
     got_numeric_genre = 0;
 
-    //fprintf(stderr, "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
+    //PerlIO_printf(PerlIO_stderr(), "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
 
     // Special handling for TXXX/WXXX frames
     if ( !strcmp(pid3frame->id, "TXXX") || !strcmp(pid3frame->id, "WXXX") ) {
-      //fprintf(stderr, "  type %d / %d\n", pid3frame->fields[1].type, pid3frame->fields[2].type);
+      //PerlIO_printf(PerlIO_stderr(), "  type %d / %d\n", pid3frame->fields[1].type, pid3frame->fields[2].type);
       
       key = id3_field_getstring(&pid3frame->fields[1]);
       if (key) {
@@ -105,7 +105,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
             
           default:
-            fprintf(stderr, "Unhandled field type: %s %d / %d\n", pid3frame->id, pid3frame->fields[1].type, pid3frame->fields[2].type);
+            PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d / %d\n", pid3frame->id, pid3frame->fields[1].type, pid3frame->fields[2].type);
             break;
         }
 
@@ -148,7 +148,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
 
     // All other frames
     else {
-      //fprintf(stderr, "  type %d\n", pid3frame->fields[0].type);
+      //PerlIO_printf(PerlIO_stderr(), "  type %d\n", pid3frame->fields[0].type);
       
       if (pid3frame->nfields == 1) {
         switch (pid3frame->fields[0].type) {
@@ -170,7 +170,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
             hv_store( tags, pid3frame->id, strlen(pid3frame->id), bin, 0 );
           
           default:
-            fprintf(stderr, "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[0].type);
+            PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[0].type);
             break;
         }
       }
@@ -185,7 +185,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
             nstrings = id3_field_getnstrings(&pid3frame->fields[1]);
             if (nstrings > 1) {
               // XXX, how to handle this?
-              fprintf(stderr, "STRINGLIST, %d strings\n", nstrings );
+              PerlIO_printf(PerlIO_stderr(), "STRINGLIST, %d strings\n", nstrings );
             }
             else {
               utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
@@ -210,7 +210,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
 
           default:
-            fprintf(stderr, "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[1].type);
+            PerlIO_printf(PerlIO_stderr(), "Unhandled field type: %s %d\n", pid3frame->id, pid3frame->fields[1].type);
             break;
         }
       }
@@ -225,7 +225,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
               break;
 
             default:
-              fprintf(stderr, "Unsupported COMM type %d\n", pid3frame->fields[3].type);
+              PerlIO_printf(PerlIO_stderr(), "Unsupported COMM type %d\n", pid3frame->fields[3].type);
               break;
           }
         }
@@ -238,7 +238,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
         }
         else {
           // XXX
-          fprintf(stderr, "  > 2 fields\n");
+          PerlIO_printf(PerlIO_stderr(), "  > 2 fields\n");
         }
       }
     }
@@ -378,7 +378,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 
 // _mp3_get_average_bitrate
 // average bitrate from a large chunk of the middle of the file
-static short _mp3_get_average_bitrate(FILE *infile)
+static short _mp3_get_average_bitrate(PerlIO *infile)
 {
   struct mp3_frameinfo fi;
   int frame_count   = 0;
@@ -390,15 +390,15 @@ static short _mp3_get_average_bitrate(FILE *infile)
   unsigned int buf_size = 0;
 
   // Seek to middle of file
-  fseek(infile, 0, SEEK_END);
-  fseek(infile, ftell(infile) >> 1, SEEK_SET);
+  PerlIO_seek(infile, 0, SEEK_END);
+  PerlIO_seek(infile, PerlIO_tell(infile) >> 1, SEEK_SET);
 
-  if ((buf_size = fread(buf, 1, WANTED_FOR_AVG, infile)) == 0) {
-    if (ferror(infile)) {
-      fprintf(stderr, "Error reading: %s\n", strerror(errno));
+  if ((buf_size = PerlIO_read(infile, buf, WANTED_FOR_AVG)) == 0) {
+    if (PerlIO_error(infile)) {
+      PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
     }
     else {
-      fprintf(stderr, "File too small. Probably corrupted.\n");
+      PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
     }
     err = -1;
     goto out;
@@ -435,8 +435,6 @@ static short _mp3_get_average_bitrate(FILE *infile)
   }
 
 out:
-
-  fclose(infile);
   free(buf_ptr);
 
   if (err) return err;
@@ -603,7 +601,7 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
 static int
 get_mp3fileinfo(char *file, HV *info)
 {
-  FILE *infile;
+  PerlIO *infile;
   struct mp3_frameinfo fi;
 
   unsigned char *buf = malloc(BLOCK_SIZE);
@@ -623,24 +621,24 @@ get_mp3fileinfo(char *file, HV *info)
   int found;
   int err = 0;
 
-  if (!(infile=fopen(file, "rb"))) {
-    fprintf(stderr, "Could not open %s for reading\n",file);
+  if (!(infile = PerlIO_open(file, "rb"))) {
+    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
     err = -1;
     goto out;
   }
 
   memset((void*)&fi, 0, sizeof(fi));
 
-  fseek(infile,0,SEEK_END);
-  file_size = ftell(infile);
-  fseek(infile,0,SEEK_SET);
+  PerlIO_seek(infile,0,SEEK_END);
+  file_size = PerlIO_tell(infile);
+  PerlIO_seek(infile,0,SEEK_SET);
 
-  if ((buf_size = fread(buf, 1, BLOCK_SIZE, infile)) == 0) {
-    if (ferror(infile)) {
-      fprintf(stderr, "Error reading: %s\n", strerror(errno));
+  if ((buf_size = PerlIO_read(infile, buf, BLOCK_SIZE)) == 0) {
+    if (PerlIO_error(infile)) {
+      PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
     }
     else {
-      fprintf(stderr, "File too small. Probably corrupted.\n");
+      PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
     }
 
     err = -1;
@@ -666,8 +664,8 @@ get_mp3fileinfo(char *file, HV *info)
     hv_store( info, "id3_version", 11, newSVpv( tagversion, 0 ), 0 );
 
     // Always seek past the ID3 tags
-    fseek(infile, id3_size, SEEK_SET);
-    buf_size = fread(buf, 1, BLOCK_SIZE, infile);
+    PerlIO_seek(infile, id3_size, SEEK_SET);
+    buf_size = PerlIO_read(infile, buf, BLOCK_SIZE);
 
     audio_offset += id3_size;
   }
@@ -682,7 +680,7 @@ get_mp3fileinfo(char *file, HV *info)
       audio_offset++;
 
       if ( !buf_size ) {
-        fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+        PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
         err = -1;
         goto out;
       }
@@ -701,7 +699,7 @@ get_mp3fileinfo(char *file, HV *info)
   }
 
   if ( !found ) {
-    fprintf(stderr, "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
     err = -1;
     goto out;
   }
@@ -709,15 +707,15 @@ get_mp3fileinfo(char *file, HV *info)
   audio_size = file_size - audio_offset;
 
   // check if last 128 bytes is ID3v1.0 or ID3v1.1 tag
-  fseek(infile, file_size - 128, SEEK_SET);
-  if (fread(id3v1taghdr, 1, 4, infile) == 4) {
+  PerlIO_seek(infile, file_size - 128, SEEK_SET);
+  if (PerlIO_read(infile, id3v1taghdr, 4) == 4) {
     if (id3v1taghdr[0]=='T' && id3v1taghdr[1]=='A' && id3v1taghdr[2]=='G') {
       audio_size -= 128;
     }
   }
 
   if ( _decode_mp3_frame(buf, &fi) ) {
-    fprintf(stderr, "Could not find sync frame: %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "Could not find sync frame: %s\n", file);
     goto out;
   }
 
@@ -868,7 +866,7 @@ get_mp3fileinfo(char *file, HV *info)
   }
 
 out:
-  if (infile) fclose(infile);
+  if (infile) PerlIO_close(infile);
   free(buf_ptr);
 
   if (err) return err;
