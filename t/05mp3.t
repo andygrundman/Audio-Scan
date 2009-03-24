@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 99;
+use Test::More tests => 101;
 
 use Audio::Scan;
 
@@ -311,12 +311,16 @@ use Audio::Scan;
     is( $tags->{TCON}, 'Ambient', 'ID3v2.4 genre ok' );
     is( $tags->{TRCK}, '02/10', 'ID3v2.4 track number ok' );
     is( $tags->{PCNT}, 256, 'ID3v2.4 playcount field ok' );
+    is( $tags->{POPM}->[0]->[0], 'foo@foo.com', 'ID3v2.4 POPM #1 ok' );
+    is( $tags->{POPM}->[1]->[2], 7, 'ID3v2.4 POPM #2 ok' );
     is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
     is( $tags->{UFID}->[0], 'foo@foo.com', 'ID3v2.4 UFID owner id ok' );
     is( $tags->{UFID}->[1], 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
     is( $tags->{'User Frame'}, 'User Data', 'ID3v2.4 TXXX ok' );
     is( $tags->{WCOM}, 'http://www.google.com', 'ID3v2.4 WCOM ok' );
     is( $tags->{'User URL'}, 'http://www.google.com', 'ID3v2.4 WXXX ok' );
+    
+    # XXX: 2 WOAR frames
 } 
 
 sub _f {    

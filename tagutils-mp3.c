@@ -54,8 +54,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
   char *utf8_value;
   SV *bin;
 
-  int got_numeric_genre;
-
   pid3file = id3_file_open(file, ID3_FILE_MODE_READONLY);
   if (!pid3file) {
     PerlIO_printf(PerlIO_stderr(), "Cannot open %s\n", file);
@@ -78,7 +76,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
     value = NULL;
     utf8_key = NULL;
     utf8_value = NULL;
-    got_numeric_genre = 0;
 
     //PerlIO_printf(PerlIO_stderr(), "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
 
@@ -90,7 +87,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
       if (key) {
         // Get the key
         utf8_key = (char *)id3_ucs4_utf8duplicate(key);
-        my_hv_store( tags, utf8_key, NULL );
 
         // Get the value
         switch (pid3frame->fields[2].type) {
@@ -258,7 +254,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
               av_push( framedata, newSVpv( pid3frame->fields[i].immediate.value, 0 ) );
               break;
             
-            case ID3_FIELD_TYPE_INT8: // XXX untested, ETCO, MLLT, SYTC, SYLT, EQU2, RVRB, APIC, POPM, RBUF, POSS, COMR, ENCR, GRID, SIGN, ASPI
+            case ID3_FIELD_TYPE_INT8:
             case ID3_FIELD_TYPE_INT16:
             case ID3_FIELD_TYPE_INT24:
             case ID3_FIELD_TYPE_INT32:
@@ -279,7 +275,36 @@ get_mp3tags(char *file, HV *info, HV *tags)
           }
         }
         
-        my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)framedata ) );
+        // If tag already exists, move it into an arrayref
+        if ( my_hv_exists( tags, pid3frame->id ) ) {
+          SV **entry = my_hv_fetch( tags, pid3frame->id );
+          if (entry != NULL) {
+            if ( SvTYPE( SvRV(*entry) ) == SVt_PV ) {
+              // A normal string entry, convert to array
+              // XXX untested
+              AV *ref = newAV();
+              av_push( ref, *entry );
+              av_push( ref, newRV_noinc( (SV *)framedata ) );
+              my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)ref ) );
+            }
+            else if ( SvTYPE( SvRV(*entry) ) == SVt_PVAV ) {
+              // If av_len is > 0, it's an existing array frame, create a new array for it
+              if ( av_len( (AV *)SvRV(*entry) ) != 0 ) {
+                AV *ref = newAV();
+                av_push( ref, SvREFCNT_inc(*entry) );
+                av_push( ref, newRV_noinc( (SV *)framedata ) );
+                my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)ref ) );
+              }
+              else {
+                // Add to existing array
+                av_push( (AV *)SvRV(*entry), newRV_noinc( (SV *)framedata ) );
+              }
+            }
+          }
+        }
+        else {
+          my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)framedata ) );
+        }
       }
     }
 
