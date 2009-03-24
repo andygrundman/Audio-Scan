@@ -300,16 +300,16 @@ get_mp3tags(char *file, HV *info, HV *tags)
               my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)ref ) );
             }
             else if ( SvTYPE( SvRV(*entry) ) == SVt_PVAV ) {
-              // If av_len is > 0, it's an existing array frame, create a new array for it
-              if ( av_len( (AV *)SvRV(*entry) ) != 0 ) {
+              // If type of first item is array, add new item to entry
+              SV **first = av_fetch( (AV *)SvRV(*entry), 0, 0 );
+              if ( first == NULL || ( SvTYPE(*first) == SVt_RV && SvTYPE( SvRV(*first) ) == SVt_PVAV ) ) {
+                av_push( (AV *)SvRV(*entry), newRV_noinc( (SV *)framedata ) );
+              }
+              else {
                 AV *ref = newAV();
                 av_push( ref, SvREFCNT_inc(*entry) );
                 av_push( ref, newRV_noinc( (SV *)framedata ) );
                 my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)ref ) );
-              }
-              else {
-                // Add to existing array
-                av_push( (AV *)SvRV(*entry), newRV_noinc( (SV *)framedata ) );
               }
             }
           }

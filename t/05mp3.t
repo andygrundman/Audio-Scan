@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 101;
+use Test::More tests => 105;
 
 use Audio::Scan;
 
@@ -238,6 +238,18 @@ use Audio::Scan;
     is( $tags->{COMM}->[1], 'eng', 'ID3v2.2 comment language ok' );
     is( $tags->{COMM}->[3], 'All Rights Reserved', 'ID3v2.2 comment ok' );
     is( $tags->{TRCK}, 2, 'ID3v2.2 track number ok' );
+}
+
+# ID3v2.2 with multiple comment tags
+{
+	my $s = Audio::Scan->scan_tags( _f('v2.2-multiple-comm.mp3') );
+    
+    my $tags = $s->{tags};
+
+	is( scalar @{ $tags->{COMM} }, 4, 'ID3v2.2 4 comment tags ok' );
+	is( $tags->{COMM}->[1]->[2], 'iTunNORM', 'ID3v2.2 iTunNORM ok' );
+	is( $tags->{COMM}->[2]->[2], 'iTunes_CDDB_1', 'ID3v2.2 iTunes_CDDB_1 ok' );
+	is( $tags->{COMM}->[3]->[2], 'iTunes_CDDB_TrackNumber', 'ID3v2.2 iTunes_CDDB_TrackNumber ok' );
 }
 
 # ID3v2.3
