@@ -208,7 +208,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
           
           case ID3_FIELD_TYPE_BINARYDATA:
-            bin = newSVpvn( pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
+            bin = newSVpvn( (char*)pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
             my_hv_store( tags, pid3frame->id, bin );
           
           default:
@@ -242,7 +242,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 PerlIO_printf(PerlIO_stderr(), "LATIN1LIST, %d strings\n", nstrings );
               }
               else {
-                av_push( framedata, newSVpv( pid3frame->fields[i].latin1list.strings[0], 0 ) );
+                av_push( framedata, newSVpv( (char*)pid3frame->fields[i].latin1list.strings[0], 0 ) );
               }
               break;
             
@@ -279,7 +279,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
               break;
 
             case ID3_FIELD_TYPE_BINARYDATA:
-              bin = newSVpvn( pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
+              bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
               av_push( framedata, bin );
 
             default:

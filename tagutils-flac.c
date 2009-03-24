@@ -112,7 +112,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         appId = newSVpvf("%ld", strtol(SvPV_nolen(tmpId), NULL, 16));
 
         if (block->data.application.data != 0) {
-          my_hv_store(app, SvPV_nolen(appId), newSVpv((char*)block->data.application.data, block->length));
+          my_hv_store(app, SvPV_nolen(appId), newSVpvn((char*)block->data.application.data, block->length));
         }
 
         my_hv_store(tags, "application",  newRV_noinc((SV*) app));
