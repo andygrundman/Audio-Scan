@@ -95,9 +95,15 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
           
           case ID3_FIELD_TYPE_STRING:
-            utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstring(&pid3frame->fields[2]) );
-            my_hv_store( tags, utf8_key, newSVpv( utf8_value, 0 ) );
-            free(utf8_value);
+            value = id3_field_getstring(&pid3frame->fields[2]);
+            if (value) {
+              utf8_value = (char *)id3_ucs4_utf8duplicate(value);
+              my_hv_store( tags, utf8_key, newSVpv( utf8_value, 0 ) );
+              free(utf8_value);
+            }
+            else {
+              my_hv_store( tags, utf8_key, NULL );
+            }
             break;
             
           default:
@@ -177,9 +183,15 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 trck_found = 1;
               }
               
-              utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[i], 0) );
-              my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
-              free(utf8_value);
+              value = id3_field_getstrings(&pid3frame->fields[i], 0);  
+              if (value) {
+                utf8_value = (char *)id3_ucs4_utf8duplicate(value);
+                my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
+                free(utf8_value);
+              }
+              else {
+                my_hv_store( tags, pid3frame->id, NULL );
+              }
             }
             break;
           
