@@ -131,7 +131,8 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       }
 
       for (i = 0; i < block->data.vorbis_comment.num_comments; i++) {
-
+        char *entry, *half;
+        
         if (!block->data.vorbis_comment.comments[i].entry ||
           !block->data.vorbis_comment.comments[i].length){
           PerlIO_printf(PerlIO_stderr(), "Empty comment, skipping...\n");
@@ -139,8 +140,8 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         }
 
         /* store the pointer location of the '=', poor man's split() */
-        char *entry = (char*)block->data.vorbis_comment.comments[i].entry;
-        char *half  = strchr(entry, '=');
+        entry = (char*)block->data.vorbis_comment.comments[i].entry;
+        half  = strchr(entry, '=');
 
         if (half == NULL) {
           PerlIO_printf(PerlIO_stderr(), "Comment \"%s\" missing \'=\', skipping...\n", entry);
