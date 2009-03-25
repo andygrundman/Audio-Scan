@@ -142,11 +142,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
       free(utf8_value);
     }
 
-    // Ignore ZOBS (obsolete) frames
-    else if ( !strcmp(pid3frame->id, "ZOBS") ) {
-
-    }
-
     // All other frames
     else {
       //PerlIO_printf(PerlIO_stderr(), "  type %d\n", pid3frame->fields[0].type);
@@ -208,8 +203,11 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
           
           case ID3_FIELD_TYPE_BINARYDATA:
-            bin = newSVpvn( (char*)pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
-            my_hv_store( tags, pid3frame->id, bin );
+            // Ignore XHD3 frame from stupid new mp3HD format
+            if ( strcmp(pid3frame->id, "XHD3" ) ) {
+              bin = newSVpvn( (char*)pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
+              my_hv_store( tags, pid3frame->id, bin );
+            }
           
           default:
             break;
@@ -222,6 +220,12 @@ get_mp3tags(char *file, HV *info, HV *tags)
       // APIC, GEOB, POPM, AENC, LINK, POSS, USER, OWNE, COMR, ENCR,
       // GRID, PRIV, SIGN, ASPI
       else {
+        // Ignore ZOBS (obsolete) frames
+        if ( !strcmp(pid3frame->id, "ZOBS") ) {
+          index++;
+          continue;
+        }
+        
         int i;
         AV *framedata = newAV();
         

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 105;
+use Test::More tests => 108;
 
 use Audio::Scan;
 
@@ -242,14 +242,14 @@ use Audio::Scan;
 
 # ID3v2.2 with multiple comment tags
 {
-	my $s = Audio::Scan->scan_tags( _f('v2.2-multiple-comm.mp3') );
+    my $s = Audio::Scan->scan_tags( _f('v2.2-multiple-comm.mp3') );
     
     my $tags = $s->{tags};
 
-	is( scalar @{ $tags->{COMM} }, 4, 'ID3v2.2 4 comment tags ok' );
-	is( $tags->{COMM}->[1]->[2], 'iTunNORM', 'ID3v2.2 iTunNORM ok' );
-	is( $tags->{COMM}->[2]->[2], 'iTunes_CDDB_1', 'ID3v2.2 iTunes_CDDB_1 ok' );
-	is( $tags->{COMM}->[3]->[2], 'iTunes_CDDB_TrackNumber', 'ID3v2.2 iTunes_CDDB_TrackNumber ok' );
+    is( scalar @{ $tags->{COMM} }, 4, 'ID3v2.2 4 comment tags ok' );
+    is( $tags->{COMM}->[1]->[2], 'iTunNORM', 'ID3v2.2 iTunNORM ok' );
+    is( $tags->{COMM}->[2]->[2], 'iTunes_CDDB_1', 'ID3v2.2 iTunes_CDDB_1 ok' );
+    is( $tags->{COMM}->[3]->[2], 'iTunes_CDDB_TrackNumber', 'ID3v2.2 iTunes_CDDB_TrackNumber ok' );
 }
 
 # ID3v2.3
@@ -307,6 +307,18 @@ use Audio::Scan;
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16LE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16LE converted to UTF-8 ok' );
+}
+
+# ID3v2.3 mp3HD, make sure we ignore XHD3 frame properly
+{
+    my $s = Audio::Scan->scan( _f('v2.3-mp3HD.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{audio_offset}, 57956, 'mp3HD offset ok' );
+    is( $tags->{TIT2}, 'mp3HD is evil', 'mp3HD tags ok' );
+    is( $tags->{XHD3}, undef, 'mp3HD XHD3 frame ignored' );
 }
 
 # ID3v2.4
