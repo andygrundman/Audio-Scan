@@ -328,7 +328,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
   }
 
   // Update id3_version field if we found a v1 tag
-  if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 ) {
+  if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 && !my_hv_fetch( info, "id3_version" ) ) {
     if (trck_found == 1) {
       my_hv_store( info, "id3_version", newSVpv( "ID3v1.1", 0 ) );
     }
