@@ -16,7 +16,7 @@
 
 #include "tagutils-common.h"
 
-void _split_vorbis_comment(char* comment, HV* tags, SV** tag, SV** separator) {
+void _split_vorbis_comment(char* comment, HV* tags) {
   char *half;
   int klen  = 0;
   SV* value = NULL;
@@ -40,18 +40,22 @@ void _split_vorbis_comment(char* comment, HV* tags, SV** tag, SV** separator) {
 
   if (hv_exists(tags, comment, klen)) {
     /* fetch the existing key */
-    tag = hv_fetch(tags, comment, klen, 0);
+    SV **entry = hv_fetch(tags, comment, klen, 0);
 
-    /* fetch the multi-value separator or default and append to the key */
-    if (my_hv_exists(tags, "separator")) {
-      separator = my_hv_fetch(tags, "separator");
-      sv_catsv(*tag, *separator);
-    } else {
-      sv_catpv(*tag, "/");
+    if (SvOK(*entry)) {
+
+      // A normal string entry, convert to array.
+      if (SvTYPE(*entry) == SVt_PV) {
+        AV *ref = newAV();
+        av_push(ref, newSVsv(*entry));
+        av_push(ref, value);
+        hv_store(tags, comment, klen, newRV_noinc((SV*)ref), 0);
+
+      } else if (SvTYPE(SvRV(*entry)) == SVt_PVAV) {
+        av_push((AV *)SvRV(*entry), value);
+      }
     }
 
-    /* concatenate with the new key */
-    sv_catsv(*tag, value);
   } else {
     hv_store(tags, comment, klen, value, 0);
   }

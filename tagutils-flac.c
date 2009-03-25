@@ -124,15 +124,12 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
 
     case FLAC__METADATA_TYPE_VORBIS_COMMENT:
     {
-      SV **tag = NULL;
-      SV **separator = NULL;
-
       if (block->data.vorbis_comment.vendor_string.entry) {
         my_hv_store(tags, "VENDOR", newSVpv((char*)block->data.vorbis_comment.vendor_string.entry, 0));
       }
 
       for (i = 0; i < block->data.vorbis_comment.num_comments; i++) {
-        _split_vorbis_comment((char*)block->data.vorbis_comment.comments[i].entry, tags, tag, separator);
+        _split_vorbis_comment((char*)block->data.vorbis_comment.comments[i].entry, tags);
       }
 
       break;

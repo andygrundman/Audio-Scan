@@ -24,8 +24,6 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   int bitrate_average;
   OggVorbis_File vf;
 
-  SV **tag       = NULL;
-  SV **separator = NULL;
   size_t filesize   = 0;
   double total_time = 0;
 
@@ -46,7 +44,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   total_time         = ov_time_total(&vf, -1);
 
   for (i = 0; i < vc->comments; i++) {
-    _split_vorbis_comment(vc->user_comments[i], tags, tag, separator);
+    _split_vorbis_comment(vc->user_comments[i], tags);
   }
 
   my_hv_store(info, "CHANNELS", newSViv(vi->channels));

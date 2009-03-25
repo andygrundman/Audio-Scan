@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 6;
+use Test::More tests => 9;
 
 use Audio::Scan;
 use Encode;
@@ -22,6 +22,17 @@ use Encode;
     is($info->{CHANNELS}, 2, 'Channels ok');
     is($info->{RATE}, 44100, 'Sample Rate ok');
     ok($info->{VENDOR} =~ /Xiph/, 'Vendor ok');
+}
+
+# Multiple tags.
+{
+    my $s = Audio::Scan->scan( _f('multiple.ogg') );
+
+    my $tags = $s->{tags};
+
+    is($tags->{ARTIST}[0], 'Multi 1', 'Multiple Artist 1 ok');
+    is($tags->{ARTIST}[1], 'Multi 2', 'Multiple Artist 1 ok');
+    is($tags->{ARTIST}[2], 'Multi 3', 'Multiple Artist 1 ok');
 }
 
 sub _f {
