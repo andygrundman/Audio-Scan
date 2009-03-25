@@ -145,6 +145,29 @@ get_mp3tags(char *file, HV *info, HV *tags)
     else {
       //PerlIO_printf(PerlIO_stderr(), "  type %d\n", pid3frame->fields[0].type);
       
+        // For some reason libid3tag marks some frames as obsolete, when
+        // they should at least be passed-through as unknown frames
+        if ( !strcmp(pid3frame->id, "ZOBS") ) {
+          char *frameid = pid3frame->fields[0].immediate.value;
+          
+          // Special case, TYE is already converted to TDRC
+          if ( !strcmp( frameid, "YTYE" ) ) {
+            index++;
+            continue;
+          }
+          
+          //PerlIO_printf(PerlIO_stderr(), "ZOBS frame %s\n", frameid);
+          
+          // Convert this frame into the real frame with 1 field of binary data
+          pid3frame->id[0] = frameid[0];
+          pid3frame->id[1] = frameid[1];
+          pid3frame->id[2] = frameid[2];
+          pid3frame->id[3] = frameid[3];
+          
+          pid3frame->nfields = 1;
+          pid3frame->fields[0] = pid3frame->fields[1];
+        }
+      
       // 1- and 2-field frames where the first field is TEXTENCODING are mapped to plain hash entries
       // This covers the following frames:
       // MCDI - ID3_FIELD_TYPE_BINARYDATA (untested)
@@ -235,13 +258,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
       // UFID, ETCO, MLLT, SYTC, USLT, SYLT, COMM, RVA2, EQU2, RVRB,
       // APIC, GEOB, POPM, AENC, LINK, POSS, USER, OWNE, COMR, ENCR,
       // GRID, PRIV, SIGN, ASPI
-      else {
-        // Ignore ZOBS (obsolete) frames
-        if ( !strcmp(pid3frame->id, "ZOBS") ) {
-          index++;
-          continue;
-        }
-        
+      else {        
         int i;
         AV *framedata = newAV();
         
@@ -300,7 +317,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
 
             case ID3_FIELD_TYPE_BINARYDATA:
               // Special handling for RVA2 tag, expand to correct fields
-              // XXX: RVA(D)
+              // XXX: RVA(D) (iTunes writes these)
               if ( !strcmp( pid3frame->id, "RVA2" ) ) {
                 unsigned char *rva = (unsigned char*)pid3frame->fields[i].binary.data;
                 float adj = 0.0;
