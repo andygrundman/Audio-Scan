@@ -52,7 +52,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
   id3_ucs4_t const *value;
   char *utf8_key;
   char *utf8_value;
-  SV *bin;
 
   pid3file = id3_file_open(file, ID3_FILE_MODE_READONLY);
   if (!pid3file) {
@@ -153,7 +152,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
       // SEEK - ID3_FIELD_TYPE_INT32 (untested)
       // T* (text) - ID3_FIELD_TYPE_TEXTENCODING, ID3_FIELD_TYPE_STRINGLIST
       // W* (url) - ID3_FIELD_TYPE_LATIN1
-      // unknown - ID3_FIELD_TYPE_BINARYDATA (untested)
+      // unknown - ID3_FIELD_TYPE_BINARYDATA
       
       if ( 
            pid3frame->nfields == 1 
@@ -203,9 +202,26 @@ get_mp3tags(char *file, HV *info, HV *tags)
             break;
           
           case ID3_FIELD_TYPE_BINARYDATA:
-            // Ignore XHD3 frame from stupid new mp3HD format
-            if ( strcmp(pid3frame->id, "XHD3" ) ) {
-              bin = newSVpvn( (char*)pid3frame->fields[0].binary.data, pid3frame->fields[0].binary.length );
+            if ( !strcmp(pid3frame->id, "XHD3" ) ) {
+              // Ignore XHD3 frame from stupid new mp3HD format
+            }
+            else {
+              char *data = (char*)pid3frame->fields[0].binary.data;
+              unsigned int len = pid3frame->fields[0].binary.length;
+              SV *bin;
+                            
+              // Consume leading and trailing padding nulls on binary data, these are left over
+              // from unknown text frames from i.e. iTunes
+              while ( len && !data[0] ) {
+                data++;
+                len--;
+              }
+              
+              while ( len && !data[len - 1] ) {
+                len--;
+              }
+              
+              bin = newSVpvn( data, len );
               my_hv_store( tags, pid3frame->id, bin );
             }
           
@@ -305,7 +321,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 av_push( framedata, newSViv(0) );
               }
               else {
-                bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
+                SV *bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
                 av_push( framedata, bin );
               }
 

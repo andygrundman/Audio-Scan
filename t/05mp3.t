@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 113;
+use Test::More tests => 121;
 
 use Audio::Scan;
 
@@ -250,6 +250,23 @@ use Audio::Scan;
     is( $tags->{COMM}->[1]->[2], 'iTunNORM', 'ID3v2.2 iTunNORM ok' );
     is( $tags->{COMM}->[2]->[2], 'iTunes_CDDB_1', 'ID3v2.2 iTunes_CDDB_1 ok' );
     is( $tags->{COMM}->[3]->[2], 'iTunes_CDDB_TrackNumber', 'ID3v2.2 iTunes_CDDB_TrackNumber ok' );
+}
+
+# ID3v2.2 from iTunes 8.1, full of non-standard frames
+{
+    my $s = Audio::Scan->scan( _f('v2.2-itunes81.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $tags->{TENC}, 'iTunes 8.1', 'ID3v2.2 from iTunes 8.1 ok' );
+    is( $tags->{USLT}->[3], 'This is the lyrics field from iTunes.', 'iTunes 8.1 USLT ok' );
+    is( $tags->{YTCP}, 1, 'iTunes 8.1 TCP ok' );
+    is( $tags->{YTS2}, 'Album Artist Sort', 'iTunes 8.1 TS2 ok' );
+    is( $tags->{YTSA}, 'Album Sort', 'iTunes 8.1 TSA ok' );
+    is( $tags->{YTSC}, 'Composer Sort', 'iTunes 8.1 TSC ok' );
+    is( $tags->{YTSP}, 'Artist Name Sort', 'iTunes 8.1 TSP ok' );
+    is( $tags->{YTST}, 'Track Title Sort', 'iTunes 8.1 TST ok' );
 }
 
 # ID3v2.3
