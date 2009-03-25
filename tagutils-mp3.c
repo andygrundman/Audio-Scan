@@ -283,8 +283,42 @@ get_mp3tags(char *file, HV *info, HV *tags)
               break;
 
             case ID3_FIELD_TYPE_BINARYDATA:
-              bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
-              av_push( framedata, bin );
+              // Special handling for RVA2 tag, expand to correct fields
+              // XXX: RVA(D)
+              if ( !strcmp( pid3frame->id, "RVA2" ) ) {
+                unsigned char *rva = (unsigned char*)pid3frame->fields[i].binary.data;
+                float adj = 0.0;
+                int adj_fp;
+                char peakbits = 0;
+                float peak = 0;
+                
+                // Channel
+                av_push( framedata, newSViv(rva[0]) );
+                rva++;
+                
+                // Adjustment
+                adj_fp = *(signed char *)(rva) << 8;
+                adj_fp |= *(unsigned char *)(rva+1);
+                adj = adj_fp / 512.0;
+                av_push( framedata, newSVpvf( "%f", adj ) );
+                rva += 2;
+                
+                // Peak XXX untested
+                if ( rva[0] ) {
+                  peakbits = rva[0];
+                  rva++;
+                  peak = _varint( rva, (int)(peakbits / 8) );
+                  av_push( framedata, newSVpvf( "%f", peak ) );
+                }
+                else {
+                  // No peak
+                  av_push( framedata, newSViv(0) );
+                }
+              }
+              else {
+                bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
+                av_push( framedata, bin );
+              }
 
             default:
               break;
@@ -731,8 +765,6 @@ get_mp3fileinfo(char *file, HV *info)
     buf[3] < 0xff && buf[4] < 0xff &&
     buf[6] < 0x80 && buf[7] < 0x80 && buf[8] < 0x80 && buf[9] < 0x80
   ) {
-    char tagversion[16];
-
     /* found an ID3 header... */
     id3_size = 10 + (buf[6]<<21) + (buf[7]<<14) + (buf[8]<<7) + buf[9];
 
@@ -740,9 +772,8 @@ get_mp3fileinfo(char *file, HV *info)
       // footer present
       id3_size += 10;
     }
-
-    snprintf(tagversion, sizeof(tagversion), "ID3v2.%d.%d", buf[3], buf[4]);
-    my_hv_store( info, "id3_version", newSVpv( tagversion, 0 ) );
+    
+    my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", buf[3], buf[4] ) );
 
     // Always seek past the ID3 tags
     PerlIO_seek(infile, id3_size, SEEK_SET);
@@ -893,15 +924,11 @@ get_mp3fileinfo(char *file, HV *info)
     my_hv_store( info, "lame_lowpass", newSViv(fi.lame_lowpass) );
 
     if (fi.lame_replay_gain[0]) {
-      char tmp[8];
-      sprintf(tmp, "%.1f dB", fi.lame_replay_gain[0]);
-      my_hv_store( info, "lame_replay_gain_radio", newSVpv( tmp, 0 ) );
+      my_hv_store( info, "lame_replay_gain_radio", newSVpvf( "%.1f dB", fi.lame_replay_gain[0] ) );
     }
 
     if (fi.lame_replay_gain[1]) {
-      char tmp[8];
-      sprintf(tmp, "%.1f dB", fi.lame_replay_gain[1]);
-      my_hv_store( info, "lame_replay_gain_audiophile", newSVpv( tmp, 0 ) );
+      my_hv_store( info, "lame_replay_gain_audiophile", newSVpvf( "%.1f dB", fi.lame_replay_gain[1] ) );
     }
 
     my_hv_store( info, "lame_encoder_delay", newSViv(fi.lame_encoder_delay) );
@@ -923,9 +950,7 @@ get_mp3fileinfo(char *file, HV *info)
       my_hv_store( info, "lame_preset", newSVpvn( "Unknown", 7 ) );
     }
     else if (fi.lame_preset <= 320) {
-      char tmp[8];
-      sprintf(tmp, "ABR %d", fi.lame_preset);
-      my_hv_store( info, "lame_preset", newSVpv( tmp, 0 ) );
+      my_hv_store( info, "lame_preset", newSVpvf( "ABR %d", fi.lame_preset ) );
     }
     else if (fi.lame_preset <= 500) {
       fi.lame_preset /= 10;

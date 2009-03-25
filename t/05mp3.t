@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 108;
+use Test::More tests => 113;
 
 use Audio::Scan;
 
@@ -337,6 +337,10 @@ use Audio::Scan;
     is( $tags->{PCNT}, 256, 'ID3v2.4 playcount field ok' );
     is( $tags->{POPM}->[0]->[0], 'foo@foo.com', 'ID3v2.4 POPM #1 ok' );
     is( $tags->{POPM}->[1]->[2], 7, 'ID3v2.4 POPM #2 ok' );
+    is( $tags->{RVA2}->[0], 'normalize', 'ID3v2.4 RVA2 ok' );
+    is( $tags->{RVA2}->[1], 1, 'ID3v2.4 RVA2 channel ok' );
+    is( $tags->{RVA2}->[2], 4.972656, 'ID3v2.4 RVA2 adjustment ok' );
+    is( $tags->{RVA2}->[3], 0, 'ID3v2.4 RVA2 peak ok' );
     is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
     is( $tags->{UFID}->[0], 'foo@foo.com', 'ID3v2.4 UFID owner id ok' );
     is( $tags->{UFID}->[1], 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
@@ -345,7 +349,15 @@ use Audio::Scan;
     is( $tags->{'User URL'}, 'http://www.google.com', 'ID3v2.4 WXXX ok' );
     
     # XXX: 2 WOAR frames
-} 
+}
+
+# ID3v2.4 with negative RVA2
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-rva2-neg.mp3') );
+    
+    my $tags = $s->{tags};
+    is( $tags->{RVA2}->[2], -2.123047, 'ID3v2.4 negative RVA2 adjustment ok' );
+}
 
 sub _f {    
     return catfile( $FindBin::Bin, 'mp3', shift );
