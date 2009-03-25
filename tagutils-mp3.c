@@ -289,8 +289,6 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 unsigned char *rva = (unsigned char*)pid3frame->fields[i].binary.data;
                 float adj = 0.0;
                 int adj_fp;
-                char peakbits = 0;
-                float peak = 0;
                 
                 // Channel
                 av_push( framedata, newSViv(rva[0]) );
@@ -303,17 +301,8 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 av_push( framedata, newSVpvf( "%f", adj ) );
                 rva += 2;
                 
-                // Peak XXX untested
-                if ( rva[0] ) {
-                  peakbits = rva[0];
-                  rva++;
-                  peak = _varint( rva, (int)(peakbits / 8) );
-                  av_push( framedata, newSVpvf( "%f", peak ) );
-                }
-                else {
-                  // No peak
-                  av_push( framedata, newSViv(0) );
-                }
+                // Ignore peak, nobody seems to support this
+                av_push( framedata, newSViv(0) );
               }
               else {
                 bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
