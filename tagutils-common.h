@@ -25,3 +25,5 @@
 #define my_hv_store(a,b,c)   hv_store(a,b,strlen(b),c,0)
 #define my_hv_fetch(a,b)     hv_fetch(a,b,strlen(b),0)
 #define my_hv_exists(a,b)    hv_exists(a,b,strlen(b))
+
+extern void _split_vorbis_comment(char* comment, HV* tags, SV** tag, SV** separator);

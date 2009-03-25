@@ -132,40 +132,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       }
 
       for (i = 0; i < block->data.vorbis_comment.num_comments; i++) {
-        char *entry, *half;
-        
-        if (!block->data.vorbis_comment.comments[i].entry ||
-          !block->data.vorbis_comment.comments[i].length){
-          PerlIO_printf(PerlIO_stderr(), "Empty comment, skipping...\n");
-          continue;
-        }
-
-        /* store the pointer location of the '=', poor man's split() */
-        entry = (char*)block->data.vorbis_comment.comments[i].entry;
-        half  = strchr(entry, '=');
-
-        if (half == NULL) {
-          PerlIO_printf(PerlIO_stderr(), "Comment \"%s\" missing \'=\', skipping...\n", entry);
-          continue;
-        }
-
-        if (hv_exists(tags, entry, half - entry)) {
-          /* fetch the existing entry */
-          tag = hv_fetch(tags, entry, half - entry, 0);
-
-          /* fetch the multi-value separator or default and append to the entry */
-          if (my_hv_exists(tags, "separator")) {
-            separator = my_hv_fetch(tags, "separator");
-            sv_catsv(*tag, *separator);
-          } else {
-            sv_catpv(*tag, "/");
-          }
-
-          /* concatenate with the new entry */
-          sv_catpv(*tag, half + 1);
-        } else {
-          hv_store(tags, entry, half - entry, newSVpv(half + 1, 0), 0);
-        }
+        _split_vorbis_comment((char*)block->data.vorbis_comment.comments[i].entry, tags, tag, separator);
       }
 
       break;

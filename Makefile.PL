@@ -124,6 +124,6 @@ WriteMakefile(
     LIBS              => [ join(' ', @LIBPATH, @LIBS) ],
     DEFINE            => $DEFINES,
     depend            => {
-        'Scan.c' => 'tagutils-common.h tagutils-mp3.h tagutils-mp3.c tagutils-flac.h tagutils-flac.c tagutils-ogg.h tagutils-ogg.c',
+        'Scan.c' => 'tagutils-common.c tagutils-common.h tagutils-mp3.h tagutils-mp3.c tagutils-flac.h tagutils-flac.c tagutils-ogg.h tagutils-ogg.c',
     },
 );
