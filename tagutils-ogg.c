@@ -17,12 +17,24 @@
 #include "tagutils-ogg.h"
 
 static int
-get_oggtags(char *file, HV *info, HV *tags)
+get_ogg_metadata(char *file, HV *info, HV *tags)
 {
   int i;
+  struct stat st;
+  int bitrate_average;
+  OggVorbis_File vf;
+
   SV **tag       = NULL;
   SV **separator = NULL;
-  OggVorbis_File vf;
+  size_t filesize   = 0;
+  double total_time = 0;
+
+  if (stat(file, &st) == 0) {
+    filesize = st.st_size;
+    my_hv_store(info, "SIZE", newSViv(filesize));
+  } else {
+    PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
+  }
 
   if (ov_fopen(file, &vf) < 0) {
     PerlIO_printf(PerlIO_stderr(), "Can't open OggVorbis file: %s\n", file);
@@ -30,38 +42,31 @@ get_oggtags(char *file, HV *info, HV *tags)
   }
 
   vorbis_comment *vc = ov_comment(&vf, -1);
+  vorbis_info *vi    = ov_info(&vf, -1);
+  total_time         = ov_time_total(&vf, -1);
 
   for (i = 0; i < vc->comments; i++) {
     _split_vorbis_comment(vc->user_comments[i], tags, tag, separator);
   }
 
-  ov_clear(&vf);
+  my_hv_store(info, "CHANNELS", newSViv(vi->channels));
+  my_hv_store(info, "RATE", newSViv(vi->rate));
+  my_hv_store(info, "VERSION", newSViv(vi->version));
+  my_hv_store(info, "STEREO", newSViv(vi->channels == 2 ? 1 : 0));
+  my_hv_store(info, "VENDOR", newSVpv(ov_comment(&vf, -1)->vendor, 0));
+  my_hv_store(info, "SECS", newSVnv(total_time));
 
-  return 0;
-}
+  bitrate_average = (int)((filesize * 8) / total_time);
 
-static int
-get_ogginfo(char *file, HV *info)
-{
-  OggVorbis_File vf;
+  my_hv_store(info, "BITRATE", newSViv( bitrate_average ? bitrate_average : vi->bitrate_nominal ));
 
-  if (ov_fopen(file, &vf) < 0) {
-    PerlIO_printf(PerlIO_stderr(), "Can't open OggVorbis file: %s\n", file);
-    return -1;
+  if (vi->bitrate_upper && vi->bitrate_lower && (vi->bitrate_upper != vi->bitrate_lower)) {
+    my_hv_store(info, "VBR_SCALE", newSViv(1));
+  } else {
+    my_hv_store(info, "VBR_SCALE", newSViv(0));
   }
 
-  vorbis_info *vi = ov_info(&vf, -1);
-
-  my_hv_store( info, "CHANNELS", newSViv(vi->channels) );
-  my_hv_store( info, "SAMPLERATE", newSViv(vi->rate) );
-  my_hv_store( info, "VERSION", newSViv(vi->version) );
-  my_hv_store( info, "VENDOR", newSVpv(ov_comment(&vf, -1)->vendor, 0) );
-
-  my_hv_store( info, "BITRATE_UPPER", newSViv(vi->bitrate_upper) );
-  my_hv_store( info, "BITRATE_NOMINAL", newSViv(vi->bitrate_nominal) );
-  my_hv_store( info, "BITRATE_LOWER", newSViv(vi->bitrate_lower) );
-  my_hv_store( info, "BITRATE_WINDOW", newSViv(vi->bitrate_window) );
-  my_hv_store( info, "LENGTH", newSVnv(ov_time_total(&vf, -1)) );
+  my_hv_store(info, "OFFSET", newSViv(0));
 
   ov_clear(&vf);
 

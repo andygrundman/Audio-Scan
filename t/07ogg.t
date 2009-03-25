@@ -5,6 +5,7 @@ use FindBin ();
 use Test::More tests => 6;
 
 use Audio::Scan;
+use Encode;
 
 # Basics
 {
@@ -12,13 +13,14 @@ use Audio::Scan;
 
     my $info = $s->{info};
     my $tags = $s->{tags};
+    my $utf8 = Encode::decode_utf8('シチヅヲ');
 
     is($tags->{ARTIST}, 'Test Artist', 'ASCII Tag ok');
     is($tags->{YEAR}, 2009, 'Year Tag ok');
-    is($tags->{PERFORMER}, 'シチヅヲ', 'PERFORMER (UTF8) Tag ok');
+    is($tags->{PERFORMER}, $utf8, 'PERFORMER (UTF8) Tag ok');
 
     is($info->{CHANNELS}, 2, 'Channels ok');
-    is($info->{SAMPLERATE}, 44100, 'Sample Rate ok');
+    is($info->{RATE}, 44100, 'Sample Rate ok');
     ok($info->{VENDOR} =~ /Xiph/, 'Vendor ok');
 }
 

@@ -16,5 +16,4 @@
 
 #include <vorbis/vorbisfile.h>
 
-static int get_oggtags(char *file, HV *info, HV *tags);
-static int get_ogginfo(char *file, HV *info);
+static int get_ogg_metadata(char *file, HV *info, HV *tags);

@@ -35,8 +35,7 @@ void _split_vorbis_comment(char* comment, HV* tags, SV** tag, SV** separator) {
   } else {
     klen  = half - comment;
     value = newSVpv(half + 1, 0);
-    //sv_utf8_decode(value);
-    //sv_utf8_upgrade(value);
+    sv_utf8_decode(value);
   }
 
   if (hv_exists(tags, comment, klen)) {
