@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 use Audio::Scan;
 use Encode;
@@ -33,6 +33,15 @@ use Encode;
     is($tags->{ARTIST}[0], 'Multi 1', 'Multiple Artist 1 ok');
     is($tags->{ARTIST}[1], 'Multi 2', 'Multiple Artist 1 ok');
     is($tags->{ARTIST}[2], 'Multi 3', 'Multiple Artist 1 ok');
+}
+
+# Equals char in tag.
+{
+    my $s = Audio::Scan->scan( _f('equals-char.ogg') );
+
+    my $tags = $s->{tags};
+
+    is($tags->{TITLE}, 'Me - You = Loneliness', 'Equals char in tag ok');
 }
 
 sub _f {
