@@ -16,8 +16,20 @@
 
 #include "tagutils-common.h"
 
+char* upcase(char *s) {
+  char *p = &s[0];
+
+  while (*p != 0) {
+    if (*p >= 'a' && *p <= 'z') *p = (*p - 32);
+    p++;
+  }
+
+  return s;
+}
+
 void _split_vorbis_comment(char* comment, HV* tags) {
   char *half;
+  char *key;
   int klen  = 0;
   SV* value = NULL;
 
@@ -32,15 +44,21 @@ void _split_vorbis_comment(char* comment, HV* tags) {
   if (half == NULL) {
     PerlIO_printf(PerlIO_stderr(), "Comment \"%s\" missing \'=\', skipping...\n", comment);
     return;
-  } else {
-    klen  = half - comment;
-    value = newSVpv(half + 1, 0);
-    sv_utf8_decode(value);
   }
 
-  if (hv_exists(tags, comment, klen)) {
+  klen  = half - comment;
+  value = newSVpv(half + 1, 0);
+  sv_utf8_decode(value);
+
+  /* Is there a better way to do this? */
+  Newxz(key, klen, char);
+  Move(comment, key, klen, char);
+  key[klen] = '\0';
+  key = upcase(key);
+
+  if (hv_exists(tags, key, klen)) {
     /* fetch the existing key */
-    SV **entry = hv_fetch(tags, comment, klen, 0);
+    SV **entry = my_hv_fetch(tags, key);
 
     if (SvOK(*entry)) {
 
@@ -49,7 +67,7 @@ void _split_vorbis_comment(char* comment, HV* tags) {
         AV *ref = newAV();
         av_push(ref, newSVsv(*entry));
         av_push(ref, value);
-        hv_store(tags, comment, klen, newRV_noinc((SV*)ref), 0);
+        my_hv_store(tags, key, newRV_noinc((SV*)ref));
 
       } else if (SvTYPE(SvRV(*entry)) == SVt_PVAV) {
         av_push((AV *)SvRV(*entry), value);
@@ -57,6 +75,8 @@ void _split_vorbis_comment(char* comment, HV* tags) {
     }
 
   } else {
-    hv_store(tags, comment, klen, value, 0);
+    my_hv_store(tags, key, value);
   }
+
+  Safefree(key);
 }

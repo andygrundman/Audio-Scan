@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 10;
+use Test::More tests => 17;
 
 use Audio::Scan;
 use Encode;
@@ -42,6 +42,28 @@ use Encode;
     my $tags = $s->{tags};
 
     is($tags->{TITLE}, 'Me - You = Loneliness', 'Equals char in tag ok');
+}
+
+# Large page size.
+{
+    my $s = Audio::Scan->scan( _f('large-pagesize.ogg') );
+
+    my $tags = $s->{tags};
+
+    is($tags->{TITLE}, 'Deadzy', 'Large page title tag ok');
+    is($tags->{ARTIST}, 'Medeski Scofield Martin & Wood', 'Large page artist tag ok');
+    is($tags->{ALBUM}, 'Out Louder (bonus disc)', 'Large page album tag ok');
+}
+
+# Old encoder files.
+{
+    my $s1 = Audio::Scan->scan( _f('old1.ogg') );
+    is($s1->{tags}->{ALBUM}, 'AutoTests', 'Old encoded album tag ok');
+    is($s1->{info}->{RATE}, 8000, 'Old encoded rate ok');
+
+    my $s2 = Audio::Scan->scan( _f('old2.ogg') );
+    is($s2->{tags}->{ALBUM}, 'AutoTests', 'Old encoded album tag ok');
+    is($s2->{info}->{RATE}, 12000, 'Old encoded rate ok');
 }
 
 sub _f {
