@@ -66,7 +66,7 @@ use Data::Dump qw(dump);
 
     my $tags = $s->{tags};
 
-    ok($tags->{title} =~ /Allegro Maestoso/, "Found title after ID3 tag ok.");
+    ok($tags->{TITLE} =~ /Allegro Maestoso/, "Found title after ID3 tag ok.");
 }
 
 {
