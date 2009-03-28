@@ -16,4 +16,6 @@
 
 #include <vorbis/vorbisfile.h>
 
+#define BLOCK_SIZE 4096
+
 static int get_ogg_metadata(char *file, HV *info, HV *tags);

@@ -53,7 +53,7 @@ static taghandler taghandlers[] = {
   { "mp3", get_mp3tags, get_mp3fileinfo },
 #endif
 #ifdef HAVE_OGG
-  { "ogg", get_ogg_metadata, 0 },
+  { "ogg", 0, get_ogginfo },
 #endif
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0 },
