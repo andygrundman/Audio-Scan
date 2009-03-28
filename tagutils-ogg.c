@@ -132,6 +132,7 @@ get_ogginfo(char *file, HV *info, HV *tags)
   my_hv_store( info, "version", newSViv( GET_INT32LE(buf) ) );
 
   channels = *buf++;
+  my_hv_store( info, "channels", newSViv(channels) );
   my_hv_store( info, "stereo", newSViv( channels == 2 ? 1 : 0 ) );
 
   samplerate = GET_INT32LE(buf);
@@ -196,7 +197,7 @@ get_ogginfo(char *file, HV *info, HV *tags)
   granule_pos |= (uint64_t)GET_INT32LE(buf) << 32;
 
   if ( granule_pos && samplerate ) {
-    int length = (int)((granule_pos / samplerate) * 1000);
+    int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
     my_hv_store( info, "song_length_ms", newSViv(length) );
     my_hv_store( info, "bitrate_average", newSVpvf( "%d", ( file_size * 8 ) / ( length / 1000 ) ) );
   }

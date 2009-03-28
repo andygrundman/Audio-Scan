@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 17;
+use Test::More tests => 24;
 
 use Audio::Scan;
 use Encode;
@@ -18,10 +18,13 @@ use Encode;
     is($tags->{ARTIST}, 'Test Artist', 'ASCII Tag ok');
     is($tags->{YEAR}, 2009, 'Year Tag ok');
     is($tags->{PERFORMER}, $utf8, 'PERFORMER (UTF8) Tag ok');
+    ok($tags->{VENDOR} =~ /Xiph/, 'Vendor ok');
 
-    is($info->{CHANNELS}, 2, 'Channels ok');
-    is($info->{RATE}, 44100, 'Sample Rate ok');
-    ok($info->{VENDOR} =~ /Xiph/, 'Vendor ok');
+    is($info->{bitrate_average}, 12141, 'Bitrate ok');
+    is($info->{channels}, 2, 'Channels ok');
+    is($info->{stereo}, 1, 'Stereo ok');
+    is($info->{samplerate}, 44100, 'Sample Rate ok');
+    is($info->{song_length_ms}, 3684, 'Song length ok');
 }
 
 # Multiple tags.
@@ -59,11 +62,46 @@ use Encode;
 {
     my $s1 = Audio::Scan->scan( _f('old1.ogg') );
     is($s1->{tags}->{ALBUM}, 'AutoTests', 'Old encoded album tag ok');
-    is($s1->{info}->{RATE}, 8000, 'Old encoded rate ok');
+    is($s1->{info}->{samplerate}, 8000, 'Old encoded rate ok');
 
     my $s2 = Audio::Scan->scan( _f('old2.ogg') );
     is($s2->{tags}->{ALBUM}, 'AutoTests', 'Old encoded album tag ok');
-    is($s2->{info}->{RATE}, 12000, 'Old encoded rate ok');
+    is($s2->{info}->{samplerate}, 12000, 'Old encoded rate ok');
+}
+
+# SC bugs
+{
+    my $s = Audio::Scan->scan( _f('bug1155-1.ogg') );
+
+    my $info = $s->{info};
+
+    is($info->{bitrate_average}, 206723, 'Bug1155 bitrate ok' );
+}
+
+{
+    my $s = Audio::Scan->scan( _f('bug1155-2.ogg') );
+
+    my $info = $s->{info};
+
+    is($info->{bitrate_average}, 8696, 'Bug1155 bitrate ok' );
+}
+
+{
+    my $s = Audio::Scan->scan( _f('bug803.ogg') );
+
+    my $info = $s->{info};
+    
+    is($info->{song_length_ms}, 219693, 'Bug803 song length ok' );
+}
+
+{
+    my $s = Audio::Scan->scan( _f('bug905.ogg') );
+
+    my $info = $s->{info};
+    
+    is($info->{song_length_ms}, 225986, 'Bug905 song length ok' );
+    
+    # XXX: date tag
 }
 
 sub _f {
