@@ -40,7 +40,7 @@ elsif ( $file =~ /\.fla?c$/i ) {
   
   cmpthese( -5, {
     flac_pp => sub {
-      Audio::FLAC::Header->new($file)
+      Audio::FLAC::Header->_new_PP($file)
     },
     flac_c  => sub {
       Audio::Scan->scan($file);
