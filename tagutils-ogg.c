@@ -17,7 +17,7 @@
 #include "tagutils-ogg.h"
 
 static int
-get_ogginfo(char *file, HV *info, HV *tags)
+get_ogg_metadata(char *file, HV *info, HV *tags)
 {
   PerlIO *infile;
 
@@ -216,6 +216,7 @@ out:
   return 0;
 }
 
+/*
 // Using the Vorbis API is sloooow
 static int
 get_ogg_metadata(char *file, HV *info, HV *tags)
@@ -271,3 +272,4 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
 
   return 0;
 }
+*/

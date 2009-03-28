@@ -53,7 +53,7 @@ static taghandler taghandlers[] = {
   { "mp3", get_mp3tags, get_mp3fileinfo },
 #endif
 #ifdef HAVE_OGG
-  { "ogg", 0, get_ogginfo },
+  { "ogg", get_ogg_metadata, 0 },
 #endif
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0 },
@@ -105,6 +105,11 @@ CODE:
     for (hdl = taghandlers; hdl->type; ++hdl)
       if (!strcmp(hdl->type, audio_types[typeindex].type))
         break;
+      
+    // Ignore filter if a file type has only one function (FLAC/Ogg)
+    if ( !hdl->get_fileinfo ) {
+      filter = FILTER_TYPE_INFO | FILTER_TYPE_TAGS;
+    }
 
     if ( hdl->get_fileinfo && (filter & FILTER_TYPE_INFO) ) {
       hdl->get_fileinfo(SvPVX(path), info);
