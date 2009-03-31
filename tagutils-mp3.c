@@ -127,12 +127,13 @@ get_mp3tags(char *file, HV *info, HV *tags)
       }
       else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
         // handle '(26)Ambient'
-        id3_ucs4_t *ucs4_num = malloc(sizeof(id3_ucs4_t));
+        id3_ucs4_t *ucs4_num;
+        Newxz(ucs4_num, 1, id3_ucs4_t);
         id3_ucs4_putnumber( ucs4_num, strtol( (char *)&utf8_value[1], NULL, 0 ) );
         genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(ucs4_num) );
         my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
         free(genre_string);
-        free(ucs4_num);
+        Safefree(ucs4_num);
       }
       else {
         my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
@@ -522,9 +523,12 @@ static short _mp3_get_average_bitrate(PerlIO *infile)
   int bitrate_total = 0;
   int err = 0;
 
-  unsigned char *buf = malloc(WANTED_FOR_AVG);
-  unsigned char *buf_ptr = buf;
+  unsigned char *buf;
+  unsigned char *buf_ptr;
   unsigned int buf_size = 0;
+  
+  Newxz(buf, WANTED_FOR_AVG, char);
+  buf_ptr = buf;
 
   // Seek to middle of file
   PerlIO_seek(infile, 0, SEEK_END);
@@ -572,7 +576,7 @@ static short _mp3_get_average_bitrate(PerlIO *infile)
   }
 
 out:
-  free(buf_ptr);
+  if (buf_ptr) Safefree(buf_ptr);
 
   if (err) return err;
 
@@ -741,8 +745,8 @@ get_mp3fileinfo(char *file, HV *info)
   PerlIO *infile;
   struct mp3_frameinfo fi;
 
-  unsigned char *buf = malloc(BLOCK_SIZE);
-  unsigned char *buf_ptr = buf;
+  unsigned char *buf;
+  unsigned char *buf_ptr;
   char id3v1taghdr[4];
 
   unsigned int id3_size = 0; // size of leading ID3 data
@@ -757,6 +761,9 @@ get_mp3fileinfo(char *file, HV *info)
 
   int found;
   int err = 0;
+  
+  Newxz(buf, BLOCK_SIZE, char);
+  buf_ptr = buf;
 
   if (!(infile = PerlIO_open(file, "rb"))) {
     PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
@@ -995,7 +1002,7 @@ get_mp3fileinfo(char *file, HV *info)
 
 out:
   if (infile) PerlIO_close(infile);
-  free(buf_ptr);
+  if (buf_ptr) Safefree(buf_ptr);
 
   if (err) return err;
 
