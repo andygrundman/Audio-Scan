@@ -15,6 +15,7 @@
  */
 
 #include "tagutils-common.h"
+#include "buffer.c"
 
 char* upcase(char *s) {
   char *p = &s[0];

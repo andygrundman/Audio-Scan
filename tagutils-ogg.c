@@ -20,26 +20,34 @@ static int
 get_ogg_metadata(char *file, HV *info, HV *tags)
 {
   PerlIO *infile;
-
-  unsigned char *buf = malloc(BLOCK_SIZE);
-  unsigned char *buf_ptr = buf;
+  
+  Buffer ogg_buf, vorbis_buf;
+  unsigned char *bptr;
 
   unsigned int id3_size = 0; // size of leading ID3 data
-  unsigned int buf_size = 0; // amount of data left in buf
 
   off_t file_size;           // total file size
   off_t audio_offset = 0;    // offset to first audio frame
   off_t audio_size;          // size of all audio frames
+  
+  int page = 0;
+  int packets = 0;
+  int streams = 0;
 
-  unsigned char channels;
-  unsigned int blocksize_0;
-  unsigned int avg_buf_size;
-  unsigned int samplerate;
-  unsigned int bitrate_nominal;
-  uint64_t granule_pos;
+  unsigned char ogghdr[28];
+  char header_type;
+  int serialno;
+  int pagenum;
+  char num_segments;
+  int pagelen;
+  
+  unsigned char vorbis_type = 0;
 
   int i;
   int err = 0;
+  
+  buffer_init(&ogg_buf);
+  buffer_init(&vorbis_buf);
 
   if (!(infile = PerlIO_open(file, "rb"))) {
     PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
@@ -51,8 +59,8 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
 
-  if ((buf_size = PerlIO_read(infile, buf, BLOCK_SIZE)) == 0) {
-    if (PerlIO_error(infile)) {
+  if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, OGG_BLOCK_SIZE), OGG_BLOCK_SIZE) == 0 ) {
+    if ( PerlIO_error(infile) ) {
       PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
     }
     else {
@@ -64,212 +72,293 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   }
 
   // Skip ID3 tags if any
+  bptr = (unsigned char *)buffer_ptr(&ogg_buf);
   if (
-    (buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3') &&
-    buf[3] < 0xff && buf[4] < 0xff &&
-    buf[6] < 0x80 && buf[7] < 0x80 && buf[8] < 0x80 && buf[9] < 0x80
+    (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
+    bptr[3] < 0xff && bptr[4] < 0xff &&
+    bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
   ) {
     /* found an ID3 header... */
-    id3_size = 10 + (buf[6]<<21) + (buf[7]<<14) + (buf[8]<<7) + buf[9];
+    id3_size = 10 + (bptr[6]<<21) + (bptr[7]<<14) + (bptr[8]<<7) + bptr[9];
 
-    if (buf[5] & 0x10) {
+    if (bptr[5] & 0x10) {
       // footer present
       id3_size += 10;
     }
+    
+    buffer_clear(&ogg_buf);
 
     PerlIO_seek(infile, id3_size, SEEK_SET);
-    buf_size = PerlIO_read(infile, buf, BLOCK_SIZE);
+    
+    if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, OGG_BLOCK_SIZE), OGG_BLOCK_SIZE) ) {
+      if ( PerlIO_error(infile) ) {
+        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
+      }
+      else {
+        PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
+      }
 
-    audio_offset += id3_size;
-  }
-
-  // check that the first four bytes are 'OggS'
-  if ( buf[0] != 'O' || buf[1] != 'g' || buf[2] != 'g' || buf[3] != 'S' ) {
-    PerlIO_printf(PerlIO_stderr(), "Not an Ogg file (bad header): %s\n", file);
-    goto out;
-  }
-
-  buf += 4;
-
-  // check the stream structure version (1 byte, should be 0x00)
-  if ( buf[0] != 0x00 ) {
-    PerlIO_printf(PerlIO_stderr(), "Not an Ogg file (bad stream structure version): %s\n", file);
-    goto out;
-  }
-
-  buf += 1;
-
-  // check the header type flag
-  // This is a bitfield, so technically we should check all of the bits
-  // that could potentially be set. However, the only value this should
-  // possibly have at the beginning of a proper Ogg-Vorbis file is 0x02
-  if ( buf[0] != 0x02 ) {
-    PerlIO_printf(PerlIO_stderr(), "Not an Ogg file (bad header type flag): %s\n", file);
-    goto out;
-  }
-
-  buf += 21;
-
-  // read the number of page segments and skip
-  buf += (int)buf[0] + 1;
-
-  // check packet type. Should be 0x01 (for indentification header)
-  if ( buf[0] != 0x01 ) {
-    PerlIO_printf(PerlIO_stderr(), "Not a Vorbis file (bad identification header): %s\n", file);
-    goto out;
-  }
-
-  buf += 1;
-
-  // Verify 'vorbis' string
-  if ( strncmp( (char *)buf, "vorbis", 6) ) {
-    PerlIO_printf(PerlIO_stderr(), "Not a Vorbis file (bad vorbis header): %s\n", file);
-    goto out;
-  }
-
-  buf += 6;
-
-  my_hv_store( info, "version", newSViv( GET_INT32LE(buf) ) );
-
-  channels = *buf++;
-  my_hv_store( info, "channels", newSViv(channels) );
-  my_hv_store( info, "stereo", newSViv( channels == 2 ? 1 : 0 ) );
-
-  samplerate = GET_INT32LE(buf);
-  my_hv_store( info, "samplerate", newSViv(samplerate) );
-  my_hv_store( info, "bitrate_upper", newSViv( GET_INT32LE(buf) ) );
-
-  bitrate_nominal = GET_INT32LE(buf);
-  my_hv_store( info, "bitrate_nominal", newSViv(bitrate_nominal) );
-  my_hv_store( info, "bitrate_lower", newSViv( GET_INT32LE(buf) ) );
-
-  blocksize_0 = 2 << ((buf[0] & 0xF0) >> 4);
-  my_hv_store( info, "blocksize_0", newSViv( blocksize_0 ) );
-  my_hv_store( info, "blocksize_1", newSViv( 2 << (buf[0] & 0x0F) ) );
-  buf++;
-
-  free(buf_ptr);
-
-  // XXX: original code used blocksize_0 * 2, is that correct?
-  if ( file_size > blocksize_0 ) {
-    avg_buf_size = blocksize_0;
-  }
-  else {
-    avg_buf_size = file_size;
-  }
-
-  buf = malloc(avg_buf_size);
-  buf_ptr = buf;
-
-  // Calculate average bitrate
-  PerlIO_seek(infile, file_size - avg_buf_size, SEEK_SET);
-
-  if ((buf_size = PerlIO_read(infile, buf, avg_buf_size)) == 0) {
-    if (PerlIO_error(infile)) {
-      PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-    }
-    else {
-      PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
-    }
-
-    err = -1;
-    goto out;
-  }
-
-  // Find sync
-  while ( buf_size >= 14 && (buf[0] != 'O' || buf[1] != 'g' || buf[2] != 'g' || buf[3] != 'S') ) {
-    buf++;
-    buf_size--;
-
-    if ( buf_size < 14 ) {
-      // Give up, use less accurate bitrate for length
-      my_hv_store( info, "song_length_ms", newSVpvf( "%d", ((file_size * 8) / bitrate_nominal) * 1000) );
-      my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
-
+      err = -1;
       goto out;
     }
   }
+  
+  while (1) {
+    // Grab 28-byte Ogg header
+    buffer_get(&ogg_buf, ogghdr, 28);
+    
+    // check that the first four bytes are 'OggS'
+    if ( ogghdr[0] != 'O' || ogghdr[1] != 'g' || ogghdr[2] != 'g' || ogghdr[3] != 'S' ) {
+      PerlIO_printf(PerlIO_stderr(), "Not an Ogg file (bad OggS header): %s\n", file);
+      goto out;
+    }
+  
+    // Header type flag
+    header_type = ogghdr[5];
+    
+    // Stream serial number
+    serialno = GET_INT32LE((ogghdr+14));
+    
+    // Count start-of-stream pages
+    if ( header_type & 0x02 ) {
+      streams++;
+    }
+    
+    // Keep track of packet count
+    if ( !(header_type & 0x01) ) {
+      packets++;
+    }
+    
+    // stop processing if we reach the 3rd packet and have no data
+    if (packets > 2 * streams && !buffer_len(&vorbis_buf) ) {
+      break;
+    }
+    
+    // Page seq number
+    pagenum = GET_INT32LE((ogghdr+18));
+    
+    if (page >= 0 && page == pagenum) {
+      page++;
+    }
+    else {
+      page = -1;
+      PerlIO_printf(PerlIO_stderr(), "Missing page(s) in Ogg file: %s\n", file);
+    }
+    
+    // Number of page segments
+    num_segments = ogghdr[26];
+       
+    // Calculate total page size
+    pagelen = ogghdr[27];
+    if (num_segments > 1) {
+      int i;
+      for( i = 0; i < num_segments - 1; i++ ) {
+        u_char x;
+        x = buffer_get_char(&ogg_buf);
+        pagelen += x;
+      }
+    }
+    
+    // Avoid reading more data if we've reached the end of comments
+    if (packets <= 2 * streams) {
+      // Do we have enough data?
+      if ( buffer_len(&ogg_buf) < pagelen ) {
+        // Read more data
+        int readlen = pagelen > OGG_BLOCK_SIZE ? pagelen : OGG_BLOCK_SIZE;
+      
+        if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, readlen), readlen) == 0 ) {
+          if ( PerlIO_error(infile) ) {
+            PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
+          }
+          else {
+            PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
+          }
 
-  buf += 6;
-
-  // Get absolute granule value
-  granule_pos = (uint64_t)GET_INT32LE(buf);
-  granule_pos |= (uint64_t)GET_INT32LE(buf) << 32;
-
-  if ( granule_pos && samplerate ) {
-    int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
-    my_hv_store( info, "song_length_ms", newSViv(length) );
-    my_hv_store( info, "bitrate_average", newSVpvf( "%d", ( file_size * 8 ) / ( length / 1000 ) ) );
+          err = -1;
+          goto out;
+        }
+      }
+    
+      // Still don't have enough data, must have reached the end of the file
+      if ( buffer_len(&ogg_buf) < pagelen ) {
+        PerlIO_printf(PerlIO_stderr(), "Premature end of file: %s\n", file);
+      
+        err = -1;
+        goto out;
+      }
+    
+      // Copy page into vorbis buffer
+      buffer_append( &vorbis_buf, buffer_ptr(&ogg_buf), pagelen );
+      buffer_consume( &ogg_buf, pagelen );
+      
+      // Process vorbis packet
+      if ( !vorbis_type ) {
+        vorbis_type = buffer_get_char(&vorbis_buf);
+        // Verify 'vorbis' string
+        if ( strncmp( buffer_ptr(&vorbis_buf), "vorbis", 6 ) ) {
+          PerlIO_printf(PerlIO_stderr(), "Not a Vorbis file (bad vorbis header): %s\n", file);
+          goto out;
+        }
+        buffer_consume( &vorbis_buf, 6 );
+      }
+    }
+    
+    if (vorbis_type == 1) {
+      _parse_info(&vorbis_buf, info);
+      
+      buffer_clear(&vorbis_buf);
+      vorbis_type = 0;
+    }
+    else if (vorbis_type == 3) {
+      // Ready for comments if we are on stream 3, or header type indicates end of stream
+      if ( packets > 2 * streams || header_type & 0x04 ) {
+        _parse_comments(&vorbis_buf, tags);
+        
+        buffer_clear(&vorbis_buf);
+      
+        break;
+      }
+    }
+    else {
+      break;
+    }
   }
-  else {
-    // Use nominal bitrate
-    my_hv_store( info, "song_length_ms", newSVpvf( "%d", ((file_size * 8) / bitrate_nominal) * 1000) );
-    my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
-  }
+  
+  // XXX: calculate average bitrate and duration
+  /*
+      // XXX: original code used blocksize_0 * 2, is that correct?
+      if ( file_size > blocksize_0 ) {
+        avg_buf_size = blocksize_0;
+      }
+      else {
+        avg_buf_size = file_size;
+      }
 
+      buf = malloc(avg_buf_size);
+      buf_ptr = buf;
+
+      PerlIO_seek(infile, file_size - avg_buf_size, SEEK_SET);
+
+      if ((buf_size = PerlIO_read(infile, buf, avg_buf_size)) == 0) {
+        if (PerlIO_error(infile)) {
+          PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
+        }
+        else {
+          PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
+        }
+
+        err = -1;
+        goto out;
+      }
+
+      // Find sync
+      while ( buf_size >= 14 && (buf[0] != 'O' || buf[1] != 'g' || buf[2] != 'g' || buf[3] != 'S') ) {
+        buf++;
+        buf_size--;
+
+        if ( buf_size < 14 ) {
+          // Give up, use less accurate bitrate for length
+          my_hv_store( info, "song_length_ms", newSVpvf( "%d", ((file_size * 8) / bitrate_nominal) * 1000) );
+          my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
+
+          goto out;
+        }
+      }
+
+      buf += 6;
+
+      // Get absolute granule value
+      granule_pos = (uint64_t)GET_INT32LE(buf);
+      granule_pos |= (uint64_t)GET_INT32LE(buf) << 32;
+
+      if ( granule_pos && samplerate ) {
+        int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
+        my_hv_store( info, "song_length_ms", newSViv(length) );
+        my_hv_store( info, "bitrate_average", newSVpvf( "%d", ( file_size * 8 ) / ( length / 1000 ) ) );
+      }
+      else {
+        // Use nominal bitrate
+        my_hv_store( info, "song_length_ms", newSVpvf( "%d", ((file_size * 8) / bitrate_nominal) * 1000) );
+        my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
+      }
+  */  
+  
 out:
   if (infile) PerlIO_close(infile);
-  if (buf_ptr) free(buf_ptr);
+  
+  buffer_free(&ogg_buf);
+  buffer_free(&vorbis_buf);
 
   if (err) return err;
 
   return 0;
 }
 
-/*
-// Using the Vorbis API is sloooow
-static int
-get_ogg_metadata(char *file, HV *info, HV *tags)
+void
+_parse_info(Buffer *vorbis_buf, HV *info)
 {
+  unsigned char vorbishdr[23];
+  unsigned char channels;
+  unsigned int blocksize_0;
+  unsigned int avg_buf_size;
+  unsigned int samplerate;
+  unsigned int bitrate_nominal;
+  uint64_t granule_pos;
   int i;
-  struct stat st;
-  int bitrate_average;
-  OggVorbis_File vf;
-
-  size_t filesize   = 0;
-  double total_time = 0;
-
-  if (stat(file, &st) == 0) {
-    filesize = st.st_size;
-    my_hv_store(info, "SIZE", newSViv(filesize));
-  } else {
-    PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
+  
+  // Grab 23-byte Vorbis header
+  if ( buffer_len(vorbis_buf) < 23 ) {
+    return;
   }
+  
+  buffer_get(vorbis_buf, vorbishdr, 23);
+  
+  my_hv_store( info, "version", newSViv( GET_INT32LE(vorbishdr) ) );
 
-  if (ov_fopen(file, &vf) < 0) {
-    PerlIO_printf(PerlIO_stderr(), "Can't open OggVorbis file: %s\n", file);
-    return -1;
-  }
+  channels = vorbishdr[4];
+  my_hv_store( info, "channels", newSViv(channels) );
+  my_hv_store( info, "stereo", newSViv( channels == 2 ? 1 : 0 ) );
 
-  vorbis_comment *vc = ov_comment(&vf, -1);
-  vorbis_info *vi    = ov_info(&vf, -1);
-  total_time         = ov_time_total(&vf, -1);
+  samplerate = GET_INT32LE((vorbishdr+5));
+  my_hv_store( info, "samplerate", newSViv(samplerate) );
+  my_hv_store( info, "bitrate_upper", newSViv( GET_INT32LE((vorbishdr+9)) ) );
 
-  for (i = 0; i < vc->comments; i++) {
-    _split_vorbis_comment(vc->user_comments[i], tags);
-  }
+  bitrate_nominal = GET_INT32LE((vorbishdr+13));
+  my_hv_store( info, "bitrate_nominal", newSViv(bitrate_nominal) );
+  my_hv_store( info, "bitrate_lower", newSViv( GET_INT32LE((vorbishdr+17)) ) );
 
-  my_hv_store(info, "CHANNELS", newSViv(vi->channels));
-  my_hv_store(info, "RATE", newSViv(vi->rate));
-  my_hv_store(info, "VERSION", newSViv(vi->version));
-  my_hv_store(info, "STEREO", newSViv(vi->channels == 2 ? 1 : 0));
-  my_hv_store(info, "VENDOR", newSVpv(ov_comment(&vf, -1)->vendor, 0));
-  my_hv_store(info, "SECS", newSVnv(total_time));
-
-  bitrate_average = (int)((filesize * 8) / total_time);
-
-  my_hv_store(info, "BITRATE", newSViv( bitrate_average ? bitrate_average : vi->bitrate_nominal ));
-
-  if (vi->bitrate_upper && vi->bitrate_lower && (vi->bitrate_upper != vi->bitrate_lower)) {
-    my_hv_store(info, "VBR_SCALE", newSViv(1));
-  } else {
-    my_hv_store(info, "VBR_SCALE", newSViv(0));
-  }
-
-  my_hv_store(info, "OFFSET", newSViv(0));
-
-  ov_clear(&vf);
-
-  return 0;
+  blocksize_0 = 2 << ((vorbishdr[21] & 0xF0) >> 4);
+  my_hv_store( info, "blocksize_0", newSViv( blocksize_0 ) );
+  my_hv_store( info, "blocksize_1", newSViv( 2 << (vorbishdr[21] & 0x0F) ) );
 }
-*/
+
+void
+_parse_comments(Buffer *vorbis_buf, HV *tags)
+{
+  unsigned int len;
+  unsigned int num_comments;
+  char *tmp;
+  SV *vendor;
+  
+  // Vendor string
+  len = buffer_get_int_le(vorbis_buf);
+  vendor = newSVpvn( buffer_ptr(vorbis_buf), len );
+  sv_utf8_decode(vendor);
+  my_hv_store( tags, "VENDOR", vendor );
+  buffer_consume(vorbis_buf, len);
+  
+  // Number of comments
+  num_comments = buffer_get_int_le(vorbis_buf);
+  
+  while (num_comments--) {
+    len = buffer_get_int_le(vorbis_buf);
+    
+    Newx(tmp, len + 1, char);
+    buffer_get(vorbis_buf, tmp, len);
+    tmp[len] = '\0';
+    
+    _split_vorbis_comment( tmp, tags );
+    
+    Safefree(tmp);
+  }
+}

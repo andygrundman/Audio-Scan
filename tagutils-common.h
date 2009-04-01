@@ -33,6 +33,6 @@
 (i = (b[0] << 8) | b[1], b += 2, i)
 
 #define GET_INT32LE(b) \
-(i = (b[3] << 24) | (b[2] << 16) | b[1] << 8 | b[0], b += 4, i)
+(i = (b[3] << 24) | (b[2] << 16) | b[1] << 8 | b[0], i)
 
 extern void _split_vorbis_comment(char* comment, HV* tags);

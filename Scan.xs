@@ -14,9 +14,7 @@
 #include "tagutils-flac.c"
 #endif
 
-#ifdef HAVE_OGG
 #include "tagutils-ogg.c"
-#endif
 
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02
@@ -37,9 +35,7 @@ struct _types audio_types[] = {
 #ifdef HAVE_MP3
   {"mp3", {"mp3", "mp2", 0}},
 #endif
-#ifdef HAVE_OGG
   {"ogg", {"ogg", "oga", 0}},
-#endif
 #ifdef HAVE_FLAC
   {"flc", {"flc", "flac", "fla", 0}},
 #endif
@@ -52,9 +48,7 @@ static taghandler taghandlers[] = {
 #ifdef HAVE_MP3
   { "mp3", get_mp3tags, get_mp3fileinfo },
 #endif
-#ifdef HAVE_OGG
   { "ogg", get_ogg_metadata, 0 },
-#endif
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0 },
 #endif
