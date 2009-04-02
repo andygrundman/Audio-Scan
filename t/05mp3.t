@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 128;
+use Test::More tests => 130;
 
 use Audio::Scan;
 use Encode;
@@ -358,6 +358,17 @@ my $pate = Encode::decode_utf8("pâté");
     my $tags = $s->{tags};
     
     is( !exists( $tags->{''} ), 1, 'ID3v2.3 empty WXXX ok' );
+}
+
+# ID3v2.3 from iTunes with non-standard tags with spaces
+{
+    my $s = Audio::Scan->scan( _f('v2.3-itunes81.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 from iTunes ok' );
+    is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.3 invalid iTunes frame ok' );
 }
 
 # ID3v2.4
