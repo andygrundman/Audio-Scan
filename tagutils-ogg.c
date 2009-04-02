@@ -94,6 +94,8 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
     }
     
     buffer_clear(&ogg_buf);
+    
+    audio_offset += id3_size;
 
     PerlIO_seek(infile, id3_size, SEEK_SET);
     
@@ -113,6 +115,8 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   while (1) {
     // Grab 28-byte Ogg header
     buffer_get(&ogg_buf, ogghdr, 28);
+    
+    audio_offset += 28;
     
     // check that the first four bytes are 'OggS'
     if ( ogghdr[0] != 'O' || ogghdr[1] != 'g' || ogghdr[2] != 'g' || ogghdr[3] != 'S' ) {
@@ -155,22 +159,24 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
     // Number of page segments
     num_segments = ogghdr[26];
        
-    // Calculate total page size
-    pagelen = ogghdr[27];
-    if (num_segments > 1) {
-      int i;
-      for( i = 0; i < num_segments - 1; i++ ) {
-        u_char x;
-        x = buffer_get_char(&ogg_buf);
-        pagelen += x;
-      }
-    }
-    
     // Avoid reading more data if we've reached the end of comments
     if (packets <= 2 * streams) {
+      // Calculate total page size
+      pagelen = ogghdr[27];
+      if (num_segments > 1) {
+        int i;
+        for( i = 0; i < num_segments - 1; i++ ) {
+          u_char x;
+          x = buffer_get_char(&ogg_buf);
+          pagelen += x;
+        }
+
+        audio_offset += num_segments - 1;
+      }
+      
       // Do we have enough data?
       if ( buffer_len(&ogg_buf) < pagelen ) {
-        // Read more data
+        // Read more data, plus 28 bytes to ensure we have enough for the above buffer_get
         int readlen = pagelen > OGG_BLOCK_SIZE ? pagelen : OGG_BLOCK_SIZE;
       
         if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, readlen), readlen) == 0 ) {
@@ -193,6 +199,8 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
         err = -1;
         goto out;
       }
+      
+      audio_offset += pagelen;
     
       // Copy page into vorbis buffer
       buffer_append( &vorbis_buf, buffer_ptr(&ogg_buf), pagelen );
@@ -257,6 +265,10 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   }
   
   buffer_clear(&ogg_buf);
+  
+  // audio_offset is 28 less because we read the Ogg header
+  // from the first packet past the comments
+  my_hv_store( info, "audio_offset", newSViv(audio_offset - 28) );
   
   // calculate average bitrate and duration
   // XXX: original code used blocksize_0 * 2, is that correct?

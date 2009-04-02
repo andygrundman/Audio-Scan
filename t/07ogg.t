@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 26;
+use Test::More tests => 28;
 
 use Audio::Scan;
 use Encode;
@@ -25,6 +25,7 @@ use Encode;
     is($info->{stereo}, 1, 'Stereo ok');
     is($info->{samplerate}, 44100, 'Sample Rate ok');
     is($info->{song_length_ms}, 3684, 'Song length ok');
+    is($info->{audio_offset}, 4204, 'Audio offset ok');
 }
 
 # Multiple tags.
@@ -51,8 +52,10 @@ use Encode;
 {
     my $s = Audio::Scan->scan( _f('large-pagesize.ogg') );
 
+    my $info = $s->{info};
     my $tags = $s->{tags};
 
+    is($info->{audio_offset}, 110616, 'Large page size audio offset ok');
     is($tags->{TITLE}, 'Deadzy', 'Large page title tag ok');
     is($tags->{ARTIST}, 'Medeski Scofield Martin & Wood', 'Large page artist tag ok');
     is($tags->{ALBUM}, 'Out Louder (bonus disc)', 'Large page album tag ok');
