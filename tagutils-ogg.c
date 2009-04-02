@@ -17,6 +17,29 @@
 #include "tagutils-ogg.h"
 
 static int
+_check_buf(PerlIO *infile, Buffer *buf, int size)
+{
+  // Do we have enough data?
+  if ( buffer_len(buf) < size ) {
+    // Read more data
+    int readlen = size > OGG_BLOCK_SIZE ? size : OGG_BLOCK_SIZE;
+  
+    if ( PerlIO_read(infile, buffer_append_space(buf, readlen), readlen) == 0 ) {
+      if ( PerlIO_error(infile) ) {
+        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
+      }
+      else {
+        PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
+      }
+
+      return 0;
+    }
+  }
+  
+  return 1;
+}
+
+static int
 get_ogg_metadata(char *file, HV *info, HV *tags)
 {
   PerlIO *infile;
@@ -65,15 +88,8 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   PerlIO_seek(infile, 0, SEEK_END);
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
-
-  if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, OGG_BLOCK_SIZE), OGG_BLOCK_SIZE) == 0 ) {
-    if ( PerlIO_error(infile) ) {
-      PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-    }
-    else {
-      PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
-    }
-
+  
+  if ( !_check_buf(infile, &ogg_buf, OGG_BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
@@ -98,22 +114,15 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
     audio_offset += id3_size;
 
     PerlIO_seek(infile, id3_size, SEEK_SET);
-    
-    if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, OGG_BLOCK_SIZE), OGG_BLOCK_SIZE) ) {
-      if ( PerlIO_error(infile) ) {
-        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-      }
-      else {
-        PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
-      }
-
-      err = -1;
-      goto out;
-    }
   }
   
   while (1) {
     // Grab 28-byte Ogg header
+    if ( !_check_buf(infile, &ogg_buf, 28) ) {
+      err = -1;
+      goto out;
+    }
+    
     buffer_get(&ogg_buf, ogghdr, 28);
     
     audio_offset += 28;
@@ -165,6 +174,12 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
       pagelen = ogghdr[27];
       if (num_segments > 1) {
         int i;
+        
+        if ( !_check_buf(infile, &ogg_buf, num_segments) ) {
+          err = -1;
+          goto out;
+        }
+        
         for( i = 0; i < num_segments - 1; i++ ) {
           u_char x;
           x = buffer_get_char(&ogg_buf);
@@ -174,22 +189,9 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
         audio_offset += num_segments - 1;
       }
       
-      // Do we have enough data?
-      if ( buffer_len(&ogg_buf) < pagelen ) {
-        // Read more data
-        int readlen = pagelen > OGG_BLOCK_SIZE ? pagelen : OGG_BLOCK_SIZE;
-      
-        if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, readlen), readlen) == 0 ) {
-          if ( PerlIO_error(infile) ) {
-            PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-          }
-          else {
-            PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
-          }
-
-          err = -1;
-          goto out;
-        }
+      if ( !_check_buf(infile, &ogg_buf, pagelen) ) {
+        err = -1;
+        goto out;
       }
     
       // Still don't have enough data, must have reached the end of the file
