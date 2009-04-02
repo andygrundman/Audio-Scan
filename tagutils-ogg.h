@@ -14,8 +14,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <vorbis/vorbisfile.h>
-
 #define OGG_BLOCK_SIZE 4500
 
 static int get_ogg_metadata(char *file, HV *info, HV *tags);
