@@ -5,17 +5,27 @@ Lyrics3 support
 APEv2 support
 RIFF-MP3 support
 Free-format support (not reading Xing/LAME tag properly)
-Fix crashers found on huge test files
 TOC tables?
 Support VBRI mono file with wrong offset?
 Is iconv needed?  Need some test files
-RVA* tags
+Test RVA2 with peak value (nobody supports this)
+Standardize on hash key style across file types (lowercase?)
+Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
+  http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
+Support iTunNORM, translate into replay gain values
+iTunes 8.1 2.3/2.4 files don't parse
 
 FLAC
 ----
-Memleak
+Memleak with appId.flac, picture.flac
+
+Ogg
+___
 
 Tests
+ Ogg
+  ID3 tags at start
+  Multi-stream file
  MP3
   weird/non-standard frames i.e. XSOP
   CRC
@@ -29,7 +39,7 @@ Tests
     [x] ID3_FIELD_TYPE_STRING,		/* single-line Unicode string */
     [x] ID3_FIELD_TYPE_STRINGFULL,		/* Unicode plus newlines allowed */
     ID3_FIELD_TYPE_STRINGLIST,		/* Unicode string list */  any T frame, what has more than 1?
-    ID3_FIELD_TYPE_LANGUAGE,		/* 3-char language ID */   ULST, SYLT, COMM
+    [x] ID3_FIELD_TYPE_LANGUAGE,		/* 3-char language ID */   ULST, SYLT, COMM
     ID3_FIELD_TYPE_FRAMEID,		/* 4-char frame ID */    LINK
     ID3_FIELD_TYPE_DATE,		/* 8-char date field */  OWNE, COMR
     ID3_FIELD_TYPE_INT8,		/* 1-byte integer */   ASPI, MLLT
