@@ -214,8 +214,26 @@ get_mp3tags(char *file, HV *info, HV *tags)
           case ID3_FIELD_TYPE_STRINGLIST:
             nstrings = id3_field_getnstrings(&pid3frame->fields[i]);
             if (nstrings > 1) {
-              // XXX, turn into an arrayref
-              PerlIO_printf(PerlIO_stderr(), "STRINGLIST, %d strings\n", nstrings );
+              // Store multiple strings as arrayref
+              AV *atmp = newAV();
+              int j;
+              
+              for ( j = 0; j < nstrings; j++ ) {
+                value = id3_field_getstrings(&pid3frame->fields[i], j);
+                if (value) {
+                  SV *tmp;
+                  utf8_value = (char *)id3_ucs4_utf8duplicate(value);
+                  tmp = newSVpv( utf8_value, 0 );
+                  sv_utf8_decode(tmp);
+                  av_push( atmp, tmp );
+                  free(utf8_value);
+                }
+                else {
+                  av_push( atmp, &PL_sv_undef );
+                }
+              }
+              
+              my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)atmp ) );
             }
             else {
               // Remember if TRCK tag is found for ID3v1.1

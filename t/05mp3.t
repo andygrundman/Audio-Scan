@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 191;
+use Test::More tests => 196;
 
 use Audio::Scan;
 use Encode;
@@ -581,6 +581,19 @@ my $pate = Encode::decode_utf8("pâté");
     is( $b->[3], 'eyeD3 --list-genres output', 'ID3v2.4 GEOB multiple B content description ok' );
     is( length( $b->[4] ), 4087, 'ID3v2.4 GEOB multiple B length ok' );
     is( substr( $b->[4], 0, 10 ), '  0: Blues', 'ID3v2.4 GEOB multiple B content ok' );
+}
+
+# ID3v2.4 with TIPL frame that has multiple strings
+{
+    my $s = Audio::Scan->scan( _f('v2.4-tipl.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{TIPL}, 'ARRAY', 'ID3v2.4 TIPL array ok' );
+    is( $tags->{TIPL}->[0], 'producer', 'ID3v2.4 TIPL string 1 ok' );
+    is( $tags->{TIPL}->[1], 'Steve Albini', 'ID3v2.4 TIPL string 2 ok' );
+    is( $tags->{TIPL}->[2], 'engineer', 'ID3v2.4 TIPL string 3 ok' );
+    is( $tags->{TIPL}->[3], 'Steve Albini', 'ID3v2.4 TIPL string 4 ok' );
 }
 
 sub _f {    
