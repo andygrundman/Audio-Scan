@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 130;
+use Test::More tests => 136;
 
 use Audio::Scan;
 use Encode;
@@ -407,6 +407,36 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $tags = $s->{tags};
     is( $tags->{RVA2}->[2], -2.123047, 'ID3v2.4 negative RVA2 adjustment ok' );
+}
+
+# ID3v2.4 ISO-8859-1
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-iso-8859-1.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, $pate, 'ID3v2.4 ISO-8859-1 artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 ISO-8859-1 title ok' );
+}
+
+# ID3v2.4 UTF-16BE
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-utf16be.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, $pate, 'ID3v2.4 UTF-16BE artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 UTF-16BE title ok' );
+}
+
+# ID3v2.4 UTF-16LE
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-utf16le.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, $pate, 'ID3v2.4 UTF-16LE artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 UTF-16LE title ok' );
 }
 
 # ID3v2.4 UTF-8
