@@ -87,32 +87,34 @@ get_mp3tags(char *file, HV *info, HV *tags)
         // Get the key
         SV *ktmp;
         utf8_key = (char *)id3_ucs4_utf8duplicate(key);
-        ktmp = newSVpv( utf8_key, 0 );
-        sv_utf8_decode(ktmp);
+        if ( strlen(utf8_key) ) {
+          ktmp = newSVpv( utf8_key, 0 );
+          sv_utf8_decode(ktmp);
 
-        // Get the value
-        switch (pid3frame->fields[2].type) {
-          case ID3_FIELD_TYPE_LATIN1:
-            my_hv_store_ent( tags, ktmp, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ) );
-            break;
+          // Get the value
+          switch (pid3frame->fields[2].type) {
+            case ID3_FIELD_TYPE_LATIN1:
+              my_hv_store_ent( tags, ktmp, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ) );
+              break;
           
-          case ID3_FIELD_TYPE_STRING:
-            value = id3_field_getstring(&pid3frame->fields[2]);
-            if (value) {
-              SV *tmp;
-              utf8_value = (char *)id3_ucs4_utf8duplicate(value);
-              tmp = newSVpv( utf8_value, 0 );
-              sv_utf8_decode(tmp);
-              my_hv_store_ent( tags, ktmp, tmp );
-              free(utf8_value);
-            }
-            else {
-              my_hv_store_ent( tags, ktmp, NULL );
-            }
-            break;
+            case ID3_FIELD_TYPE_STRING:
+              value = id3_field_getstring(&pid3frame->fields[2]);
+              if (value) {
+                SV *tmp;
+                utf8_value = (char *)id3_ucs4_utf8duplicate(value);
+                tmp = newSVpv( utf8_value, 0 );
+                sv_utf8_decode(tmp);
+                my_hv_store_ent( tags, ktmp, tmp );
+                free(utf8_value);
+              }
+              else {
+                my_hv_store_ent( tags, ktmp, NULL );
+              }
+              break;
             
-          default:
-            break;
+            default:
+              break;
+          }
         }
 
         free(utf8_key);
@@ -159,10 +161,17 @@ get_mp3tags(char *file, HV *info, HV *tags)
         if ( !strcmp(pid3frame->id, "ZOBS") ) {
           char *frameid = pid3frame->fields[0].immediate.value;
           
-          // Special case, TYE is already converted to TDRC
-          if ( !strcmp( frameid, "YTYE" ) ) {
-            index++;
-            continue;
+          // Special case, TYE(R), TDA(T), TIM(E) are already converted to TDRC
+            if (
+                 !strcmp(frameid, "TYER") 
+              || !strcmp(frameid, "YTYE")
+              || !strcmp(frameid, "TDAT") 
+              || !strcmp(frameid, "YTDA")
+              || !strcmp(frameid, "TIME") 
+              || !strcmp(frameid, "YTIM")
+            ) {
+              index++;
+              continue;
           }
           
           //PerlIO_printf(PerlIO_stderr(), "ZOBS frame %s\n", frameid);

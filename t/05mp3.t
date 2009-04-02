@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 123;
+use Test::More tests => 126;
 
 use Audio::Scan;
 use Encode;
@@ -286,6 +286,10 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TCON}, 'Ambient', 'ID3v2.3 genre ok' );
     is( $tags->{TRCK}, '02/10', 'ID3v2.3 track number ok' );
     is( $tags->{'Tagging time'}, '2009-03-16T17:58:23', 'ID3v2.3 TXXX ok' ); # TXXX tag
+    
+    # Make sure TDRC is present and TYER has been removed
+    is( $tags->{TDRC}, 2009, 'ID3v2.3 date ok' );
+    is( $tags->{TYER}, undef, 'ID3v2.3 TYER removed ok' );
 }
 
 # ID3v2.3 ISO-8859-1
@@ -343,6 +347,15 @@ my $pate = Encode::decode_utf8("pâté");
     is( $info->{audio_offset}, 57956, 'mp3HD offset ok' );
     is( $tags->{TIT2}, 'mp3HD is evil', 'mp3HD tags ok' );
     is( $tags->{XHD3}, undef, 'mp3HD XHD3 frame ignored' );
+}
+
+# ID3v2.3 with empty WXXX tag
+{
+    my $s = Audio::Scan->scan( _f('v2.3-empty-wxxx.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( !exists( $tags->{''} ), 1, 'ID3v2.3 empty WXXX ok' );
 }
 
 # ID3v2.4
