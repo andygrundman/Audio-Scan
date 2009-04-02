@@ -1,0 +1,15 @@
+The following patches have been applied to libid3tag.  All patches are
+also located in the libid3tag/patches directory.
+
+From http://sources.gentoo.org/viewcvs.py/gentoo-x86/media-libs/libid3tag/files/0.15.1b/
+	libid3tag-0.15.1b-64bit-long.patch
+	libid3tag-0.15.1b-a_capella.patch - even though 'A Cappella' is also a valid spelling. :)
+	libid3tag-0.15.1b-compat.patch - skip invalid compat strings
+	  Note: must run: gperf -tCcTonD -K id -N id3_compat_lookup -s -3 -k '*' compat.gperf >compat.c
+	libid3tag-0.15.1b-file-write.patch - we don't write anything but it's here to be complete
+	libid3tag-0.15.1b-fix_overflow.patch - fixes infinite loop on bad tag
+	  Note: This patch breaks UTF-16BE encoding.  Had to be modified.
+	libid3tag-0.15.1b-tag.patch - handles empty track tags
+	libid3tag-0.15.1b-unknown-encoding.patch
+	  NOT used, it is a duplicate of compat.patch above.
+	libid3tag-0.15.1b-utf16.patch - handle bad utf16 length

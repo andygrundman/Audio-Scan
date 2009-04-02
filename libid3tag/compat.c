@@ -48,7 +48,7 @@ error "gperf generated tables don't work with this execution character set. Plea
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Id: compat.gperf,v 1.11 2004/01/23 09:41:32 rob Exp 
+ * $Id$
  */
 
 # ifdef HAVE_CONFIG_H
@@ -442,6 +442,9 @@ int id3_compat_fixup(struct id3_tag *tag)
 
     encoding = id3_parse_uint(&data, 1);
     string   = id3_parse_string(&data, end - data, encoding, 0);
+
+    if (string == 0)
+      continue;
 
     if (id3_ucs4_length(string) < 4) {
       free(string);

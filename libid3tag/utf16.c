@@ -282,5 +282,18 @@ id3_ucs4_t *id3_utf16_deserialize(id3_byte_t const **ptr, id3_length_t length,
 
   free(utf16);
 
+  if (end == *ptr && length % 2 != 0)
+  {
+     /* We were called with a bogus length.  It should always
+      * be an even number.  We can deal with this in a few ways:
+      * - Always give an error.
+      * - Try and parse as much as we can and
+      *   - return an error if we're called again when we
+      *     already tried to parse everything we can.
+      *   - tell that we parsed it, which is what we do here.
+      */
+     (*ptr)++;
+  }
+
   return ucs4;
 }
