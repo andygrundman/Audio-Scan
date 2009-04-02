@@ -13,3 +13,6 @@ From http://sources.gentoo.org/viewcvs.py/gentoo-x86/media-libs/libid3tag/files/
 	libid3tag-0.15.1b-unknown-encoding.patch
 	  Note: must run: gperf -tCcTonD -K id -N id3_compat_lookup -s -3 -k '*' compat.gperf >compat.c
 	libid3tag-0.15.1b-utf16.patch - handle bad utf16 length
+
+Patches only in this version:
+	allow-id-space.patch - Allow parsing of tags with spaces in the frame ID (iTunes).
