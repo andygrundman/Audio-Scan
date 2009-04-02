@@ -127,31 +127,34 @@ get_mp3tags(char *file, HV *info, HV *tags)
     else if ( !strcmp(pid3frame->id, "TCON") ) {
       char *genre_string;
 
-      utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstrings(&pid3frame->fields[1], 0) );
+      value = id3_field_getstrings(&pid3frame->fields[1], 0);
+      if (value) {
+        utf8_value = (char *)id3_ucs4_utf8duplicate(value);
 
-      if ( isdigit(utf8_value[0]) ) {
-        // Convert to genre string
-        genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name( id3_field_getstrings(&pid3frame->fields[1], 0) ) );
-        my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
-        free(genre_string);
-      }
-      else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
-        // handle '(26)Ambient'
-        id3_ucs4_t *ucs4_num;
-        Newxz(ucs4_num, 1, id3_ucs4_t);
-        id3_ucs4_putnumber( ucs4_num, strtol( (char *)&utf8_value[1], NULL, 0 ) );
-        genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(ucs4_num) );
-        my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
-        free(genre_string);
-        Safefree(ucs4_num);
-      }
-      else {
-        SV *tmp = newSVpv( utf8_value, 0 );
-        sv_utf8_decode(tmp);
-        my_hv_store( tags, pid3frame->id, tmp );
-      }
+        if ( isdigit(utf8_value[0]) ) {
+          // Convert to genre string
+          genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(value) );
+          my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
+          free(genre_string);
+        }
+        else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
+          // handle '(26)Ambient'
+          id3_ucs4_t *ucs4_num;
+          Newxz(ucs4_num, 1, id3_ucs4_t);
+          id3_ucs4_putnumber( ucs4_num, strtol( (char *)&utf8_value[1], NULL, 0 ) );
+          genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(ucs4_num) );
+          my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
+          free(genre_string);
+          Safefree(ucs4_num);
+        }
+        else {
+          SV *tmp = newSVpv( utf8_value, 0 );
+          sv_utf8_decode(tmp);
+          my_hv_store( tags, pid3frame->id, tmp );
+        }
 
-      free(utf8_value);
+        free(utf8_value);
+      }
     }
 
     // All other frames

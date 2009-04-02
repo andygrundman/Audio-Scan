@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 189;
+use Test::More tests => 191;
 
 use Audio::Scan;
 use Encode;
@@ -358,6 +358,16 @@ my $pate = Encode::decode_utf8("pâté");
     my $tags = $s->{tags};
     
     is( !exists( $tags->{''} ), 1, 'ID3v2.3 empty WXXX ok' );
+}
+
+# ID3v2.3 with empty TCON tag
+{
+    my $s = Audio::Scan->scan( _f('v2.3-empty-tcon.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( !exists( $tags->{TCON} ), 1, 'ID3v2.3 empty TCON ok' );
+    is( $tags->{TRCK}, '03/09', 'ID3v2.3 empty TCON track ok' );
 }
 
 # ID3v2.3 from iTunes with non-standard tags with spaces
