@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 121;
+use Test::More tests => 123;
 
 use Audio::Scan;
 use Encode;
@@ -381,6 +381,20 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $tags = $s->{tags};
     is( $tags->{RVA2}->[2], -2.123047, 'ID3v2.4 negative RVA2 adjustment ok' );
+}
+
+# ID3v2.4 UTF-8
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-utf8.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    my $a = Encode::decode_utf8('ЪЭЯ');
+    my $b = Encode::decode_utf8('ΈΤ');
+    my $c = Encode::decode_utf8('γζ');
+    
+    is( $tags->{TPE1}, $a, 'ID3v2.4 UTF-8 title ok' );
+    is( $tags->{$b}, $c, 'ID3v2.4 UTF-8 TXXX key/value ok' );
 }
 
 sub _f {    

@@ -85,12 +85,15 @@ get_mp3tags(char *file, HV *info, HV *tags)
       key = id3_field_getstring(&pid3frame->fields[1]);
       if (key) {
         // Get the key
+        SV *ktmp;
         utf8_key = (char *)id3_ucs4_utf8duplicate(key);
+        ktmp = newSVpv( utf8_key, 0 );
+        sv_utf8_decode(ktmp);
 
         // Get the value
         switch (pid3frame->fields[2].type) {
           case ID3_FIELD_TYPE_LATIN1:
-            my_hv_store( tags, utf8_key, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ) );
+            my_hv_store_ent( tags, ktmp, newSVpv( (char *)id3_field_getlatin1(&pid3frame->fields[2]), 0 ) );
             break;
           
           case ID3_FIELD_TYPE_STRING:
@@ -100,11 +103,11 @@ get_mp3tags(char *file, HV *info, HV *tags)
               utf8_value = (char *)id3_ucs4_utf8duplicate(value);
               tmp = newSVpv( utf8_value, 0 );
               sv_utf8_decode(tmp);
-              my_hv_store( tags, utf8_key, tmp );
+              my_hv_store_ent( tags, ktmp, tmp );
               free(utf8_value);
             }
             else {
-              my_hv_store( tags, utf8_key, NULL );
+              my_hv_store_ent( tags, ktmp, NULL );
             }
             break;
             

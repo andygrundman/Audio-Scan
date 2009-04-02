@@ -22,9 +22,10 @@
 #endif
 
 /* strlen the length automatically */
-#define my_hv_store(a,b,c)   hv_store(a,b,strlen(b),c,0)
-#define my_hv_fetch(a,b)     hv_fetch(a,b,strlen(b),0)
-#define my_hv_exists(a,b)    hv_exists(a,b,strlen(b))
+#define my_hv_store(a,b,c)     hv_store(a,b,strlen(b),c,0)
+#define my_hv_store_ent(a,b,c) hv_store_ent(a,b,c,0)
+#define my_hv_fetch(a,b)       hv_fetch(a,b,strlen(b),0)
+#define my_hv_exists(a,b)      hv_exists(a,b,strlen(b))
 
 #define GET_INT32BE(b) \
 (i = (b[0] << 24) | (b[1] << 16) | b[2] << 8 | b[3], b += 4, i)
