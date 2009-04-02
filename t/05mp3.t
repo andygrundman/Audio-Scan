@@ -5,6 +5,9 @@ use FindBin ();
 use Test::More tests => 121;
 
 use Audio::Scan;
+use Encode;
+
+my $pate = Encode::decode_utf8("pâté");
 
 ## Test file info on non-tagged files
 
@@ -216,7 +219,7 @@ use Audio::Scan;
     
     my $tags = $s->{tags};
     
-    is( $tags->{TPE1}, 'pâté', 'ID3v1 ISO-8859-1 artist ok' );
+    is( $tags->{TPE1}, $pate, 'ID3v1 ISO-8859-1 artist ok' );
     
     # Make sure it's been converted to UTF-8
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v1 ISO-8859-1 is valid UTF-8' );
@@ -292,10 +295,14 @@ use Audio::Scan;
     my $info = $s->{info};
     my $tags = $s->{tags};
     
+    my $a = Encode::decode_utf8('Ester Koèièková a Lubomír Nohavica');
+    my $b = Encode::decode_utf8('Ester Koèièková a Lubomír Nohavica s klavírem');
+    my $c = Encode::decode_utf8('Tøem sestrám');
+    
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 version ok' );
-    is( $tags->{TPE1}, 'Ester Koèièková a Lubomír Nohavica', 'ID3v2.3 ISO-8859-1 artist ok' );
-    is( $tags->{TALB}, 'Ester Koèièková a Lubomír Nohavica s klavírem', 'ID3v2.3 ISO-8859-1 album ok' );
-    is( $tags->{TIT2}, 'Tøem sestrám', 'ID3v2.3 ISO-8859-1 title ok' );
+    is( $tags->{TPE1}, $a, 'ID3v2.3 ISO-8859-1 artist ok' );
+    is( $tags->{TALB}, $b, 'ID3v2.3 ISO-8859-1 album ok' );
+    is( $tags->{TIT2}, $c, 'ID3v2.3 ISO-8859-1 title ok' );
     
     # Make sure it's been converted to UTF-8
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 ISO-8859-1 is valid UTF-8' );
@@ -308,7 +315,7 @@ use Audio::Scan;
     
     my $tags = $s->{tags};
     
-    is( $tags->{TPE1}, 'pâté', 'ID3v1 UTF-16BE artist ok' );
+    is( $tags->{TPE1}, $pate, 'ID3v1 UTF-16BE artist ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16BE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16BE converted to UTF-8 ok' );
@@ -320,7 +327,7 @@ use Audio::Scan;
     
     my $tags = $s->{tags};
     
-    is( $tags->{TPE1}, 'pâté', 'ID3v1 UTF-16LE artist ok' );
+    is( $tags->{TPE1}, $pate, 'ID3v1 UTF-16LE artist ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16LE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16LE converted to UTF-8 ok' );

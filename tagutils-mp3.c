@@ -96,8 +96,11 @@ get_mp3tags(char *file, HV *info, HV *tags)
           case ID3_FIELD_TYPE_STRING:
             value = id3_field_getstring(&pid3frame->fields[2]);
             if (value) {
+              SV *tmp;
               utf8_value = (char *)id3_ucs4_utf8duplicate(value);
-              my_hv_store( tags, utf8_key, newSVpv( utf8_value, 0 ) );
+              tmp = newSVpv( utf8_value, 0 );
+              sv_utf8_decode(tmp);
+              my_hv_store( tags, utf8_key, tmp );
               free(utf8_value);
             }
             else {
@@ -136,7 +139,9 @@ get_mp3tags(char *file, HV *info, HV *tags)
         Safefree(ucs4_num);
       }
       else {
-        my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
+        SV *tmp = newSVpv( utf8_value, 0 );
+        sv_utf8_decode(tmp);
+        my_hv_store( tags, pid3frame->id, tmp );
       }
 
       free(utf8_value);
@@ -203,8 +208,11 @@ get_mp3tags(char *file, HV *info, HV *tags)
               
               value = id3_field_getstrings(&pid3frame->fields[i], 0);  
               if (value) {
+                SV *tmp;
                 utf8_value = (char *)id3_ucs4_utf8duplicate(value);
-                my_hv_store( tags, pid3frame->id, newSVpv( utf8_value, 0 ) );
+                tmp = newSVpv( utf8_value, 0 );
+                sv_utf8_decode(tmp);
+                my_hv_store( tags, pid3frame->id, tmp );
                 free(utf8_value);
               }
               else {
@@ -261,6 +269,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
       // GRID, PRIV, SIGN, ASPI
       else {        
         int i;
+        SV *tmp;
         AV *framedata = newAV();
         
         for ( i = 0; i < pid3frame->nfields; i++ ) { 
@@ -286,13 +295,17 @@ get_mp3tags(char *file, HV *info, HV *tags)
             
             case ID3_FIELD_TYPE_STRING:
               utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getstring(&pid3frame->fields[i]) );
-              av_push( framedata, newSVpv( utf8_value, 0 ) );
+              tmp = newSVpv( utf8_value, 0 );
+              sv_utf8_decode(tmp);
+              av_push( framedata, tmp );
               free(utf8_value);
               break;
             
             case ID3_FIELD_TYPE_STRINGFULL:
               utf8_value = (char *)id3_ucs4_utf8duplicate( id3_field_getfullstring(&pid3frame->fields[i]) );
-              av_push( framedata, newSVpv( utf8_value, 0 ) );
+              tmp = newSVpv( utf8_value, 0 );
+              sv_utf8_decode(tmp);
+              av_push( framedata, tmp );
               free(utf8_value);
               break;
             

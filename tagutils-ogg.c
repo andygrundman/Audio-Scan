@@ -176,7 +176,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
       
       // Do we have enough data?
       if ( buffer_len(&ogg_buf) < pagelen ) {
-        // Read more data, plus 28 bytes to ensure we have enough for the above buffer_get
+        // Read more data
         int readlen = pagelen > OGG_BLOCK_SIZE ? pagelen : OGG_BLOCK_SIZE;
       
         if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, readlen), readlen) == 0 ) {
