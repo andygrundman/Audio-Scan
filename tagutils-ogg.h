@@ -19,5 +19,4 @@
 #define OGG_BLOCK_SIZE 4500
 
 static int get_ogg_metadata(char *file, HV *info, HV *tags);
-void _parse_info(Buffer *vorbis_buf, HV *info);
 void _parse_comments(Buffer *vorbis_buf, HV *tags);

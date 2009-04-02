@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 24;
+use Test::More tests => 26;
 
 use Audio::Scan;
 use Encode;
@@ -56,6 +56,7 @@ use Encode;
     is($tags->{TITLE}, 'Deadzy', 'Large page title tag ok');
     is($tags->{ARTIST}, 'Medeski Scofield Martin & Wood', 'Large page artist tag ok');
     is($tags->{ALBUM}, 'Out Louder (bonus disc)', 'Large page album tag ok');
+    is(length($tags->{COVERART}), 104704, 'Cover art ok');
 }
 
 # Old encoder files.
@@ -75,7 +76,7 @@ use Encode;
 
     my $info = $s->{info};
 
-    is($info->{bitrate_average}, 206723, 'Bug1155 bitrate ok' );
+    is($info->{bitrate_average}, 206723, 'Bug1155 bitrate ok');
 }
 
 {
@@ -83,7 +84,7 @@ use Encode;
 
     my $info = $s->{info};
 
-    is($info->{bitrate_average}, 8696, 'Bug1155 bitrate ok' );
+    is($info->{bitrate_average}, 8696, 'Bug1155 bitrate ok');
 }
 
 {
@@ -91,17 +92,17 @@ use Encode;
 
     my $info = $s->{info};
     
-    is($info->{song_length_ms}, 219693, 'Bug803 song length ok' );
+    is($info->{song_length_ms}, 219693, 'Bug803 song length ok');
 }
 
 {
     my $s = Audio::Scan->scan( _f('bug905.ogg') );
 
     my $info = $s->{info};
+    my $tags = $s->{tags};
     
     is($info->{song_length_ms}, 225986, 'Bug905 song length ok' );
-    
-    # XXX: date tag
+    is($tags->{DATE}, '08-05-1998', 'Bug905 date ok');
 }
 
 sub _f {
