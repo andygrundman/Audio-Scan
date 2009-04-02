@@ -108,7 +108,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 free(utf8_value);
               }
               else {
-                my_hv_store_ent( tags, ktmp, NULL );
+                my_hv_store_ent( tags, ktmp, &PL_sv_undef );
               }
               break;
             
@@ -228,7 +228,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
                 free(utf8_value);
               }
               else {
-                my_hv_store( tags, pid3frame->id, NULL );
+                my_hv_store( tags, pid3frame->id, &PL_sv_undef );
               }
             }
             break;
