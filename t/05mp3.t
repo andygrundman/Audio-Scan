@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 126;
+use Test::More tests => 128;
 
 use Audio::Scan;
 use Encode;
@@ -320,6 +320,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $tags = $s->{tags};
     
     is( $tags->{TPE1}, $pate, 'ID3v2.3 UTF-16BE artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.3 UTF-16BE title ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16BE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16BE converted to UTF-8 ok' );
@@ -332,6 +333,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $tags = $s->{tags};
     
     is( $tags->{TPE1}, $pate, 'ID3v2.3 UTF-16LE artist ok' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.3 UTF-16LE title ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16LE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16LE converted to UTF-8 ok' );
