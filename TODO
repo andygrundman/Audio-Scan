@@ -13,7 +13,7 @@ Standardize on hash key style across file types (lowercase?)
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
 Support iTunNORM, translate into replay gain values
-iTunes 8.1 2.3/2.4 files don't parse
+Some UTF-8 test failures with 5.10
 
 FLAC
 ----
@@ -21,6 +21,7 @@ Memleak with appId.flac, picture.flac
 
 Ogg
 ___
+Ogg crash in _split_vorbis_comment under Linux with 5.10
 
 Tests
  Ogg
