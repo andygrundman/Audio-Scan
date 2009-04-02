@@ -50,7 +50,6 @@ t/mp3/v2.3-mp3HD.mp3
 t/mp3/v2.3-no-audio-frames.mp3
 t/mp3/v2.3-utf16be.mp3
 t/mp3/v2.3-utf16le.mp3
-t/mp3/v2.3-vbri-crash.mp3
 t/mp3/v2.3.mp3
 t/mp3/v2.4-apic-jpg.mp3
 t/mp3/v2.4-apic-multiple.mp3
