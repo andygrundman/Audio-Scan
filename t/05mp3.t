@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 187;
+use Test::More tests => 189;
 
 use Audio::Scan;
 use Encode;
@@ -369,6 +369,18 @@ my $pate = Encode::decode_utf8("pâté");
     
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 from iTunes ok' );
     is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.3 invalid iTunes frame ok' );
+}
+
+# ID3v2.3 corrupted text, from http://bugs.gentoo.org/show_bug.cgi?id=210564
+{
+    my $s = Audio::Scan->scan( _f('gentoo-bug-210564.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    my $title = Encode::decode_utf8("花火");
+    
+    is( $tags->{TALB}, 'aikosingles', 'ID3v2.3 corrupted album ok' );
+    is( $tags->{TIT2}, $title, 'ID3v2.3 corrupted title ok' );
 }
 
 # ID3v2.4
