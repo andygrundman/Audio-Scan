@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 136;
+use Test::More tests => 187;
 
 use Audio::Scan;
 use Encode;
@@ -451,6 +451,114 @@ my $pate = Encode::decode_utf8("pâté");
     
     is( $tags->{TPE1}, $a, 'ID3v2.4 UTF-8 title ok' );
     is( $tags->{$b}, $c, 'ID3v2.4 UTF-8 TXXX key/value ok' );
+}
+
+# ID3v2.4 from iTunes with non-standard tags with spaces
+{
+    my $s = Audio::Scan->scan( _f('v2.4-itunes81.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 from iTunes ok' );
+    is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.4 invalid iTunes frame ok' );
+}
+
+# ID3v2.4 with JPEG APIC
+{
+    my $s = Audio::Scan->scan( _f('v2.4-apic-jpg.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{APIC}, 'ARRAY', 'ID3v2.4 APIC JPEG frame is array' );
+    is( $tags->{APIC}->[0], 0, 'ID3v2.4 APIC JPEG frame text encoding ok' );
+    is( $tags->{APIC}->[1], 'image/jpeg', 'ID3v2.4 APIC JPEG mime type ok' );
+    is( $tags->{APIC}->[2], 3, 'ID3v2.4 APIC JPEG picture type ok' );
+    is( $tags->{APIC}->[3], 'This is the front cover description', 'ID3v2.4 APIC JPEG description ok' );
+    is( length( $tags->{APIC}->[4] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
+}
+
+# ID3v2.4 with PNG APIC
+{
+    my $s = Audio::Scan->scan( _f('v2.4-apic-png.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{APIC}, 'ARRAY', 'ID3v2.4 APIC PNG frame is array' );
+    is( $tags->{APIC}->[0], 0, 'ID3v2.4 APIC PNG frame text encoding ok' );
+    is( $tags->{APIC}->[1], 'image/png', 'ID3v2.4 APIC PNG mime type ok' );
+    is( $tags->{APIC}->[2], 3, 'ID3v2.4 APIC PNG picture type ok' );
+    is( $tags->{APIC}->[3], 'This is the front cover description', 'ID3v2.4 APIC PNG description ok' );
+    is( length( $tags->{APIC}->[4] ), 58618, 'ID3v2.4 APIC PNG picture length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), '89504e47', 'ID3v2.4 APIC PNG picture data ok ');
+}
+
+# ID3v2.4 with multiple APIC
+{
+    my $s = Audio::Scan->scan( _f('v2.4-apic-multiple.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    my $png = $tags->{APIC}->[0];
+    my $jpg = $tags->{APIC}->[1];
+    
+    is( ref $png, 'ARRAY', 'ID3v2.4 APIC PNG frame is array' );
+    is( $png->[0], 0, 'ID3v2.4 APIC PNG frame text encoding ok' );
+    is( $png->[1], 'image/png', 'ID3v2.4 APIC PNG mime type ok' );
+    is( $png->[2], 3, 'ID3v2.4 APIC PNG picture type ok' );
+    is( $png->[3], 'This is the front cover description', 'ID3v2.4 APIC PNG description ok' );
+    is( length( $png->[4] ), 58618, 'ID3v2.4 APIC PNG picture length ok' );
+    is( unpack( 'H*', substr( $png->[4], 0, 4 ) ), '89504e47', 'ID3v2.4 APIC PNG picture data ok ');
+    
+    is( ref $jpg, 'ARRAY', 'ID3v2.4 APIC JPEG frame is array' );
+    is( $jpg->[0], 0, 'ID3v2.4 APIC JPEG frame text encoding ok' );
+    is( $jpg->[1], 'image/jpeg', 'ID3v2.4 APIC JPEG mime type ok' );
+    is( $jpg->[2], 4, 'ID3v2.4 APIC JPEG picture type ok' );
+    is( $jpg->[3], 'This is the back cover description', 'ID3v2.4 APIC JPEG description ok' );
+    is( length( $jpg->[4] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
+    is( unpack( 'H*', substr( $jpg->[4], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
+}
+
+# ID3v2.4 with GEOB
+{
+    my $s = Audio::Scan->scan( _f('v2.4-geob.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{GEOB}, 'ARRAY', 'ID3v2.4 GEOB is array' );
+    is( $tags->{GEOB}->[0], 0, 'ID3v2.4 GEOB text encoding ok' );
+    is( $tags->{GEOB}->[1], 'text/plain', 'ID3v2.4 GEOB mime type ok' );
+    is( $tags->{GEOB}->[2], 'eyeD3.txt', 'ID3v2.4 GEOB filename ok' );
+    is( $tags->{GEOB}->[3], 'eyeD3 --help output', 'ID3v2.4 GEOB content description ok' );
+    is( length( $tags->{GEOB}->[4] ), 6207, 'ID3v2.4 GEOB length ok' );
+    is( substr( $tags->{GEOB}->[4], 0, 6 ), "\nUsage", 'ID3v2.4 GEOB content ok' );
+}
+
+# ID3v2.4 with multiple GEOB
+{
+    my $s = Audio::Scan->scan( _f('v2.4-geob-multiple.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    my $a = $tags->{GEOB}->[0];
+    my $b = $tags->{GEOB}->[1];
+    
+    is( ref $a, 'ARRAY', 'ID3v2.4 GEOB multiple A is array' );
+    is( $a->[0], 0, 'ID3v2.4 GEOB multiple A text encoding ok' );
+    is( $a->[1], 'text/plain', 'ID3v2.4 GEOB multiple A mime type ok' );
+    is( $a->[2], 'eyeD3.txt', 'ID3v2.4 GEOB multiple A filename ok' );
+    is( $a->[3], 'eyeD3 --help output', 'ID3v2.4 GEOB multiple A content description ok' );
+    is( length( $a->[4] ), 6207, 'ID3v2.4 GEOB multiple A length ok' );
+    is( substr( $a->[4], 0, 6 ), "\nUsage", 'ID3v2.4 GEOB multiple A content ok' );
+    
+    is( ref $b, 'ARRAY', 'ID3v2.4 GEOB multiple B is array' );
+    is( $b->[0], 0, 'ID3v2.4 GEOB multiple B text encoding ok' );
+    is( $b->[1], 'text/plain', 'ID3v2.4 GEOB multiple B mime type ok' );
+    is( $b->[2], 'genres.txt', 'ID3v2.4 GEOB multiple B filename ok' );
+    is( $b->[3], 'eyeD3 --list-genres output', 'ID3v2.4 GEOB multiple B content description ok' );
+    is( length( $b->[4] ), 4087, 'ID3v2.4 GEOB multiple B length ok' );
+    is( substr( $b->[4], 0, 10 ), '  0: Blues', 'ID3v2.4 GEOB multiple B content ok' );
 }
 
 sub _f {    
