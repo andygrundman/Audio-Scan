@@ -6,9 +6,7 @@
 
 #include "tagutils-common.c"
 
-#ifdef HAVE_MP3
 #include "tagutils-mp3.c"
-#endif
 
 #ifdef HAVE_FLAC
 #include "tagutils-flac.c"
@@ -32,9 +30,7 @@ typedef struct {
 
 struct _types audio_types[] = {
   {"aac", {"mp4", "mp4", "m4a", "m4p", 0}},
-#ifdef HAVE_MP3
   {"mp3", {"mp3", "mp2", 0}},
-#endif
   {"ogg", {"ogg", "oga", 0}},
 #ifdef HAVE_FLAC
   {"flc", {"flc", "flac", "fla", 0}},
@@ -45,9 +41,7 @@ struct _types audio_types[] = {
 
 static taghandler taghandlers[] = {
   { "aac", 0, 0 },
-#ifdef HAVE_MP3
   { "mp3", get_mp3tags, get_mp3fileinfo },
-#endif
   { "ogg", get_ogg_metadata, 0 },
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0 },

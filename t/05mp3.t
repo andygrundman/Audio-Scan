@@ -319,7 +319,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $tags = $s->{tags};
     
-    is( $tags->{TPE1}, $pate, 'ID3v1 UTF-16BE artist ok' );
+    is( $tags->{TPE1}, $pate, 'ID3v2.3 UTF-16BE artist ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16BE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16BE converted to UTF-8 ok' );
@@ -331,7 +331,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $tags = $s->{tags};
     
-    is( $tags->{TPE1}, $pate, 'ID3v1 UTF-16LE artist ok' );
+    is( $tags->{TPE1}, $pate, 'ID3v2.3 UTF-16LE artist ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16LE is valid UTF-8' );
     is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16LE converted to UTF-8 ok' );

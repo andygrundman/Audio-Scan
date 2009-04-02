@@ -7,13 +7,11 @@ use Getopt::Long;
 require 5.8.8;
 
 my (@INC, @LIBPATH, @LIBS);
-my ($MP3, $FLAC);
+my ($FLAC);
 
-my ($help, $id3tag_inc, $id3tag_lib, $flac_inc, $flac_lib);
+my ($help, $flac_inc, $flac_lib);
 my $result = GetOptions(
     "help|h"                 => \$help,
-    "with-id3tag-includes=s" => \$id3tag_inc,
-    "with-id3tag-libs=s"     => \$id3tag_lib,
     "with-flac-includes=s"   => \$flac_inc,
     "with-flac-libs=s"       => \$flac_lib,
 );
@@ -25,8 +23,6 @@ Usage: perl Makefile.PL [options]
 Configure Audio::Scan module.
 
 Options:
-     --with-id3tag-includes     Path to directory containing id3tag.h
-     --with-id3tag-libs         Path to directory containing libid3tag
      --with-flac-includes       Path to directory containing FLAC/all.h
      --with-flac-libs           Path to directory containing libFLAC
 
@@ -36,23 +32,6 @@ END
 }
 
 my @check = qw(/usr/include /usr/local/include /opt/local/include);
-
-# Look for libid3tag
-for my $incdir ( $id3tag_inc, @check ) {
-    if ( $incdir && -e catfile( $incdir, 'id3tag.h' ) ) {
-        $MP3 = 1;
-        $id3tag_inc = $incdir;
-
-        push @INC, '-I' . $id3tag_inc;
-
-        if ( $id3tag_lib ) {
-            push @LIBPATH, '-L' . $id3tag_lib;
-        }
-
-        push @LIBS, '-lid3tag';
-        last;
-    }
-}
 
 # Look for libFLAC
 for my $incdir ( $flac_inc, @check ) {
@@ -73,23 +52,30 @@ for my $incdir ( $flac_inc, @check ) {
 
 print "\n";
 print "Audio::Scan will be built with:\n\n";
-print "   MP3 support:     " . ( $MP3 ? "yes ($id3tag_inc)" : "no, install libid3tag" ) . "\n";
+print "   MP3 support:     yes\n";
 print "  FLAC support:     " . ( $FLAC ? "yes ($flac_inc)" : "no, install libFLAC" ) . "\n";
 print "   OGG support:     yes\n";
+print "\n";
 
 my $DEFINES = '-Wall';
-$DEFINES .= ' -DHAVE_MP3'  if $MP3;
 $DEFINES .= ' -DHAVE_FLAC' if $FLAC;
 
-if ( $DEFINES ) {
-    print "\n";
-}
-else {
-    print "\n";
-    print "Please install at least one of the above libraries to use this module.\n";
-    print "Run perl Makefile.PL -h for command-line options.\n\n";
+# Support for building libid3tag
+sub MY::postamble {
+    my $postamble =<<'END';
 
-    exit 0;
+libid3tag/Makefile:
+	cd libid3tag && CC="$(CC)" CFLAGS="$(OPTIMIZE) $(CFLAGS) $(CCCDLFLAGS)" ./configure
+
+clean::
+	-cd libid3tag && make distclean
+
+force:
+
+$(MYEXTLIB): libid3tag/Makefile force
+	cd libid3tag && $(MAKE) all
+
+END
 }
 
 WriteMakefile(
@@ -101,6 +87,7 @@ WriteMakefile(
     INC               => join(' ', @INC),
     LIBS              => [ join(' ', @LIBPATH, @LIBS) ],
     DEFINE            => $DEFINES,
+    MYEXTLIB          => 'libid3tag/.libs/libid3tag$(LIB_EXT)',
     depend            => {
         'Scan.c' => 'buffer.h buffer.c tagutils-common.c tagutils-common.h tagutils-mp3.h tagutils-mp3.c tagutils-flac.h tagutils-flac.c tagutils-ogg.h tagutils-ogg.c',
     },
