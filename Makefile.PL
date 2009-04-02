@@ -9,6 +9,8 @@ require 5.8.8;
 my (@INC, @LIBPATH, @LIBS);
 my ($FLAC);
 
+push @LIBS, '-lz';
+
 my ($help, $flac_inc, $flac_lib);
 my $result = GetOptions(
     "help|h"                 => \$help,
