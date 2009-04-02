@@ -59,7 +59,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         /* Initialize an SV with the first element,
            and then append to it. If we don't do it this way, we get a "use of
            uninitialized element" in subroutine warning. */
-        SV *md5 = newSVpvf("%02x", (unsigned)block->data.stream_info.md5sum[0], 32);
+        SV *md5 = newSVpvf("%02x", (unsigned)block->data.stream_info.md5sum[0]);
 
         for (i = 1; i < 16; i++) {
           sv_catpvf(md5, "%02x", (unsigned)block->data.stream_info.md5sum[i]);
@@ -101,7 +101,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       if (block->data.application.id[0]) {
 
         HV *app   = newHV();
-        SV *tmpId = newSVpvf("%02x", (unsigned)block->data.application.id[0], 8);
+        SV *tmpId = newSVpvf("%02x", (unsigned)block->data.application.id[0]);
         SV *appId;
 
         for (i = 1; i < 4; i++) {

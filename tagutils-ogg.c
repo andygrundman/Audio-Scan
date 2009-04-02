@@ -307,7 +307,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
 
     if ( buf_size < 14 ) {
       // Give up, use less accurate bitrate for length
-      my_hv_store( info, "song_length_ms", newSVpvf( "%d", ((file_size * 8) / bitrate_nominal) * 1000) );
+      my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
       my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
 
       goto out;
@@ -323,11 +323,11 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   if ( granule_pos && samplerate ) {
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
     my_hv_store( info, "song_length_ms", newSViv(length) );
-    my_hv_store( info, "bitrate_average", newSVpvf( "%d", ( file_size * 8 ) / ( length / 1000 ) ) );
+    my_hv_store( info, "bitrate_average", newSVpvf( "%d", (int)( file_size * 8 ) / ( length / 1000 ) ) );
   }
   else {
     // Use nominal bitrate
-    my_hv_store( info, "song_length_ms", newSVpvf( "%d", ((file_size * 8) / bitrate_nominal) * 1000) );
+    my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
     my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
   }
   

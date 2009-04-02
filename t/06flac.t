@@ -5,7 +5,6 @@ use FindBin ();
 use Test::More tests => 19;
 
 use Audio::Scan;
-use Data::Dump qw(dump);
 
 # MD5 check
 {
