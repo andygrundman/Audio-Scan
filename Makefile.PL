@@ -67,7 +67,7 @@ sub MY::postamble {
     my $postamble =<<'END';
 
 libid3tag/Makefile:
-	cd libid3tag && CC="$(CC)" CFLAGS="$(OPTIMIZE) $(CCFLAGS) $(CCCDLFLAGS)" ./configure --disable-dependency-tracking
+	cd libid3tag && CC="$(CC)" CFLAGS="$(OPTIMIZE) $(CCFLAGS) $(CCCDLFLAGS)" ./configure --disable-dependency-tracking $(EXTRA_CONF)
 
 clean::
 	-cd libid3tag && make distclean
