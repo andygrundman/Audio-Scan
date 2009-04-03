@@ -1,3 +1,7 @@
+General
+-------
+Fix universal compile for libid3tag
+
 MP3
 ---
 Support for reading from a filehandle (without seeking?)
@@ -14,14 +18,13 @@ Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/p
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
 Support iTunNORM, translate into replay gain values
 Some UTF-8 test failures with 5.10
+upper-case tag key names
 
 FLAC
 ----
-Memleak with appId.flac, picture.flac
 
 Ogg
 ___
-Ogg crash in _split_vorbis_comment under Linux with 5.10
 
 Tests
  Ogg
@@ -39,7 +42,7 @@ Tests
     ID3_FIELD_TYPE_LATIN1LIST,		/* Latin-1 string list */  LINK
     [x] ID3_FIELD_TYPE_STRING,		/* single-line Unicode string */
     [x] ID3_FIELD_TYPE_STRINGFULL,		/* Unicode plus newlines allowed */
-    ID3_FIELD_TYPE_STRINGLIST,		/* Unicode string list */  any T frame, what has more than 1?
+    [x] ID3_FIELD_TYPE_STRINGLIST,		/* Unicode string list */  any T frame
     [x] ID3_FIELD_TYPE_LANGUAGE,		/* 3-char language ID */   ULST, SYLT, COMM
     ID3_FIELD_TYPE_FRAMEID,		/* 4-char frame ID */    LINK
     ID3_FIELD_TYPE_DATE,		/* 8-char date field */  OWNE, COMR

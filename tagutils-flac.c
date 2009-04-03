@@ -99,7 +99,6 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
     case FLAC__METADATA_TYPE_APPLICATION:
     {
       if (block->data.application.id[0]) {
-
         HV *app   = newHV();
         SV *tmpId = newSVpvf("%02x", (unsigned)block->data.application.id[0]);
         SV *appId;
@@ -108,15 +107,17 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
           sv_catpvf(tmpId, "%02x", (unsigned)block->data.application.id[i]);
         }
 
-        /* Be compatible with the pure perl version */
+        // Be compatible with the pure perl version
         appId = newSVpvf("%ld", strtol(SvPV_nolen(tmpId), NULL, 16));
 
         if (block->data.application.data != 0) {
-          // XXX: Valgrind reports 'Invalid read of size 1' here with appId.flac test
-          my_hv_store(app, SvPV_nolen(appId), newSVpvn((char*)block->data.application.data, block->length));
+          my_hv_store_ent(app, appId, newSVpvn((char*)block->data.application.data, block->length));
         }
 
         my_hv_store(tags, "application",  newRV_noinc((SV*) app));
+
+        SvREFCNT_dec(tmpId);
+        SvREFCNT_dec(appId);
       }
 
       break;
@@ -222,6 +223,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
     case FLAC__METADATA_TYPE_PICTURE:
     {
       HV *picture = newHV();
+      SV *type;
 
       my_hv_store(picture, "mimeType", newSVpv(block->data.picture.mime_type, 0));
       my_hv_store(picture, "description", newSVpv((const char*)block->data.picture.description, 0));
@@ -232,11 +234,15 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       my_hv_store(picture, "imageData", newSVpv((const char*)block->data.picture.data, block->data.picture.data_length));
       my_hv_store(picture, "pictureType", newSViv(block->data.picture.type));
 
-      my_hv_store(
+      type = newSViv(block->data.picture.type);
+
+      my_hv_store_ent(
         pictureContainer,
-        SvPV_nolen(newSViv(block->data.picture.type)),
+        type,
         newRV_noinc((SV*) picture)
       );
+
+      SvREFCNT_dec(type);
 
       storePicture = 1;
 
