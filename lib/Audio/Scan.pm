@@ -28,21 +28,203 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast parsing of audio file information and/or tags
+Audio::Scan - Fast C scanning of audio file metadata
 
 =head1 SYNOPSIS
 
-  use Audio::Scan;
-  
-  my $data = Audio::Scan->scan('/path/to/file.mp3');
-  
-  # Just file info
-  my $info = Audio::Scan->scan_info('/path/to/file.mp3');
-  
-  # Just tags
-  my $tags = Audio::Scan->scan_tags('/path/to/file.mp3');
+    use Audio::Scan;
+
+    my $data = Audio::Scan->scan('/path/to/file.mp3');
+
+    # Just file info
+    my $info = Audio::Scan->scan_info('/path/to/file.mp3');
+
+    # Just tags
+    my $tags = Audio::Scan->scan_tags('/path/to/file.mp3');
 
 =head1 DESCRIPTION
+
+Audio::Scan is a C-based scanner for audio file metadata and tag information. It currently
+supports MP3 via an included version of libid3tag, Ogg Vorbis, and FLAC (if libFLAC is
+installed).  A future release will add support for AAC, WMA, WAV, and possibly others.
+
+See below for specific details about each file format.
+
+=head1 METHODS
+
+=head2 scan( $path )
+
+Scans $path for both metadata and tag information.  The type of scan performed is
+determined by the file's extension.  Supported extensions are:
+
+    MP3:  mp3, mp2
+    Ogg:  ogg, oga
+    FLAC: flc, flac, fla
+
+This method returns a hashref containing two other hashrefs: info and tags.  The
+contents of the info and tag hashes vary depending on file format, see below for details.
+
+=head2 scan_info( $path )
+
+If you only need file metadata and don't care about tags, you can use this method.
+
+=head2 scan_tags( $path )
+
+If you only need the tags and don't care about the metadata, use this method.
+
+=head1 MP3 DETAILS
+
+=head2 INFO
+
+The following metadata about a file may be returned:
+
+    id3_version (i.e. "ID3v2.4.0")
+    song_length_ms (duration in milliseconds)
+    layer (i.e. 3)
+    stereo
+    samples_per_frame
+    padding
+    audio_size (size of all audio frames)
+    audio_offset (byte offset to first audio frame)
+    bitrate (in bps, determined using Xing/LAME/VBRI if possible, or average in the worst case)
+    samplerate (in kHz)
+    vbr (1 if file is VBR)
+
+    If a Xing header is found:
+    xing_frames
+    xing_bytes
+    xing_quality
+
+    If a VBRI header is found:
+    vbri_delay
+    vbri_frames
+    vbri_bytes
+    vbri_quality
+
+    If a LAME header is found:
+    lame_encoder_version
+    lame_tag_revision
+    lame_vbr_method
+    lame_lowpass
+    lame_replay_gain_radio
+    lame_replay_gain_audiophile
+    lame_encoder_delay
+    lame_encoder_padding
+    lame_noise_shaping
+    lame_stereo_mode
+    lame_unwise_settings
+    lame_source_freq
+    lame_surround
+    lame_preset
+
+=head2 TAGS
+
+Raw tags are returned as found by libid3tag.  This means older tags such as ID3v1 and ID3v2.2
+are converted to ID3v2.4 tag names.  Multiple instances of a tag in a file will be returned
+as arrays.  Complex tags such as APIC and COMM are returned as arrays.  All tag fields are
+converted to upper-case.  Sample tag data:
+
+    tags => {
+          ALBUMARTISTSORT => "Solar Fields",
+          APIC => [ 0, "image/jpeg", 3, "", <binary data snipped> ],
+          CATALOGNUMBER => "INRE 017",
+          COMM => [0, "eng", "", "Amazon.com Song ID: 202981429"],
+          "MUSICBRAINZ ALBUM ARTIST ID" => "a2af1f31-c9eb-4fff-990c-c4f547a11b75",
+          "MUSICBRAINZ ALBUM ID" => "282143c9-6191-474d-a31a-1117b8c88cc0",
+          "MUSICBRAINZ ALBUM RELEASE COUNTRY" => "FR",
+          "MUSICBRAINZ ALBUM STATUS" => "official",
+          "MUSICBRAINZ ALBUM TYPE" => "album",
+          "MUSICBRAINZ ARTIST ID" => "a2af1f31-c9eb-4fff-990c-c4f547a11b75",
+          "REPLAYGAIN_ALBUM_GAIN" => "-2.96 dB",
+          "REPLAYGAIN_ALBUM_PEAK" => "1.045736",
+          "REPLAYGAIN_TRACK_GAIN" => "+3.60 dB",
+          "REPLAYGAIN_TRACK_PEAK" => "0.892606",
+          TALB => "Leaving Home",
+          TCOM => "Magnus Birgersson",
+          TCON => "Ambient",
+          TCOP => "2005 ULTIMAE RECORDS",
+          TDRC => "2004-10",
+          TIT2 => "Home",
+          TPE1 => "Solar Fields",
+          TPE2 => "Solar Fields",
+          TPOS => "1/1",
+          TPUB => "Ultimae Records",
+          TRCK => "1/11",
+          TSOP => "Solar Fields",
+          UFID => [
+                "http://musicbrainz.org",
+                "1084278a-2254-4613-a03c-9fed7a8937ca",
+          ],
+    },
+
+=head1 OGG VORBIS
+
+=head2 INFO
+
+The following metadata about a file is returned:
+
+    version
+    channels
+    stereo
+    samplerate (in kHz)
+    bitrate_average (in bps)
+    bitrate_upper
+    bitrate_nominal
+    bitrate_lower
+    blocksize_0
+    blocksize_1
+    audio_offset (byte offset to audio)
+    song_length_ms (duration in milliseconds)
+
+=head2 TAGS
+
+Raw Vorbis comments are returned.  All comment keys are capitalized.
+
+=head1 FLAC
+
+=head2 INFO
+
+The following metadata about a file is returned:
+
+    channels
+    samplerate (in kHz)
+    bitrate (in bps)
+    file_size
+    audio_offset (byte offset to audio)
+    song_length_ms (duration in milliseconds)
+    bits_per_sample
+    frames
+    minimum_blocksize
+    maximum_blocksize
+    minimum_framesize
+    maximum_framesize
+    md5
+    total_samples
+
+=head2 TAGS
+
+Raw FLAC comments are returned.  All comment keys are capitalized.  Some data returned is special:
+
+APPLICATION
+
+    Each application block is returned in the APPLICATION tag keyed by application ID.
+
+CUESHEET
+
+    The CUESHEET tag is an array containing each line of the cue sheet.
+
+PICTURE
+
+    Embedded pictures are returned in an ALLPICTURES array.  Each picture has the following metadata:
+    
+        mime_type
+        description
+        width
+        height
+        depth
+        color_index
+        image_data
+        picture_type
 
 =head1 THANKS
 
