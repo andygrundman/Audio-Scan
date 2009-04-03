@@ -199,6 +199,10 @@ SOURCE=..\global.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\pstdint.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\id3tag.h
 # End Source File
 # Begin Source File
