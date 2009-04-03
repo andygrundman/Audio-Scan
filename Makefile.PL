@@ -92,7 +92,7 @@ if ( $^O =~ /Win32/ ) {
     *MY::postamble = sub {};
     $MYEXTLIB = 'libid3tag/msvc++/Release/libid3tag.lib ';
     $MYEXTLIB .= '../zlib-1.2.3/projects/visualc6/Win32_LIB_Release/zlib.lib ';
-    $MYEXTLIB .= '../flac-1.2.1/obj/release/lib/libFLAC_static.lib ';
+    $MYEXTLIB .= '../flac-1.2.1/obj/release/lib/libFLAC_dynamic.lib ';
 }
 else {
     $MYEXTLIB = 'libid3tag/.libs/libid3tag$(LIB_EXT)';
