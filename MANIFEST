@@ -2,6 +2,7 @@ buffer.c
 buffer.h
 Changes
 COPYING
+hints/darwin.pl
 lib/Audio/Scan.pm
 libid3tag/aclocal.m4
 libid3tag/CHANGES
@@ -92,6 +93,9 @@ t/05mp3.t
 t/06flac.t
 t/07ogg.t
 t/flac/appId.flac
+t/flac/CVE-2007-4619-1.flac
+t/flac/CVE-2007-4619-12.flac
+t/flac/CVE-2007-4619-2.flac
 t/flac/empty.flac
 t/flac/id3tagged.flac
 t/flac/md5.flac
@@ -119,6 +123,7 @@ t/mp3/v1.mp3
 t/mp3/v2.2-itunes81.mp3
 t/mp3/v2.2-multiple-comm.mp3
 t/mp3/v2.2.mp3
+t/mp3/v2.3-empty-tcon.mp3
 t/mp3/v2.3-empty-wxxx.mp3
 t/mp3/v2.3-iso-8859-1.mp3
 t/mp3/v2.3-itunes81.mp3
@@ -135,6 +140,7 @@ t/mp3/v2.4-geob.mp3
 t/mp3/v2.4-iso-8859-1.mp3
 t/mp3/v2.4-itunes81.mp3
 t/mp3/v2.4-rva2-neg.mp3
+t/mp3/v2.4-tipl.mp3
 t/mp3/v2.4-utf16be.mp3
 t/mp3/v2.4-utf16le.mp3
 t/mp3/v2.4-utf8.mp3
