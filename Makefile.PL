@@ -7,9 +7,11 @@ use Getopt::Long;
 require 5.8.8;
 
 my (@INC, @LIBPATH, @LIBS);
-my ($FLAC);
+my ($FLAC, $MYEXTLIB);
 
-push @LIBS, '-lz';
+if ( $^O !~ /Win32/ ) {
+    push @LIBS, '-lz';
+}
 
 my ($help, $flac_inc, $flac_lib);
 my $result = GetOptions(
@@ -80,6 +82,14 @@ $(MYEXTLIB): libid3tag/Makefile force
 END
 }
 
+if ( $^O =~ /Win32/ ) {
+    *MY::postamble = sub {};
+    $MYEXTLIB = 'libid3tag/msvc++/Release/libid3tag.lib';
+}
+else {
+    $MYEXTLIB = 'libid3tag/.libs/libid3tag$(LIB_EXT)';
+}
+
 WriteMakefile(
     NAME              => 'Audio::Scan',
     VERSION_FROM      => 'lib/Audio/Scan.pm',
@@ -89,7 +99,7 @@ WriteMakefile(
     INC               => join(' ', @INC),
     LIBS              => [ join(' ', @LIBPATH, @LIBS) ],
     DEFINE            => $DEFINES,
-    MYEXTLIB          => 'libid3tag/.libs/libid3tag$(LIB_EXT)',
+    MYEXTLIB          => $MYEXTLIB,
     depend            => {
         'Scan.c' => 'buffer.h buffer.c tagutils-common.c tagutils-common.h tagutils-mp3.h tagutils-mp3.c tagutils-flac.h tagutils-flac.c tagutils-ogg.h tagutils-ogg.c',
     },

@@ -15,7 +15,11 @@
  */
 
 /* for PRIu64 */
+#ifdef _MSC_VER
+#include "pinttypes.h"
+#else
 #include <inttypes.h>
+#endif
 
 #ifdef _MSC_VER
 # define stat _stat

@@ -20,6 +20,10 @@
 
 #define	roundup(x, y)	((((x)+((y)-1))/(y))*(y))  /* to any y */
 
+#ifdef _MSC_VER
+#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+#endif
+
 typedef struct {
 	u_char	*buf;		/* Buffer for data. */
 	u_int	 alloc;		/* Number of bytes allocated for data. */

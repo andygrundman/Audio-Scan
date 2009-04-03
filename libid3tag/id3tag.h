@@ -25,7 +25,11 @@
 # ifndef LIBID3TAG_ID3TAG_H
 # define LIBID3TAG_ID3TAG_H
 
+#ifdef _MSC_VER
+#include "pstdint.h"
+#else
 #include <stdint.h>
+#endif
 
 # ifdef __cplusplus
 extern "C" {
