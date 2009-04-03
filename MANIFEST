@@ -1,8 +1,14 @@
-buffer.c
-buffer.h
 Changes
 COPYING
 hints/darwin.pl
+include/buffer.h
+include/common.h
+include/flac.h
+include/mp3.h
+include/pinttypes.h
+include/ppport.h
+include/pstdint.h
+include/ogg.h
 lib/Audio/Scan.pm
 libid3tag/aclocal.m4
 libid3tag/CHANGES
@@ -81,9 +87,13 @@ libid3tag/version.c
 libid3tag/version.h
 Makefile.PL
 MANIFEST			This list of files
-ppport.h
 README
 Scan.xs
+src/buffer.c
+src/common.c
+src/flac.c
+src/mp3.c
+src/ogg.c
 t/01use.t
 t/02pod.t
 t/03podcoverage.t
@@ -156,14 +166,6 @@ t/ogg/multiple.ogg
 t/ogg/old1.ogg
 t/ogg/old2.ogg
 t/ogg/test.ogg
-tagutils-common.c
-tagutils-common.h
-tagutils-flac.c
-tagutils-flac.h
-tagutils-mp3.c
-tagutils-mp3.h
-tagutils-ogg.c
-tagutils-ogg.h
 tools/bench.pl
 tools/leak.c
 tools/leak.pl

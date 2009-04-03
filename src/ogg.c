@@ -14,7 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "tagutils-ogg.h"
+#include "ogg.h"
 
 static int
 _check_buf(PerlIO *infile, Buffer *buf, int size)

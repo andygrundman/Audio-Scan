@@ -68,6 +68,8 @@ print "\n";
 my $DEFINES = '-Wall';
 $DEFINES .= ' -DHAVE_FLAC' if $FLAC;
 
+push @INC, ' -I. -I.. -Isrc -Iinclude';
+
 # Support for building libid3tag
 sub MY::postamble {
     my $postamble =<<'END';
@@ -96,6 +98,14 @@ else {
     $MYEXTLIB = 'libid3tag/.libs/libid3tag$(LIB_EXT)';
 }
 
+my $inc_files = join(' include/', qw(
+    include/buffer.h common.h mp3.h flac.h ogg.h
+));
+
+my $src_files = join(' src/', qw(
+    src/buffer.c common.c mp3.c flac.c ogg.c
+));
+
 WriteMakefile(
     NAME              => 'Audio::Scan',
     VERSION_FROM      => 'lib/Audio/Scan.pm',
@@ -106,7 +116,5 @@ WriteMakefile(
     LIBS              => [ join(' ', @LIBPATH, @LIBS) ],
     DEFINE            => $DEFINES,
     MYEXTLIB          => $MYEXTLIB,
-    depend            => {
-        'Scan.c' => 'buffer.h buffer.c tagutils-common.c tagutils-common.h tagutils-mp3.h tagutils-mp3.c tagutils-flac.h tagutils-flac.c tagutils-ogg.h tagutils-ogg.c',
-    },
+    depend            => { 'Scan.c' => "$inc_files $src_files" },
 );

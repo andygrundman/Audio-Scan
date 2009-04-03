@@ -14,7 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "tagutils-common.h"
+#include "common.h"
 #include "buffer.c"
 
 char* upcase(char *s) {

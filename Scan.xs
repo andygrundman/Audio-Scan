@@ -4,15 +4,13 @@
 
 #include "ppport.h"
 
-#include "tagutils-common.c"
-
-#include "tagutils-mp3.c"
+#include "common.c"
+#include "mp3.c"
+#include "ogg.c"
 
 #ifdef HAVE_FLAC
-#include "tagutils-flac.c"
+#include "flac.c"
 #endif
-
-#include "tagutils-ogg.c"
 
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02

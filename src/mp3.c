@@ -18,7 +18,7 @@
  * This file is derived from mt-daap project.
  */
 
-#include "tagutils-mp3.h"
+#include "mp3.h"
 
 static int
 _varint(unsigned char *buf, int length)

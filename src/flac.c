@@ -18,7 +18,7 @@
  * This file is derived from Audio::FLAC::Header by Dan Sully.
  */
 
-#include "tagutils-flac.h"
+#include "flac.h"
 
 void _cuesheet_frame_to_msf(unsigned frame, unsigned *minutes, unsigned *seconds, unsigned *frames) {
 
