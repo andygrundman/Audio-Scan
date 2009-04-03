@@ -72,7 +72,7 @@ If you only need file metadata and don't care about tags, you can use this metho
 
 If you only need the tags and don't care about the metadata, use this method.
 
-=head1 MP3 DETAILS
+=head1 MP3
 
 =head2 INFO
 
