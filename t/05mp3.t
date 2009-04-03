@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 196;
+use Test::More tests => 192;
 
 use Audio::Scan;
 use Encode;
@@ -223,7 +223,6 @@ my $pate = Encode::decode_utf8("pâté");
     
     # Make sure it's been converted to UTF-8
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v1 ISO-8859-1 is valid UTF-8' );
-    is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v1 ISO-8859-1 converted to UTF-8 ok' );
 }
 
 # ID3v2.2 (libid3tag converts them to v2.4-equivalent tags)
@@ -310,7 +309,6 @@ my $pate = Encode::decode_utf8("pâté");
     
     # Make sure it's been converted to UTF-8
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 ISO-8859-1 is valid UTF-8' );
-    is( unpack( 'H*', $tags->{TPE1} ), '4573746572204b6fc3a869c3a86b6f76c3a12061204c75626f6dc3ad72204e6f686176696361', 'ID3v2.3 ISO-8859-1 converted to UTF-8 ok' );
 }
 
 # ID3v2.3 UTF-16BE
@@ -323,7 +321,6 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.3 UTF-16BE title ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16BE is valid UTF-8' );
-    is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16BE converted to UTF-8 ok' );
 }
 
 # ID3v2.3 UTF-16LE
@@ -336,7 +333,6 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.3 UTF-16LE title ok' );
     
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 UTF-16LE is valid UTF-8' );
-    is( unpack( 'H*', $tags->{TPE1} ), '70c3a274c3a9', 'ID3v2.3 UTF-16LE converted to UTF-8 ok' );
 }
 
 # ID3v2.3 mp3HD, make sure we ignore XHD3 frame properly
