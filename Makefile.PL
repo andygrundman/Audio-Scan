@@ -89,7 +89,15 @@ END
 }
 
 if ( $^O =~ /Win32/ ) {
-    *MY::postamble = sub {};
+    *MY::postamble = sub {
+        my $postamble = <<'END';
+
+fixflac:
+    cp ../flac-1.2.1/obj/release/lib/libFLAC_dynamic.dll blib/arch/auto/Audio/Scan
+
+END
+    };
+    
     $MYEXTLIB = 'libid3tag/msvc++/Release/libid3tag.lib ';
     $MYEXTLIB .= '../zlib-1.2.3/projects/visualc6/Win32_LIB_Release/zlib.lib ';
     $MYEXTLIB .= '../flac-1.2.1/obj/release/lib/libFLAC_dynamic.lib ';
