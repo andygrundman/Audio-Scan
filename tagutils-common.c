@@ -21,7 +21,7 @@ char* upcase(char *s) {
   char *p = &s[0];
 
   while (*p != 0) {
-    if (*p >= 'a' && *p <= 'z') *p = (*p - 32);
+    *p = toUPPER(*p);
     p++;
   }
 

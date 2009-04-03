@@ -87,7 +87,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
         // Get the key
         utf8_key = (char *)id3_ucs4_utf8duplicate(key);
         if ( strlen(utf8_key) ) {
-          SV *ktmp = newSVpv( utf8_key, 0 );
+          SV *ktmp = newSVpv( upcase(utf8_key), 0 );
           sv_utf8_decode(ktmp);
 
           // Get the value

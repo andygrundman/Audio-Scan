@@ -284,7 +284,7 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TALB}, 'Album Name', 'ID3v2.3 album ok' );
     is( $tags->{TCON}, 'Ambient', 'ID3v2.3 genre ok' );
     is( $tags->{TRCK}, '02/10', 'ID3v2.3 track number ok' );
-    is( $tags->{'Tagging time'}, '2009-03-16T17:58:23', 'ID3v2.3 TXXX ok' ); # TXXX tag
+    is( $tags->{'TAGGING TIME'}, '2009-03-16T17:58:23', 'ID3v2.3 TXXX ok' ); # TXXX tag
     
     # Make sure TDRC is present and TYER has been removed
     is( $tags->{TDRC}, 2009, 'ID3v2.3 date ok' );
@@ -412,9 +412,9 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
     is( $tags->{UFID}->[0], 'foo@foo.com', 'ID3v2.4 UFID owner id ok' );
     is( $tags->{UFID}->[1], 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
-    is( $tags->{'User Frame'}, 'User Data', 'ID3v2.4 TXXX ok' );
+    is( $tags->{'USER FRAME'}, 'User Data', 'ID3v2.4 TXXX ok' );
     is( $tags->{WCOM}, 'http://www.google.com', 'ID3v2.4 WCOM ok' );
-    is( $tags->{'User URL'}, 'http://www.google.com', 'ID3v2.4 WXXX ok' );
+    is( $tags->{'USER URL'}, 'http://www.google.com', 'ID3v2.4 WXXX ok' );
     
     # XXX: 2 WOAR frames
 }
