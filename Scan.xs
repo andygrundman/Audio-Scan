@@ -78,7 +78,11 @@ CODE:
   suffix++;
   for (i=0; typeindex==-1 && audio_types[i].type; i++) {
     for (j=0; typeindex==-1 && audio_types[i].suffix[j]; j++) {
+#ifdef _MSC_VER
+      if (!stricmp(audio_types[i].suffix[j], suffix)) {
+#else
       if (!strcasecmp(audio_types[i].suffix[j], suffix)) {
+#endif
         typeindex = i;
         break;
       }
