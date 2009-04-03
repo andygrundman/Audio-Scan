@@ -52,7 +52,7 @@ void _split_vorbis_comment(char* comment, HV* tags) {
   sv_utf8_decode(value);
 
   /* Is there a better way to do this? */
-  Newxz(key, klen, char);
+  Newx(key, klen + 1, char);
   Move(comment, key, klen, char);
   key[klen] = '\0';
   key = upcase(key);
