@@ -18,7 +18,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $info = $s->{info};
     
     is( $info->{layer}, 2, 'MPEG1, Layer 2 ok' );
-    is( $info->{bitrate}, 192, 'MPEG1, Layer 2 bitrate ok' );
+    is( $info->{bitrate}, 192000, 'MPEG1, Layer 2 bitrate ok' );
     is( $info->{samplerate}, 44100, 'MPEG1, Layer 2 samplerate ok' );
 }
 
@@ -29,7 +29,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $info = $s->{info};
     
     is( $info->{layer}, 2, 'MPEG2, Layer 2 ok' );
-    is( $info->{bitrate}, 96, 'MPEG2, Layer 2 bitrate ok' );
+    is( $info->{bitrate}, 96000, 'MPEG2, Layer 2 bitrate ok' );
     is( $info->{samplerate}, 16000, 'MPEG2, Layer 2 samplerate ok' );
     is( $info->{stereo}, 0, 'MPEG2, Layer 2 mono ok' );
 }
@@ -40,7 +40,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 32, 'MPEG1, Layer 3 bitrate ok' );
+    is( $info->{bitrate}, 32000, 'MPEG1, Layer 3 bitrate ok' );
     is( $info->{samplerate}, 32000, 'MPEG1, Layer 3 samplerate ok' );
 }
 
@@ -50,7 +50,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 8, 'MPEG2, Layer 3 bitrate ok' );
+    is( $info->{bitrate}, 8000, 'MPEG2, Layer 3 bitrate ok' );
     is( $info->{samplerate}, 22050, 'MPEG2, Layer 3 samplerate ok' );
 }
 
@@ -60,7 +60,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 8, 'MPEG2.5, Layer 3 bitrate ok' );
+    is( $info->{bitrate}, 8000, 'MPEG2.5, Layer 3 bitrate ok' );
     is( $info->{samplerate}, 8000, 'MPEG2.5, Layer 3 samplerate ok' );
 }
 
@@ -70,7 +70,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 40, 'MPEG1, Layer 3 VBR bitrate ok' );
+    is( $info->{bitrate}, 40000, 'MPEG1, Layer 3 VBR bitrate ok' );
     is( $info->{samplerate}, 32000, 'MPEG1, Layer 3 VBR samplerate ok' );
     
     # Xing header
@@ -93,7 +93,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 320, 'CBR file bitrate ok' );
+    is( $info->{bitrate}, 320000, 'CBR file bitrate ok' );
     is( $info->{samplerate}, 44100, 'CBR file samplerate ok' );
     is( $info->{vbr}, undef, 'CBR file does not have VBR flag' );
     is( $info->{lame_encoder_version}, 'LAME3.97 ', 'CBR file LAME Info tag version ok' );
@@ -105,7 +105,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 229, 'Non-Xing VBR average bitrate calc ok' );
+    is( $info->{bitrate}, 229000, 'Non-Xing VBR average bitrate calc ok' );
 }
 
 # File with no audio frames, test is rejected properly
@@ -174,7 +174,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $info = $s->{info};
     
     is( $info->{vbri_delay}, 2353, 'VBRI delay ok' );
-    is( $info->{bitrate}, 61, 'VBRI bitrate ok' );
+    is( $info->{bitrate}, 61000, 'VBRI bitrate ok' );
     is( $info->{song_length_ms}, 1071, 'VBRI duration ok' );
 }
 

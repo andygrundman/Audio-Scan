@@ -805,7 +805,7 @@ get_mp3fileinfo(char *file, HV *info)
   off_t audio_size;          // size of all audio frames
 
   int song_length_ms = 0;    // duration of song in ms
-  short bitrate      = 0;    // actual bitrate of song
+  int bitrate        = 0;    // actual bitrate of song
 
   int found;
   int err = 0;
@@ -927,13 +927,13 @@ get_mp3fileinfo(char *file, HV *info)
   // Or if we have a Xing header, use it to determine bitrate
   else if (fi.xing_frames && fi.xing_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
-    bitrate = (short)( fi.xing_bytes / fi.xing_frames * mfs );
+    bitrate = ( fi.xing_bytes / fi.xing_frames * mfs );
   }
 
   // Or use VBRI header
   else if (fi.vbri_frames && fi.vbri_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
-    bitrate = (short)( fi.vbri_bytes / fi.vbri_frames * mfs );
+    bitrate = ( fi.vbri_bytes / fi.vbri_frames * mfs );
   }
 
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
@@ -972,7 +972,7 @@ get_mp3fileinfo(char *file, HV *info)
   my_hv_store( info, "padding", newSViv(fi.padding) );
   my_hv_store( info, "audio_size", newSViv(audio_size) );
   my_hv_store( info, "audio_offset", newSViv(audio_offset) );
-  my_hv_store( info, "bitrate", newSViv( bitrate ) );
+  my_hv_store( info, "bitrate", newSViv( bitrate * 1000 ) );
   my_hv_store( info, "samplerate", newSViv( fi.samplerate ) );
 
   if (fi.xing_frames) {
