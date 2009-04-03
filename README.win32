@@ -1,0 +1,34 @@
+Win32 build instructions:
+
+Tested with Visual Studio 2005 Pro.  Be careful using later VC versions, as the binaries
+they produce may not run on all versions of Windows.
+
+zlib
+----
+Download zlib from http://www.zlib.net/zlib123.zip.
+Build from projects/visualc6/zlib.dsw.
+Build Win32_LIB_Release
+
+libid3tag
+---------
+Open libid3tag/msvc++/libid3tag.dsp
+Go to Project -> libid3tag Properties -> Configuration Properties -> C/C++ -> General
+Change Additional Include Directories to point to your zlib directory, something like:
+  .;"C:\dev\zlib-1.2.3"
+Build Release
+
+libflac
+-------
+Follow the instructions in FLAC's README file under "Building with MSVC".
+
+Audio::Scan
+-----------
+Install ActivePerl 5.8.8 or 5.10.0.
+Open command prompt.
+Run the vcvars file, for example C:\Program Files\Microsoft Visual Studio 8\VC\vcvarsall.bat
+If your zlib and flac directories are not ..\zlib-1.2.3 and ..\flac-1.2.1 edit Makefile.PL
+perl Makefile.PL
+nmake
+
+I could not get libFLAC_static.lib to link properly, so you need to copy libFLAC_dynamic.dll
+to the blib/arch/auto/Audio/Scan directory in order to run the FLAC tests.
