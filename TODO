@@ -1,3 +1,7 @@
+General
+-------
+Skip FLAC tests if FLAC not available
+
 MP3
 ---
 Support for reading from a filehandle (without seeking?)
@@ -13,6 +17,8 @@ Standardize on hash key style across file types (lowercase?)
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
 Support iTunNORM, translate into replay gain values
+"free to wrong pool" crash from libid3tag malloc/free calls on win32
+  Try converting those to Newx/Safefree
 
 FLAC
 ----
