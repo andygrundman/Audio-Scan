@@ -1,7 +1,3 @@
-General
--------
-Fix universal compile for libid3tag
-
 MP3
 ---
 Support for reading from a filehandle (without seeking?)
@@ -17,8 +13,6 @@ Standardize on hash key style across file types (lowercase?)
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
 Support iTunNORM, translate into replay gain values
-Some UTF-8 test failures with 5.10
-upper-case tag key names
 
 FLAC
 ----
