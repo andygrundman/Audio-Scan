@@ -43,16 +43,16 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
     {
       float totalSeconds;
 
-      my_hv_store(info, "MINIMUMBLOCKSIZE", newSVuv(block->data.stream_info.min_blocksize));
-      my_hv_store(info, "MAXIMUMBLOCKSIZE", newSVuv(block->data.stream_info.max_blocksize));
+      my_hv_store(info, "minimum_blocksize", newSVuv(block->data.stream_info.min_blocksize));
+      my_hv_store(info, "maximum_blocksize", newSVuv(block->data.stream_info.max_blocksize));
 
-      my_hv_store(info, "MINIMUMFRAMESIZE", newSVuv(block->data.stream_info.min_framesize));
-      my_hv_store(info, "MAXIMUMFRAMESIZE", newSVuv(block->data.stream_info.max_framesize));
+      my_hv_store(info, "minimum_framesize", newSVuv(block->data.stream_info.min_framesize));
+      my_hv_store(info, "maximum_framesize", newSVuv(block->data.stream_info.max_framesize));
 
-      my_hv_store(info, "SAMPLERATE", newSVuv(block->data.stream_info.sample_rate));
-      my_hv_store(info, "NUMCHANNELS", newSVuv(block->data.stream_info.channels));
-      my_hv_store(info, "BITSPERSAMPLE", newSVuv(block->data.stream_info.bits_per_sample));
-      my_hv_store(info, "TOTALSAMPLES", newSVnv(block->data.stream_info.total_samples));
+      my_hv_store(info, "samplerate", newSVuv(block->data.stream_info.sample_rate));
+      my_hv_store(info, "channels", newSVuv(block->data.stream_info.channels));
+      my_hv_store(info, "bits_per_sample", newSVuv(block->data.stream_info.bits_per_sample));
+      my_hv_store(info, "total_samples", newSVnv(block->data.stream_info.total_samples));
 
       if (block->data.stream_info.md5sum != NULL) {
 
@@ -65,7 +65,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
           sv_catpvf(md5, "%02x", (unsigned)block->data.stream_info.md5sum[i]);
         }
 
-        my_hv_store(info, "MD5CHECKSUM", md5);
+        my_hv_store(info, "md5", md5);
       }
 
       /* Store some other metadata for backwards compatability with the original Audio::FLAC */
@@ -82,11 +82,8 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         totalSeconds = 1;
       }
 
-      my_hv_store(info, "trackTotalLengthSeconds", newSVnv(totalSeconds));
-
-      my_hv_store(info, "trackLengthMinutes", newSVnv((int)totalSeconds / 60));
-      my_hv_store(info, "trackLengthSeconds", newSVnv((int)totalSeconds % 60));
-      my_hv_store(info, "trackLengthFrames", newSVnv((totalSeconds - (int)totalSeconds) * 75));
+      my_hv_store(info, "song_length_ms", newSViv(totalSeconds * 1000));
+      my_hv_store(info, "frames", newSVnv((totalSeconds - (int)totalSeconds) * 75));
 
       break;
     }
@@ -114,7 +111,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
           my_hv_store_ent(app, appId, newSVpvn((char*)block->data.application.data, block->length));
         }
 
-        my_hv_store(tags, "application",  newRV_noinc((SV*) app));
+        my_hv_store(tags, "APPLICATION",  newRV_noinc((SV*) app));
 
         SvREFCNT_dec(tmpId);
         SvREFCNT_dec(appId);
@@ -213,7 +210,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         (unsigned)cs->tracks[track_num].number, decimal)
       );
 
-      my_hv_store(tags, "cuesheet",  newRV_noinc((SV*) cueArray));
+      my_hv_store(tags, "CUESHEET",  newRV_noinc((SV*) cueArray));
 
       break;
     }
@@ -225,14 +222,14 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       HV *picture = newHV();
       SV *type;
 
-      my_hv_store(picture, "mimeType", newSVpv(block->data.picture.mime_type, 0));
+      my_hv_store(picture, "mime_type", newSVpv(block->data.picture.mime_type, 0));
       my_hv_store(picture, "description", newSVpv((const char*)block->data.picture.description, 0));
       my_hv_store(picture, "width", newSViv(block->data.picture.width));
       my_hv_store(picture, "height", newSViv(block->data.picture.height));
       my_hv_store(picture, "depth", newSViv(block->data.picture.depth));
-      my_hv_store(picture, "colorIndex", newSViv(block->data.picture.colors));
-      my_hv_store(picture, "imageData", newSVpv((const char*)block->data.picture.data, block->data.picture.data_length));
-      my_hv_store(picture, "pictureType", newSViv(block->data.picture.type));
+      my_hv_store(picture, "color_index", newSViv(block->data.picture.colors));
+      my_hv_store(picture, "image_data", newSVpv((const char*)block->data.picture.data, block->data.picture.data_length));
+      my_hv_store(picture, "picture_type", newSViv(block->data.picture.type));
 
       type = newSViv(block->data.picture.type);
 
@@ -247,13 +244,13 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
       storePicture = 1;
 
       /* update allpictures */
-      if (my_hv_exists(tags, "allpictures")) {
-        allpicturesContainer = (AV *) SvRV(*my_hv_fetch(tags, "allpictures"));
+      if (my_hv_exists(tags, "ALLPICTURES")) {
+        allpicturesContainer = (AV *) SvRV(*my_hv_fetch(tags, "ALLPICTURES"));
       } else {
         allpicturesContainer = newAV();
 
         /* store the 'allpictures' array */
-        my_hv_store(tags, "allpictures", newRV_noinc((SV*) allpicturesContainer));
+        my_hv_store(tags, "ALLPICTURES", newRV_noinc((SV*) allpicturesContainer));
       }
 
       av_push(allpicturesContainer, (SV*) newRV((SV*) picture));
@@ -269,7 +266,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
 
   /* store the 'picture' hash */
   if (storePicture && hv_scalar(pictureContainer)) {
-    my_hv_store(tags, "picture", newRV_noinc((SV*) pictureContainer));
+    my_hv_store(tags, "PICTURE", newRV_noinc((SV*) pictureContainer));
   } else {
     SvREFCNT_dec((SV*) pictureContainer);
   }
@@ -374,7 +371,7 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     unsigned char buf[4];
     long len;
     struct stat st;
-    float totalSeconds;
+    float totalMS;
     PerlIO *fh;
 
     if ((fh = PerlIO_open(file, "rb")) == NULL) {
@@ -450,21 +447,21 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     len = PerlIO_tell(fh);
     PerlIO_close(fh);
 
-    my_hv_store(info, "startAudioData", newSVnv(len));
+    my_hv_store(info, "audio_offset", newSVnv(len));
 
     /* Now calculate the bit rate and file size */
-    if (my_hv_exists(info, "trackTotalLengthSeconds")) {
+    if (my_hv_exists(info, "song_length_ms")) {
 
-      totalSeconds = (float)SvIV(*(my_hv_fetch(info, "trackTotalLengthSeconds")));
+      totalMS = (float)SvIV(*(my_hv_fetch(info, "song_length_ms")));
 
       /* Find the file size */
       if (stat(file, &st) == 0) {
-        my_hv_store(info, "fileSize", newSViv(st.st_size));
+        my_hv_store(info, "file_size", newSViv(st.st_size));
       } else {
         PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
       }
 
-      my_hv_store(info, "bitRate", newSVnv(8.0 * (st.st_size - len) / totalSeconds));
+      my_hv_store(info, "bitrate", newSVnv(8 * (st.st_size - len) / (totalMS / 1000) ));
     }
   }
 

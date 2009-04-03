@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 19;
+use Test::More tests => 17;
 
 use Audio::Scan;
 
@@ -12,7 +12,7 @@ use Audio::Scan;
 
     my $info = $s->{info};
 
-    is($info->{MD5CHECKSUM}, '00428198e1ae27ad16754f75ff068752', 'MD5 Checksum ok');
+    is($info->{md5}, '00428198e1ae27ad16754f75ff068752', 'MD5 Checksum ok');
 }
 
 # Application block
@@ -21,10 +21,10 @@ use Audio::Scan;
 
     my $tags = $s->{tags};
 
-    my $cue = $tags->{cuesheet};
+    my $cue = $tags->{CUESHEET};
     ok($cue, 'Cue sheet exists');
 
-    my $app = $tags->{'application'}{1835361648};
+    my $app = $tags->{APPLICATION}{1835361648};
     ok($app, "Application block exists");
 
     ok($app =~ /musicbrainz/, "Found musicbrainz block");
@@ -37,18 +37,16 @@ use Audio::Scan;
     my $tags = $s->{tags};
     my $info = $s->{info};
 
-    is($info->{SAMPLERATE}, 44100, "Sample rate ok");
-    is($info->{MD5CHECKSUM}, '592fb7897a3589c6acf957fd3f8dc854', 'MD5 checksum ok');
-    is($info->{TOTALSAMPLES}, 153200460, 'Total samples ok');
+    is($info->{samplerate}, 44100, "Sample rate ok");
+    is($info->{md5}, '592fb7897a3589c6acf957fd3f8dc854', 'MD5 checksum ok');
+    is($info->{total_samples}, 153200460, 'Total samples ok');
 
     is($tags->{AUTHOR}, 'Praga Khan', 'AUTHOR ok');
 
-    ok($info->{trackLengthFrames} =~ /70.00\d+/, "Track Length Frames ok");
-    is($info->{trackLengthMinutes}, 57, "Track Length Minutes ok");
-    ok($info->{bitRate} =~ /1.236\d+/, 'Bitrate ok');
-    ok($info->{trackTotalLengthSeconds} =~ /3473.93\d+/, 'Total seconds ok');
+    ok($info->{frames} =~ /70.00\d+/, "Track Length Frames ok");
+    ok($info->{bitrate} =~ /1.236\d+/, 'Bitrate ok');
 
-    my $cue = $tags->{cuesheet};
+    my $cue = $tags->{CUESHEET};
 
     ok($cue, 'Got cuesheet ok');
 
@@ -82,10 +80,10 @@ use Audio::Scan;
     SKIP: {
         skip "XS - No PICTURE support", 3 unless $has_picture;
 
-        my $picture = $tags->{picture};
+        my $picture = $tags->{PICTURE};
 
         ok($picture, "Found picture ok");
-        is($picture->{3}{'mimeType'}, 'image/jpeg', 'Found Cover JPEG ok');
+        is($picture->{3}{mime_type}, 'image/jpeg', 'Found Cover JPEG ok');
     }
 }
 
