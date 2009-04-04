@@ -36,6 +36,7 @@ END
 }
 
 my @check = qw(/usr/include /usr/local/include /opt/local/include);
+push @check, split /:/, $ENV{INCLUDE};
 
 if ( $^O =~ /Win32/ ) {
     push @check, '../flac-1.2.1/include';
@@ -103,7 +104,15 @@ END
     $MYEXTLIB .= '../flac-1.2.1/obj/release/lib/libFLAC_dynamic.lib ';
 }
 else {
-    $MYEXTLIB = 'libid3tag/.libs/libid3tag$(LIB_EXT)';
+    if ( $ENV{NO_LIBID3TAG} ) {
+        # Link to external libid3tag
+        *MY::postamble = sub {};
+        push @LIBPATH, '-L' . $ENV{ID3TAG_LIBS} if $ENV{ID3TAG_LIBS};
+        push @LIBS, '-lid3tag';
+    }
+    else {
+        $MYEXTLIB = 'libid3tag/.libs/libid3tag$(LIB_EXT)';
+    }
 }
 
 my $inc_files = join(' include/', qw(
