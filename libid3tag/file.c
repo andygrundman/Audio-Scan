@@ -408,8 +408,7 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
 #ifdef _MSC_VER
   if (path) {
 	Newx(file->path, strlen(path) + 1, char);
-	Copy(path, file->path, strlen(path), char);
-	file->path[ strlen(path) ] = '\0';
+	Copy(path, file->path, strlen(path) + 1, char);
   }
   else {
     file->path = 0;
