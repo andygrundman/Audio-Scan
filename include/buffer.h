@@ -22,7 +22,7 @@
 #define	roundup(x, y)	((((x)+((y)-1))/(y))*(y))  /* to any y */
 #endif
 
-#ifdef _MSC_VER
+#ifndef MIN
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #endif
 
