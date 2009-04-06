@@ -1,7 +1,6 @@
 General
 -------
 Solaris needs #define MIN
-PPC Macs should not try to build universal binary
 
 MP3
 ---
