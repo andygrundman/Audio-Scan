@@ -397,8 +397,6 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
 {
   struct id3_file *file;
 
-  fprintf(stderr, "new file %s\n", path);
-
 #ifdef _MSC_VER
   fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(file, 1, struct id3_file);
