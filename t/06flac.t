@@ -8,12 +8,12 @@ use Audio::Scan;
 
 SKIP:
 {
-	if ( !Audio::Scan->has_flac() ) {
-		plan skip_all => 'FLAC support not available';
-	}
-	else {
-		plan tests => 17;
-	}
+    if ( !Audio::Scan->has_flac() ) {
+        plan skip_all => 'FLAC support not available';
+    }
+    else {
+        plan tests => 17;
+    }
 }
 
 # MD5 check
