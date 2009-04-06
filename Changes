@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.02
+	- Improved directory structure.
+	- Added build instructions for Win32.
+
 0.01  2009-04-03 11:00:00
 	- Initial release.
 

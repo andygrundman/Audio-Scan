@@ -50,6 +50,19 @@ static taghandler taghandlers[] = {
 
 MODULE = Audio::Scan		PACKAGE = Audio::Scan
 
+int
+has_flac(void)
+CODE:
+{
+#ifdef HAVE_FLAC
+  RETVAL = 1;
+#else
+  RETVAL = 0;
+#endif
+}
+OUTPUT:
+  RETVAL
+
 HV *
 scan (char * /*klass*/, SV *path, ...)
 CODE:

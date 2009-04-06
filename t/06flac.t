@@ -2,9 +2,19 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 17;
+use Test::More;
 
 use Audio::Scan;
+
+SKIP:
+{
+	if ( !Audio::Scan->has_flac() ) {
+		plan skip_all => 'FLAC support not available';
+	}
+	else {
+		plan tests => 17;
+	}
+}
 
 # MD5 check
 {
