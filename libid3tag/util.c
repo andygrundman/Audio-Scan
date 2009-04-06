@@ -102,7 +102,8 @@ id3_byte_t *id3_util_compress(id3_byte_t const *data, id3_length_t length,
   *newlength += *newlength / 1000;
 
 #ifdef _MSC_VER
-  Newx(compressed, *newlength, char);
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+  Newx(compressed, *newlength, id3_byte_t);
 #else
   compressed = malloc(*newlength);
 #endif
@@ -117,7 +118,8 @@ id3_byte_t *id3_util_compress(id3_byte_t const *data, id3_length_t length,
       id3_byte_t *resized;
 
 #ifdef _MSC_VER
-      Renew(compressed, *newlength ? *newlength : 1, char);
+	  fprintf(stderr, "Renew %s line %d\n", __FILE__, __LINE__);
+      Renew(compressed, *newlength ? *newlength : 1, id3_byte_t);
 #else
       resized = realloc(compressed, *newlength ? *newlength : 1);
       if (resized)
@@ -139,7 +141,8 @@ id3_byte_t *id3_util_decompress(id3_byte_t const *data, id3_length_t length,
   id3_byte_t *decompressed;
 
 #ifdef _MSC_VER
-  Newx(decompressed, newlength ? newlength : 1, char);
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+  Newx(decompressed, newlength ? newlength : 1, id3_byte_t);
 #else
   decompressed = malloc(newlength ? newlength : 1);
 #endif

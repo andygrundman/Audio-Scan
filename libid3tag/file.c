@@ -102,7 +102,8 @@ struct id3_tag *read_tag(FILE *iofile, id3_length_t size)
   struct id3_tag *tag = 0;
 
 #ifdef _MSC_VER
-  Newx(data, size, char);
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+  Newx(data, size, id3_byte_t);
 #else
   data = malloc(size);
 #endif
@@ -167,6 +168,7 @@ int add_filetag(struct id3_file *file, struct filetag const *filetag)
   struct filetag *tags;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Renew %s line %d\n", __FILE__, __LINE__);
   Renew(file->tags, file->ntags + 1, struct filetag);
 #else
   tags = realloc(file->tags, (file->ntags + 1) * sizeof(*tags));
@@ -395,7 +397,10 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
 {
   struct id3_file *file;
 
+  fprintf(stderr, "new file %s\n", path);
+
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(file, 1, struct id3_file);
 #else
   file = malloc(sizeof(*file));
@@ -407,8 +412,9 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
   file->mode    = mode;
 #ifdef _MSC_VER
   if (path) {
+	fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
 	Newx(file->path, strlen(path) + 1, char);
-	Copy(path, file->path, strlen(path) + 1, char);
+	strcpy_s(file->path, strlen(path) + 1, path);
   }
   else {
     file->path = 0;
@@ -628,6 +634,7 @@ int v2_write(struct id3_file *file,
   offset = file->tags ? file->tags[0].length : 0;
   datalen = st.st_size - offset;
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(buffer, datalen, char);
 #else
   if ((buffer = (char *) malloc(datalen)) == NULL)
@@ -688,7 +695,8 @@ int id3_file_update(struct id3_file *file)
   v2size = id3_tag_render(file->primary, 0);
   if (v2size) {
 #ifdef _MSC_VER
-    Newx(id3v2, v2size, char);
+	fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+    Newx(id3v2, v2size, id3_byte_t);
 #else
     id3v2 = malloc(v2size);
 #endif

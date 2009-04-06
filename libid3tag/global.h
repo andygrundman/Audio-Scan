@@ -43,7 +43,7 @@
 # else
 #  ifdef _MSC_VER
 #    undef free
-#    define free(ptr)       Safefree(ptr)
+#    define free(ptr)       (fprintf(stderr, "free %s %d\n", __FILE__, __LINE__), Safefree(ptr))
 #  endif
 #  define release(ptr)  (ptr)
 # endif
@@ -52,7 +52,9 @@
 
 # if !defined(HAVE_ASSERT_H)
 #  if defined(NDEBUG)
-#   define assert(x)	/* nothing */
+#   if !defined _MSC_VER
+#     define assert(x)	/* nothing */
+#   endif
 #  else
 #   define assert(x)	do { if (!(x)) abort(); } while (0)
 #  endif

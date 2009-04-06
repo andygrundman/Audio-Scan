@@ -54,6 +54,7 @@ struct id3_tag *id3_tag_new(void)
   struct id3_tag *tag;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(tag, 1, struct id3_tag);
 #else
   tag = malloc(sizeof(*tag));
@@ -179,6 +180,7 @@ int id3_tag_attachframe(struct id3_tag *tag, struct id3_frame *frame)
   assert(tag && frame);
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Renew %s line %d\n", __FILE__, __LINE__);
   Renew(tag->frames, tag->nframes + 1, struct id3_frame *);
 #else
   frames = realloc(tag->frames, (tag->nframes + 1) * sizeof(*frames));
@@ -456,7 +458,8 @@ struct id3_tag *v2_parse(id3_byte_t const *ptr)
     if ((tag->flags & ID3_TAG_FLAG_UNSYNCHRONISATION) &&
 	ID3_TAG_VERSION_MAJOR(tag->version) < 4) {
 #ifdef _MSC_VER
-      Newx(mem, size, char);
+	  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+      Newx(mem, size, id3_byte_t);
 #else
       mem = malloc(size);
 #endif

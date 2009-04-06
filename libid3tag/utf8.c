@@ -121,6 +121,7 @@ id3_ucs4_t *id3_utf8_ucs4duplicate(id3_utf8_t const *utf8)
   id3_ucs4_t *ucs4;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(ucs4, id3_utf8_length(utf8) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_utf8_length(utf8) + 1) * sizeof(*ucs4));
@@ -350,7 +351,8 @@ id3_ucs4_t *id3_utf8_deserialize(id3_byte_t const **ptr, id3_length_t length)
   end = *ptr + length;
 
 #ifdef _MSC_VER
-  Newx(utf8, (length + 1) * sizeof(*utf8), char);
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+  Newx(utf8, length + 1, id3_utf8_t);
 #else
   utf8 = malloc((length + 1) * sizeof(*utf8));
 #endif
@@ -364,6 +366,7 @@ id3_ucs4_t *id3_utf8_deserialize(id3_byte_t const **ptr, id3_length_t length)
   *utf8ptr = 0;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(ucs4, id3_utf8_length(utf8) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_utf8_length(utf8) + 1) * sizeof(*ucs4));

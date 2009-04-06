@@ -73,7 +73,8 @@ id3_latin1_t *id3_latin1_duplicate(id3_latin1_t const *src)
   id3_latin1_t *latin1;
 
 #ifdef _MSC_VER
-  Newx(latin1, id3_latin1_size(src) * sizeof(*latin1), char);
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+  Newx(latin1, id3_latin1_size(src), id3_latin1_t);
 #else
   latin1 = malloc(id3_latin1_size(src) * sizeof(*latin1));
 #endif
@@ -92,6 +93,7 @@ id3_ucs4_t *id3_latin1_ucs4duplicate(id3_latin1_t const *latin1)
   id3_ucs4_t *ucs4;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(ucs4, id3_latin1_length(latin1) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_latin1_length(latin1) + 1) * sizeof(*ucs4));
@@ -206,7 +208,8 @@ id3_ucs4_t *id3_latin1_deserialize(id3_byte_t const **ptr, id3_length_t length)
   end = *ptr + length;
 
 #ifdef _MSC_VER
-  Newx(latin1, (length + 1) * sizeof(*latin1), char);
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+  Newx(latin1, (length + 1), id3_latin1_t);
 #else
   latin1 = malloc((length + 1) * sizeof(*latin1));
 #endif
@@ -220,6 +223,7 @@ id3_ucs4_t *id3_latin1_deserialize(id3_byte_t const **ptr, id3_length_t length)
   *latin1ptr = 0;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(ucs4, id3_latin1_length(latin1) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_latin1_length(latin1) + 1) * sizeof(*ucs4));

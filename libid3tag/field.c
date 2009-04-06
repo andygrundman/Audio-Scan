@@ -77,11 +77,19 @@ void id3_field_init(union id3_field *field, enum id3_field_type type)
     break;
 
   case ID3_FIELD_TYPE_LANGUAGE:
+#ifdef _MSC_VER
+    strcpy_s(field->immediate.value, 4, "XXX");
+#else
     strcpy(field->immediate.value, "XXX");
+#endif
     break;
 
   case ID3_FIELD_TYPE_FRAMEID:
+#ifdef _MSC_VER
+    strcpy_s(field->immediate.value, 5, "XXXX");
+#else
     strcpy(field->immediate.value, "XXXX");
+#endif
     break;
 
   case ID3_FIELD_TYPE_DATE:
@@ -258,6 +266,7 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
 	  goto fail;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Renew %s line %d\n", __FILE__, __LINE__);
   Renew(field->latin1list.strings, field->latin1list.nstrings + 1, id3_latin1_t *);
 #else
 	strings = realloc(field->latin1list.strings,
@@ -301,6 +310,7 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
 	  goto fail;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Renew %s line %d\n", __FILE__, __LINE__);
   Renew(field->stringlist.strings, field->stringlist.nstrings + 1, id3_ucs4_t *);
 #else
 	strings = realloc(field->stringlist.strings,
@@ -607,6 +617,7 @@ int id3_field_setstrings(union id3_field *field,
     return 0;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(strings, length, id3_ucs4_t *);
 #else
   strings = malloc(length * sizeof(*strings));
@@ -652,6 +663,7 @@ int id3_field_addstring(union id3_field *field, id3_ucs4_t const *string)
     return -1;
 
 #ifdef _MSC_VER
+  fprintf(stderr, "Renew %s line %d\n", __FILE__, __LINE__);
   Renew(field->stringlist.strings, field->stringlist.nstrings + 1, id3_ucs4_t *);
 #else
   strings = realloc(field->stringlist.strings,
@@ -685,7 +697,11 @@ int id3_field_setlanguage(union id3_field *field, char const *language)
     if (strlen(language) != 3)
       return -1;
 
+#ifdef _MSC_VER
+	strcpy_s(field->immediate.value, 4, language);
+#else
     strcpy(field->immediate.value, language);
+#endif
   }
 
   return 0;
@@ -734,7 +750,8 @@ int id3_field_setbinarydata(union id3_field *field,
     mem = 0;
   else {
 #ifdef _MSC_VER
-    Newx(mem, length, char);
+    fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
+    Newx(mem, length, id3_byte_t);
 #else
     mem = malloc(length);
 #endif
