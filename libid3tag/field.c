@@ -257,6 +257,9 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
 	if (latin1 == 0)
 	  goto fail;
 
+#ifdef _MSC_VER
+  Renew(field->latin1list.strings, (field->latin1list.nstrings + 1) * sizeof(*strings), char);
+#else
 	strings = realloc(field->latin1list.strings,
 			  (field->latin1list.nstrings + 1) * sizeof(*strings));
 	if (strings == 0) {
@@ -265,6 +268,7 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
 	}
 
 	field->latin1list.strings = strings;
+#endif
 	field->latin1list.strings[field->latin1list.nstrings++] = latin1;
       }
     }
@@ -296,6 +300,9 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
 	if (ucs4 == 0)
 	  goto fail;
 
+#ifdef _MSC_VER
+  Renew(field->stringlist.strings, (field->stringlist.nstrings + 1) * sizeof(*strings), char);
+#else
 	strings = realloc(field->stringlist.strings,
 			  (field->stringlist.nstrings + 1) * sizeof(*strings));
 	if (strings == 0) {
@@ -304,6 +311,7 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
 	}
 
 	field->stringlist.strings = strings;
+#endif
 	field->stringlist.strings[field->stringlist.nstrings++] = ucs4;
       }
     }
@@ -598,7 +606,11 @@ int id3_field_setstrings(union id3_field *field,
   if (length == 0)
     return 0;
 
+#ifdef _MSC_VER
+  Newx(strings, length * sizeof(*strings), char);
+#else
   strings = malloc(length * sizeof(*strings));
+#endif
   if (strings == 0)
     return -1;
 
@@ -639,6 +651,9 @@ int id3_field_addstring(union id3_field *field, id3_ucs4_t const *string)
   if (new == 0)
     return -1;
 
+#ifdef _MSC_VER
+  Renew(field->stringlist.strings, (field->stringlist.nstrings + 1) * sizeof(*strings), char);
+#else
   strings = realloc(field->stringlist.strings,
 		    (field->stringlist.nstrings + 1) * sizeof(*strings));
   if (strings == 0) {
@@ -647,6 +662,7 @@ int id3_field_addstring(union id3_field *field, id3_ucs4_t const *string)
   }
 
   field->stringlist.strings = strings;
+#endif
   field->stringlist.strings[field->stringlist.nstrings++] = new;
 
   return 0;
@@ -717,7 +733,11 @@ int id3_field_setbinarydata(union id3_field *field,
   if (length == 0)
     mem = 0;
   else {
+#ifdef _MSC_VER
+    Newx(mem, length, char);
+#else
     mem = malloc(length);
+#endif
     if (mem == 0)
       return -1;
 

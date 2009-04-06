@@ -53,7 +53,11 @@ struct id3_tag *id3_tag_new(void)
 {
   struct id3_tag *tag;
 
+#ifdef _MSC_VER
+  Newx(tag, sizeof(*tag), char);
+#else
   tag = malloc(sizeof(*tag));
+#endif
   if (tag) {
     tag->refcount      = 0;
     tag->version       = ID3_TAG_VERSION;
@@ -174,11 +178,15 @@ int id3_tag_attachframe(struct id3_tag *tag, struct id3_frame *frame)
 
   assert(tag && frame);
 
+#ifdef _MSC_VER
+  Renew(tag->frames, (tag->nframes + 1) * sizeof(*frames), char);
+#else
   frames = realloc(tag->frames, (tag->nframes + 1) * sizeof(*frames));
   if (frames == 0)
     return -1;
 
   tag->frames = frames;
+#endif
   tag->frames[tag->nframes++] = frame;
 
   id3_frame_addref(frame);
@@ -447,7 +455,11 @@ struct id3_tag *v2_parse(id3_byte_t const *ptr)
 
     if ((tag->flags & ID3_TAG_FLAG_UNSYNCHRONISATION) &&
 	ID3_TAG_VERSION_MAJOR(tag->version) < 4) {
+#ifdef _MSC_VER
+      Newx(mem, size, char);
+#else
       mem = malloc(size);
+#endif
       if (mem == 0)
 	goto fail;
 

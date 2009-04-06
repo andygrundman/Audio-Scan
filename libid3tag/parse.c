@@ -125,7 +125,11 @@ id3_latin1_t *id3_parse_latin1(id3_byte_t const **ptr, id3_length_t length,
     terminated = 1;
   }
 
+#ifdef _MSC_VER
+  Newx(latin1, length + 1, char);
+#else
   latin1 = malloc(length + 1);
+#endif
   if (latin1) {
     memcpy(latin1, *ptr, length);
     latin1[length] = 0;
@@ -186,10 +190,20 @@ id3_byte_t *id3_parse_binary(id3_byte_t const **ptr, id3_length_t length)
 {
   id3_byte_t *data;
 
-  if (length == 0)
+  if (length == 0) {
+#ifdef _MSC_VER
+    Newx(data, 1, char);
+    return data;
+#else
     return malloc(1);
+#endif
+  }
 
+#ifdef _MSC_VER
+  Newx(data, length, char);
+#else
   data = malloc(length);
+#endif
   if (data)
     memcpy(data, *ptr, length);
 

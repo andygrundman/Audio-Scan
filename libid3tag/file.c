@@ -101,7 +101,11 @@ struct id3_tag *read_tag(FILE *iofile, id3_length_t size)
   id3_byte_t *data;
   struct id3_tag *tag = 0;
 
+#ifdef _MSC_VER
+  Newx(data, size, char);
+#else
   data = malloc(size);
+#endif
   if (data) {
     if (fread(data, size, 1, iofile) == 1)
       tag = id3_tag_parse(data, size);
@@ -162,11 +166,15 @@ int add_filetag(struct id3_file *file, struct filetag const *filetag)
 {
   struct filetag *tags;
 
+#ifdef _MSC_VER
+  Renew(file->tags, (file->ntags + 1) * sizeof(*tags), char);
+#else
   tags = realloc(file->tags, (file->ntags + 1) * sizeof(*tags));
   if (tags == 0)
     return -1;
 
   file->tags = tags;
+#endif
   file->tags[file->ntags++] = *filetag;
 
   /* sort tags by location */
@@ -387,7 +395,11 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
 {
   struct id3_file *file;
 
+#ifdef _MSC_VER
+  Newx(file, sizeof(*file), char);
+#else
   file = malloc(sizeof(*file));
+#endif
   if (file == 0)
     goto fail;
 
@@ -605,8 +617,12 @@ int v2_write(struct id3_file *file,
 
   offset = file->tags ? file->tags[0].length : 0;
   datalen = st.st_size - offset;
+#ifdef _MSC_VER
+  Newx(buffer, datalen, char);
+#else
   if ((buffer = (char *) malloc(datalen)) == NULL)
     return -1;
+#endif
 
   if (fseek(file->iofile, offset, SEEK_SET) == -1 ||
       fread(buffer, datalen, 1, file->iofile) != 1 ||
@@ -661,7 +677,11 @@ int id3_file_update(struct id3_file *file)
 
   v2size = id3_tag_render(file->primary, 0);
   if (v2size) {
+#ifdef _MSC_VER
+    Newx(id3v2, v2size, char);
+#else
     id3v2 = malloc(v2size);
+#endif
     if (id3v2 == 0)
       goto fail;
 

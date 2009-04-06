@@ -37,6 +37,9 @@
 #  define free(ptr)         id3_debug_free(ptr,        __FILE__, __LINE__)
 #  define release(ptr)      id3_debug_release(ptr,     __FILE__, __LINE__)
 # else
+#  ifdef _MSC_VER
+#    define free(ptr)       Safefree(ptr)
+#  endif
 #  define release(ptr)  (ptr)
 # endif
 

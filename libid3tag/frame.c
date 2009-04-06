@@ -100,7 +100,11 @@ struct id3_frame *id3_frame_new(char const *id)
     }
   }
 
+#ifdef _MSC_VER
+  Newx(frame, sizeof(*frame) + frametype->nfields * sizeof(*frame->fields), char);
+#else
   frame = malloc(sizeof(*frame) + frametype->nfields * sizeof(*frame->fields));
+#endif
   if (frame) {
     frame->id[0] = id[0];
     frame->id[1] = id[1];
@@ -210,7 +214,11 @@ struct id3_frame *unparseable(char const *id, id3_byte_t const **ptr,
   struct id3_frame *frame = 0;
   id3_byte_t *mem;
 
+#ifdef _MSC_VER
+  Newx(mem, length ? length : 1, char);
+#else
   mem = malloc(length ? length : 1);
+#endif
   if (mem == 0)
     goto fail;
 
@@ -414,7 +422,11 @@ struct id3_frame *id3_frame_parse(id3_byte_t const **ptr, id3_length_t length,
   /* undo frame encodings */
 
   if ((flags & ID3_FRAME_FLAG_UNSYNCHRONISATION) && end - data > 0) {
+#ifdef _MSC_VER
+    Newx(mem, end - data, char);
+#else
     mem = malloc(end - data);
+#endif
     if (mem == 0)
       goto fail;
 
