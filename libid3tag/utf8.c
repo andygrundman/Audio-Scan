@@ -121,7 +121,7 @@ id3_ucs4_t *id3_utf8_ucs4duplicate(id3_utf8_t const *utf8)
   id3_ucs4_t *ucs4;
 
 #ifdef _MSC_VER
-  Newx(ucs4, (id3_utf8_length(utf8) + 1) * sizeof(*ucs4), char);
+  Newx(ucs4, id3_utf8_length(utf8) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_utf8_length(utf8) + 1) * sizeof(*ucs4));
 #endif
@@ -364,7 +364,7 @@ id3_ucs4_t *id3_utf8_deserialize(id3_byte_t const **ptr, id3_length_t length)
   *utf8ptr = 0;
 
 #ifdef _MSC_VER
-  Newx(ucs4, (id3_utf8_length(utf8) + 1) * sizeof(*ucs4), char);
+  Newx(ucs4, id3_utf8_length(utf8) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_utf8_length(utf8) + 1) * sizeof(*ucs4));
 #endif

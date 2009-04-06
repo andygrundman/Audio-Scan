@@ -167,7 +167,7 @@ int add_filetag(struct id3_file *file, struct filetag const *filetag)
   struct filetag *tags;
 
 #ifdef _MSC_VER
-  Renew(file->tags, (file->ntags + 1) * sizeof(*tags), char);
+  Renew(file->tags, file->ntags + 1, struct filetag);
 #else
   tags = realloc(file->tags, (file->ntags + 1) * sizeof(*tags));
   if (tags == 0)
@@ -396,7 +396,7 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
   struct id3_file *file;
 
 #ifdef _MSC_VER
-  Newx(file, sizeof(*file), char);
+  Newx(file, 1, struct id3_file);
 #else
   file = malloc(sizeof(*file));
 #endif
@@ -405,7 +405,18 @@ struct id3_file *new_file(FILE *iofile, enum id3_file_mode mode,
 
   file->iofile  = iofile;
   file->mode    = mode;
+#ifdef _MSC_VER
+  if (path) {
+	Newx(file->path, strlen(path) + 1, char);
+	Copy(path, file->path, strlen(path), char);
+	file->path[ strlen(path) ] = '\0';
+  }
+  else {
+    file->path = 0;
+  }
+#else
   file->path    = path ? strdup(path) : 0;
+#endif
 
   file->flags   = 0;
 

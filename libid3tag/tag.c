@@ -54,7 +54,7 @@ struct id3_tag *id3_tag_new(void)
   struct id3_tag *tag;
 
 #ifdef _MSC_VER
-  Newx(tag, sizeof(*tag), char);
+  Newx(tag, 1, struct id3_tag);
 #else
   tag = malloc(sizeof(*tag));
 #endif
@@ -179,7 +179,7 @@ int id3_tag_attachframe(struct id3_tag *tag, struct id3_frame *frame)
   assert(tag && frame);
 
 #ifdef _MSC_VER
-  Renew(tag->frames, (tag->nframes + 1) * sizeof(*frames), char);
+  Renew(tag->frames, tag->nframes + 1, struct id3_frame *);
 #else
   frames = realloc(tag->frames, (tag->nframes + 1) * sizeof(*frames));
   if (frames == 0)

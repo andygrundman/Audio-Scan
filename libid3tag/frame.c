@@ -101,7 +101,8 @@ struct id3_frame *id3_frame_new(char const *id)
   }
 
 #ifdef _MSC_VER
-  Newx(frame, sizeof(*frame) + frametype->nfields * sizeof(*frame->fields), char);
+  // XXX: Can't use Newx macro here
+  frame = safemalloc((MEM_SIZE)(sizeof(*frame) + frametype->nfields * sizeof(*frame->fields)));
 #else
   frame = malloc(sizeof(*frame) + frametype->nfields * sizeof(*frame->fields));
 #endif

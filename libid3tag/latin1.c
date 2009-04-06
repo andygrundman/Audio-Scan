@@ -92,7 +92,7 @@ id3_ucs4_t *id3_latin1_ucs4duplicate(id3_latin1_t const *latin1)
   id3_ucs4_t *ucs4;
 
 #ifdef _MSC_VER
-  Newx(ucs4, (id3_latin1_length(latin1) + 1) * sizeof(*ucs4), char);
+  Newx(ucs4, id3_latin1_length(latin1) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_latin1_length(latin1) + 1) * sizeof(*ucs4));
 #endif
@@ -220,7 +220,7 @@ id3_ucs4_t *id3_latin1_deserialize(id3_byte_t const **ptr, id3_length_t length)
   *latin1ptr = 0;
 
 #ifdef _MSC_VER
-  Newx(ucs4, (id3_latin1_length(latin1) + 1) * sizeof(*ucs4), char);
+  Newx(ucs4, id3_latin1_length(latin1) + 1, id3_ucs4_t);
 #else
   ucs4 = malloc((id3_latin1_length(latin1) + 1) * sizeof(*ucs4));
 #endif

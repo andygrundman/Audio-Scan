@@ -145,7 +145,7 @@ id3_utf16_t *id3_ucs4_utf16duplicate(id3_ucs4_t const *ucs4)
   id3_utf16_t *utf16;
 
 #ifdef _MSC_VER
-  Newx(utf16, id3_ucs4_utf16size(ucs4) * sizeof(*utf16), char);
+  Newx(utf16, id3_ucs4_utf16size(ucs4), id3_utf16_t);
 #else
   utf16 = malloc(id3_ucs4_utf16size(ucs4) * sizeof(*utf16));
 #endif
@@ -193,7 +193,7 @@ id3_ucs4_t *id3_ucs4_duplicate(id3_ucs4_t const *src)
   id3_ucs4_t *ucs4;
 
 #ifdef _MSC_VER
-  Newx(ucs4, id3_ucs4_size(src) * sizeof(*ucs4), char);
+  Newx(ucs4, id3_ucs4_size(src), id3_ucs4_t);
 #else
   ucs4 = malloc(id3_ucs4_size(src) * sizeof(*ucs4));
 #endif

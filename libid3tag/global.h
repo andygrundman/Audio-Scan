@@ -22,6 +22,10 @@
 # ifndef LIBID3TAG_GLOBAL_H
 # define LIBID3TAG_GLOBAL_H
 
+#ifdef _MSC_VER
+#include "perl.h"
+#endif
+
 /* conditional debugging */
 
 # if defined(DEBUG) && defined(NDEBUG)
@@ -38,6 +42,7 @@
 #  define release(ptr)      id3_debug_release(ptr,     __FILE__, __LINE__)
 # else
 #  ifdef _MSC_VER
+#    undef free
 #    define free(ptr)       Safefree(ptr)
 #  endif
 #  define release(ptr)  (ptr)
