@@ -17,29 +17,6 @@
 #include "ogg.h"
 
 static int
-_check_buf(PerlIO *infile, Buffer *buf, int size)
-{
-  // Do we have enough data?
-  if ( buffer_len(buf) < size ) {
-    // Read more data
-    int readlen = size > OGG_BLOCK_SIZE ? size : OGG_BLOCK_SIZE;
-  
-    if ( PerlIO_read(infile, buffer_append_space(buf, readlen), readlen) == 0 ) {
-      if ( PerlIO_error(infile) ) {
-        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-      }
-      else {
-        PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
-      }
-
-      return 0;
-    }
-  }
-  
-  return 1;
-}
-
-static int
 get_ogg_metadata(char *file, HV *info, HV *tags)
 {
   PerlIO *infile;
@@ -89,7 +66,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
   
-  if ( !_check_buf(infile, &ogg_buf, OGG_BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &ogg_buf, OGG_BLOCK_SIZE, OGG_BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
@@ -118,7 +95,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   
   while (1) {
     // Grab 28-byte Ogg header
-    if ( !_check_buf(infile, &ogg_buf, 28) ) {
+    if ( !_check_buf(infile, &ogg_buf, 28, OGG_BLOCK_SIZE) ) {
       err = -1;
       goto out;
     }
@@ -137,7 +114,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
     header_type = ogghdr[5];
     
     // Stream serial number
-    serialno = GET_INT32LE((ogghdr+14));
+    serialno = CONVERT_INT32LE((ogghdr+14));
     
     // Count start-of-stream pages
     if ( header_type & 0x02 ) {
@@ -155,7 +132,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
     }
     
     // Page seq number
-    pagenum = GET_INT32LE((ogghdr+18));
+    pagenum = CONVERT_INT32LE((ogghdr+18));
     
     if (page >= 0 && page == pagenum) {
       page++;
@@ -175,7 +152,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
       if (num_segments > 1) {
         int i;
         
-        if ( !_check_buf(infile, &ogg_buf, num_segments) ) {
+        if ( !_check_buf(infile, &ogg_buf, num_segments, OGG_BLOCK_SIZE) ) {
           err = -1;
           goto out;
         }
@@ -189,7 +166,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
         audio_offset += num_segments - 1;
       }
       
-      if ( !_check_buf(infile, &ogg_buf, pagelen) ) {
+      if ( !_check_buf(infile, &ogg_buf, pagelen, OGG_BLOCK_SIZE) ) {
         err = -1;
         goto out;
       }
@@ -230,19 +207,19 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
 
       buffer_get(&vorbis_buf, vorbishdr, 23);
 
-      my_hv_store( info, "version", newSViv( GET_INT32LE(vorbishdr) ) );
+      my_hv_store( info, "version", newSViv( CONVERT_INT32LE(vorbishdr) ) );
 
       channels = vorbishdr[4];
       my_hv_store( info, "channels", newSViv(channels) );
       my_hv_store( info, "stereo", newSViv( channels == 2 ? 1 : 0 ) );
 
-      samplerate = GET_INT32LE((vorbishdr+5));
+      samplerate = CONVERT_INT32LE((vorbishdr+5));
       my_hv_store( info, "samplerate", newSViv(samplerate) );
-      my_hv_store( info, "bitrate_upper", newSViv( GET_INT32LE((vorbishdr+9)) ) );
+      my_hv_store( info, "bitrate_upper", newSViv( CONVERT_INT32LE((vorbishdr+9)) ) );
 
-      bitrate_nominal = GET_INT32LE((vorbishdr+13));
+      bitrate_nominal = CONVERT_INT32LE((vorbishdr+13));
       my_hv_store( info, "bitrate_nominal", newSViv(bitrate_nominal) );
-      my_hv_store( info, "bitrate_lower", newSViv( GET_INT32LE((vorbishdr+17)) ) );
+      my_hv_store( info, "bitrate_lower", newSViv( CONVERT_INT32LE((vorbishdr+17)) ) );
 
       blocksize_0 = 2 << ((vorbishdr[21] & 0xF0) >> 4);
       my_hv_store( info, "blocksize_0", newSViv( blocksize_0 ) );
@@ -316,9 +293,9 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   bptr += 6;
 
   // Get absolute granule value
-  granule_pos = (uint64_t)GET_INT32LE(bptr);
+  granule_pos = (uint64_t)CONVERT_INT32LE(bptr);
   bptr += 4;
-  granule_pos |= (uint64_t)GET_INT32LE(bptr) << 32;
+  granule_pos |= (uint64_t)CONVERT_INT32LE(bptr) << 32;
 
   if ( granule_pos && samplerate ) {
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);

@@ -64,6 +64,7 @@ print "Audio::Scan will be built with:\n\n";
 print "   MP3 support:     yes\n";
 print "  FLAC support:     " . ( $FLAC ? "yes ($flac_inc)" : "no, install libFLAC" ) . "\n";
 print "   OGG support:     yes\n";
+print "   ASF support:     yes\n";
 print "\n";
 
 my $DEFINES = '-Wall';
@@ -116,11 +117,11 @@ else {
 }
 
 my $inc_files = join(' include/', qw(
-    include/buffer.h common.h mp3.h flac.h ogg.h
+    include/buffer.h common.h mp3.h flac.h ogg.h asf.h
 ));
 
 my $src_files = join(' src/', qw(
-    src/buffer.c common.c mp3.c flac.c ogg.c
+    src/buffer.c common.c mp3.c flac.c ogg.c asf.c
 ));
 
 WriteMakefile(

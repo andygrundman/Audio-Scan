@@ -21,6 +21,8 @@
 #include <inttypes.h>
 #endif
 
+#include "buffer.h"
+
 #ifdef _MSC_VER
 # define stat _stat
 #endif
@@ -37,7 +39,11 @@
 #define GET_INT16BE(b) \
 (i = (b[0] << 8) | b[1], b += 2, i)
 
-#define GET_INT32LE(b) \
+#define CONVERT_INT32LE(b) \
 (i = (b[3] << 24) | (b[2] << 16) | b[1] << 8 | b[0], i)
 
+#define CONVERT_INT64LE(b) \
+( ( (b[7] << 24) | (b[6] << 16) | (b[5] << 8) | b[4] ) << 32 | ( (b[3] << 24) | (b[2] << 16) | (b[1] << 8) | b[0] ) )
+
+extern int _check_buf(PerlIO *infile, Buffer *buf, int size, int min_size);
 extern void _split_vorbis_comment(char* comment, HV* tags);

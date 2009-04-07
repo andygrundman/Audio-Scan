@@ -7,6 +7,7 @@
 #include "common.c"
 #include "mp3.c"
 #include "ogg.c"
+#include "asf.c"
 
 #ifdef HAVE_FLAC
 #include "flac.c"
@@ -44,7 +45,7 @@ static taghandler taghandlers[] = {
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0 },
 #endif
-  { "asf", 0, 0 },
+  { "asf", get_asf_metadata, 0 },
   { NULL, 0, 0 }
 };
 

@@ -17,6 +17,29 @@
 #include "common.h"
 #include "buffer.c"
 
+int
+_check_buf(PerlIO *infile, Buffer *buf, int size, int min_size)
+{
+ // Do we have enough data?
+ if ( buffer_len(buf) < size ) {
+   // Read more data
+   int readlen = size > min_size ? size : min_size;
+
+   if ( PerlIO_read(infile, buffer_append_space(buf, readlen), readlen) == 0 ) {
+     if ( PerlIO_error(infile) ) {
+       PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
+     }
+     else {
+       PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
+     }
+
+     return 0;
+   }
+ }
+
+ return 1;
+}
+
 char* upcase(char *s) {
   char *p = &s[0];
 
