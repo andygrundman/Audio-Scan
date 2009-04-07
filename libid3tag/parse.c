@@ -126,7 +126,6 @@ id3_latin1_t *id3_parse_latin1(id3_byte_t const **ptr, id3_length_t length,
   }
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(latin1, length + 1, id3_latin1_t);
 #else
   latin1 = malloc(length + 1);
@@ -193,7 +192,6 @@ id3_byte_t *id3_parse_binary(id3_byte_t const **ptr, id3_length_t length)
 
   if (length == 0) {
 #ifdef _MSC_VER
-	fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
     Newx(data, 1, id3_byte_t);
     return data;
 #else
@@ -202,7 +200,6 @@ id3_byte_t *id3_parse_binary(id3_byte_t const **ptr, id3_length_t length)
   }
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(data, length, id3_byte_t);
 #else
   data = malloc(length);

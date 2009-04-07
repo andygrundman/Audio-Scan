@@ -126,7 +126,6 @@ id3_latin1_t *id3_ucs4_latin1duplicate(id3_ucs4_t const *ucs4)
   id3_latin1_t *latin1;
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(latin1, id3_ucs4_latin1size(ucs4), id3_latin1_t);
 #else
   latin1 = malloc(id3_ucs4_latin1size(ucs4) * sizeof(*latin1));
@@ -146,7 +145,6 @@ id3_utf16_t *id3_ucs4_utf16duplicate(id3_ucs4_t const *ucs4)
   id3_utf16_t *utf16;
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(utf16, id3_ucs4_utf16size(ucs4), id3_utf16_t);
 #else
   utf16 = malloc(id3_ucs4_utf16size(ucs4) * sizeof(*utf16));
@@ -166,7 +164,6 @@ id3_utf8_t *id3_ucs4_utf8duplicate(id3_ucs4_t const *ucs4)
   id3_utf8_t *utf8;
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(utf8, id3_ucs4_utf8size(ucs4), id3_utf8_t);
 #else
   utf8 = malloc(id3_ucs4_utf8size(ucs4) * sizeof(*utf8));
@@ -196,7 +193,6 @@ id3_ucs4_t *id3_ucs4_duplicate(id3_ucs4_t const *src)
   id3_ucs4_t *ucs4;
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(ucs4, id3_ucs4_size(src), id3_ucs4_t);
 #else
   ucs4 = malloc(id3_ucs4_size(src) * sizeof(*ucs4));

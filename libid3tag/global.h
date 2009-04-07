@@ -43,7 +43,7 @@
 # else
 #  ifdef _MSC_VER
 #    undef free
-#    define free(ptr)       (fprintf(stderr, "free %s %d\n", __FILE__, __LINE__), Safefree(ptr))
+#    define free(ptr)       Safefree(ptr)
 #  endif
 #  define release(ptr)  (ptr)
 # endif

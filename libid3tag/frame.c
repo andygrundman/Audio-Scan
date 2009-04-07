@@ -102,7 +102,6 @@ struct id3_frame *id3_frame_new(char const *id)
 
 #ifdef _MSC_VER
   // XXX: Can't use Newx macro here
-  fprintf(stderr, "safemalloc %s %d\n", __FILE__, __LINE__);
   frame = safemalloc((MEM_SIZE)(sizeof(*frame) + frametype->nfields * sizeof(*frame->fields)));
 #else
   frame = malloc(sizeof(*frame) + frametype->nfields * sizeof(*frame->fields));
@@ -217,7 +216,6 @@ struct id3_frame *unparseable(char const *id, id3_byte_t const **ptr,
   id3_byte_t *mem;
 
 #ifdef _MSC_VER
-  fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
   Newx(mem, length ? length : 1, id3_byte_t);
 #else
   mem = malloc(length ? length : 1);
@@ -426,7 +424,6 @@ struct id3_frame *id3_frame_parse(id3_byte_t const **ptr, id3_length_t length,
 
   if ((flags & ID3_FRAME_FLAG_UNSYNCHRONISATION) && end - data > 0) {
 #ifdef _MSC_VER
-	fprintf(stderr, "Newx %s line %d\n", __FILE__, __LINE__);
     Newx(mem, end - data, id3_byte_t);
 #else
     mem = malloc(end - data);
