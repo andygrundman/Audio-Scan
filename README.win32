@@ -13,8 +13,8 @@ libid3tag
 ---------
 Open libid3tag/msvc++/libid3tag.dsp
 Go to Project -> libid3tag Properties -> Configuration Properties -> C/C++ -> General
-Change Additional Include Directories to point to your zlib directory, something like:
-  .;"C:\dev\zlib-1.2.3"
+Change Additional Include Directories to point to your zlib and Perl directories, something like:
+  .;"C:\dev\zlib-1.2.3";"C:\Perl\lib\CORE"
 Build Release
 
 libflac
