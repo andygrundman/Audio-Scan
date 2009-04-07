@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 193;
+use Test::More tests => 194;
 
 use Audio::Scan;
 use Encode;
@@ -481,6 +481,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 from iTunes ok' );
     is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.4 invalid iTunes frame ok' );
+    is( $tags->{TCON}, 'Metal', 'ID3v2.4 TCON with (9) ok' );
 }
 
 # ID3v2.4 with JPEG APIC
