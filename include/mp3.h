@@ -16,6 +16,11 @@
 
 #include "libid3tag/id3tag.h"
 
+// Use Safefree for libid3tag free calls on Windows
+#ifdef _MSC_VER
+#define free(ptr) Safefree(ptr)
+#endif
+
 #define BLOCK_SIZE     4096
 #define WANTED_FOR_AVG 32768
 

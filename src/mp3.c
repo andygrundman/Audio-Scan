@@ -139,13 +139,12 @@ get_mp3tags(char *file, HV *info, HV *tags)
         }
         else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
           // handle '(26)Ambient'
-          id3_ucs4_t *ucs4_num;
-          Newxz(ucs4_num, 1, id3_ucs4_t);
-          id3_ucs4_putnumber( ucs4_num, strtol( (char *)&utf8_value[1], NULL, 0 ) );
-          genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(ucs4_num) );
-          my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
-          free(genre_string);
-          Safefree(ucs4_num);
+          int genre_num = (int)strtol( (char *)&utf8_value[1], NULL, 0 );
+          if (genre_num > 0 && genre_num < 148) {
+            genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num) );
+            my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
+            free(genre_string);
+          }
         }
         else {
           SV *tmp = newSVpv( utf8_value, 0 );
