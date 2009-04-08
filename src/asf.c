@@ -94,6 +94,9 @@ get_asf_metadata(char *file, HV *info, HV *tags)
       goto out;
     }
     
+    print_guid(tmp.ID);
+    PerlIO_printf(PerlIO_stderr(), "size: %lu\n", tmp.size);
+    
     if ( IsEqualGUID(&tmp.ID, &ASF_File_Properties) ) {
       PerlIO_printf(PerlIO_stderr(), "Parsing File_Properties\n");
       _parse_file_properties(&asf_buf, tmp.size - 24, info, tags);
@@ -104,8 +107,6 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     }
     else {
       // Unhandled GUID
-      print_guid(tmp.ID);
-      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", tmp.size);
       buffer_consume(&asf_buf, tmp.size - 24);
     }
     
@@ -164,6 +165,8 @@ _parse_file_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   
   if ( !broadcast ) {
     creation_date = (creation_date - 116444736000000000ULL) / 10000000;
+    play_duration /= 10000000;
+    send_duration /= 10000000;
     
     my_hv_store( info, "file_size", newSViv(file_size) );
     my_hv_store( info, "creation_date", newSViv(creation_date) );
