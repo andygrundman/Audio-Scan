@@ -341,3 +341,37 @@ buffer_get_int64_le(Buffer *buffer)
 
 	return (ret);
 }
+
+uint16_t
+get_u16le(const void *vp)
+{
+	const u_char *p = (const u_char *)vp;
+	uint16_t v;
+
+	v  = (uint16_t)p[1] << 8;
+	v |= (uint16_t)p[0];
+
+	return (v);
+}
+
+int
+buffer_get_short_le_ret(uint16_t *ret, Buffer *buffer)
+{
+	u_char buf[2];
+
+	if (buffer_get_ret(buffer, (char *) buf, 2) == -1)
+		return (-1);
+	*ret = get_u16le(buf);
+	return (0);
+}
+
+uint16_t
+buffer_get_short_le(Buffer *buffer)
+{
+	uint16_t ret;
+
+	if (buffer_get_short_le_ret(&ret, buffer) == -1)
+		croak("buffer_get_short_le: buffer error");
+
+	return (ret);
+}

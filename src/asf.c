@@ -60,7 +60,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
   
   buffer_get(&asf_buf, &hdr.ID, 16);
   
-  if ( !IsEqualGUID(&hdr.ID, &ASF_HeaderObject) ) {
+  if ( !IsEqualGUID(&hdr.ID, &ASF_Header_Object) ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF header: %s\n", file);
     err = -1;
     goto out;
@@ -71,7 +71,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
   hdr.reserved1   = buffer_get_char(&asf_buf);
   hdr.reserved2   = buffer_get_char(&asf_buf);
   
-  PerlIO_printf(PerlIO_stderr(), "header size: %d\n", hdr.size);
+  //PerlIO_printf(PerlIO_stderr(), "header size: %d\n", hdr.size);
   
   if ( hdr.reserved2 != 0x02 ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF header: %s\n", file);
@@ -89,16 +89,25 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     
     tmp.size = buffer_get_int64_le(&asf_buf);
     
-    print_guid(tmp.ID);
-    PerlIO_printf(PerlIO_stderr(), "size: %lu\n", tmp.size);
-    
     if ( !_check_buf(infile, &asf_buf, tmp.size - 24, ASF_BLOCK_SIZE) ) {
       err = -1;
       goto out;
     }
     
-    // XXX
-    buffer_consume(&asf_buf, tmp.size - 24);
+    if ( IsEqualGUID(&tmp.ID, &ASF_File_Properties) ) {
+      PerlIO_printf(PerlIO_stderr(), "Parsing File_Properties\n");
+      _parse_file_properties(&asf_buf, tmp.size - 24, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Properties) ) {
+      PerlIO_printf(PerlIO_stderr(), "Parsing Stream_Properties\n");
+      _parse_stream_properties(&asf_buf, tmp.size - 24, info, tags);
+    }
+    else {
+      // Unhandled GUID
+      print_guid(tmp.ID);
+      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", tmp.size);
+      buffer_consume(&asf_buf, tmp.size - 24);
+    }
     
     hdr.num_objects--;
   }
@@ -111,4 +120,125 @@ out:
   if (err) return err;
 
   return 0;
+}
+
+void
+_parse_file_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
+{
+  GUID file_id;
+  uint64_t file_size;
+  uint64_t creation_date;
+  uint64_t data_packets;
+  uint64_t play_duration;
+  uint64_t send_duration;
+  uint64_t preroll;
+  uint32_t flags;
+  uint32_t min_packet_size;
+  uint32_t max_packet_size;
+  uint32_t max_bitrate;
+  uint8_t broadcast;
+  uint8_t seekable;
+  
+  buffer_get(buf, &file_id, 16);
+  my_hv_store( 
+    info, "file_id", newSVpvf( "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+      file_id.l, file_id.w[0], file_id.w[1],
+      file_id.b[0], file_id.b[1], file_id.b[2], file_id.b[3],
+      file_id.b[4], file_id.b[5], file_id.b[6], file_id.b[7]
+    )
+  );
+  
+  file_size       = buffer_get_int64_le(buf);
+  creation_date   = buffer_get_int64_le(buf);
+  data_packets    = buffer_get_int64_le(buf);
+  play_duration   = buffer_get_int64_le(buf);
+  send_duration   = buffer_get_int64_le(buf);
+  preroll         = buffer_get_int64_le(buf);
+  flags           = buffer_get_int_le(buf);
+  min_packet_size = buffer_get_int_le(buf);
+  max_packet_size = buffer_get_int_le(buf);
+  max_bitrate     = buffer_get_int_le(buf);
+  
+  broadcast = flags & 0x0001 ? 1 : 0;
+  seekable  = flags & 0x0002 ? 1 : 0;
+  
+  if ( !broadcast ) {
+    creation_date = (creation_date - 116444736000000000ULL) / 10000000;
+    
+    my_hv_store( info, "file_size", newSViv(file_size) );
+    my_hv_store( info, "creation_date", newSViv(creation_date) );
+    my_hv_store( info, "data_packets", newSViv(data_packets) );
+    my_hv_store( info, "play_duration", newSViv(play_duration) );
+    my_hv_store( info, "send_duration", newSViv(send_duration) );
+  }
+  
+  my_hv_store( info, "preroll", newSViv(preroll) );
+  my_hv_store( info, "broadcast", newSViv(broadcast) );
+  my_hv_store( info, "seekable", newSViv(seekable) );
+  my_hv_store( info, "min_packet_size", newSViv(min_packet_size) );
+  my_hv_store( info, "max_packet_size", newSViv(max_packet_size) );
+  my_hv_store( info, "max_bitrate", newSViv(max_bitrate) );
+}
+
+void
+_parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
+{
+  GUID stream_type;
+  GUID ec_type;
+  uint64_t time_offset;
+  uint32_t type_data_len;
+  uint32_t ec_data_len;
+  uint16_t flags;
+  
+  buffer_get(buf, &stream_type, 16);
+  buffer_get(buf, &ec_type, 16);
+  time_offset = buffer_get_int64_le(buf);
+  type_data_len = buffer_get_int_le(buf);
+  ec_data_len   = buffer_get_int_le(buf);
+  flags         = buffer_get_short_le(buf);
+  
+  // skip reserved bytes
+  buffer_consume(buf, 4);
+  
+  // skip type-specific data
+  buffer_consume(buf, type_data_len);
+  
+  // skip error-correction data
+  buffer_consume(buf, ec_data_len);
+  
+  // XXX: needs to go into stream array
+  
+  if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_Audio_Media", 0) );
+  }
+  else if ( IsEqualGUID(&stream_type, &ASF_Video_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_Video_Media", 0) );
+  }
+  else if ( IsEqualGUID(&stream_type, &ASF_Command_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_Command_Media", 0) );
+  }
+  else if ( IsEqualGUID(&stream_type, &ASF_JFIF_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_JFIF_Media", 0) );
+  }
+  else if ( IsEqualGUID(&stream_type, &ASF_Degradable_JPEG_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_Degradable_JPEG_Media", 0) );
+  }
+  else if ( IsEqualGUID(&stream_type, &ASF_File_Transfer_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_File_Transfer_Media", 0) );
+  }
+  else if ( IsEqualGUID(&stream_type, &ASF_Binary_Media) ) {
+    my_hv_store( info, "stream_type", newSVpv("ASF_Binary_Media", 0) );
+  }
+  
+  if ( IsEqualGUID(&ec_type, &ASF_No_Error_Correction) ) {
+    my_hv_store( info, "error_correction_type", newSVpv("ASF_No_Error_Correction", 0) );
+  }
+  else if ( IsEqualGUID(&ec_type, &ASF_Audio_Spread) ) {
+    my_hv_store( info, "error_correction_type", newSVpv("ASF_Audio_Spread", 0) );
+  }
+  
+  my_hv_store( info, "time_offset", newSViv(time_offset) );
+  
+  my_hv_store( info, "stream_number", newSViv( flags & 0x007f ) );
+  my_hv_store( info, "encrypted", newSViv( flags & 0x8000 ) );
 }
