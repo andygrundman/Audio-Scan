@@ -34,7 +34,7 @@ struct _types audio_types[] = {
 #ifdef HAVE_FLAC
   {"flc", {"flc", "flac", "fla", 0}},
 #endif
-  {"asf", {"wma", 0}},
+  {"asf", {"wma", "asf", "wmv", 0}},
   {0, {0, 0}}
 };
 
