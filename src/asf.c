@@ -189,6 +189,7 @@ _parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   uint32_t type_data_len;
   uint32_t ec_data_len;
   uint16_t flags;
+  HV *streaminfo = newHV();
   
   buffer_get(buf, &stream_type, 16);
   buffer_get(buf, &ec_type, 16);
@@ -206,39 +207,51 @@ _parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   // skip error-correction data
   buffer_consume(buf, ec_data_len);
   
-  // XXX: needs to go into stream array
-  
   if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_Audio_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Audio_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Video_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_Video_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Video_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Command_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_Command_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Command_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_JFIF_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_JFIF_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_JFIF_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Degradable_JPEG_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_Degradable_JPEG_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Degradable_JPEG_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_File_Transfer_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_File_Transfer_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_File_Transfer_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Binary_Media) ) {
-    my_hv_store( info, "stream_type", newSVpv("ASF_Binary_Media", 0) );
+    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Binary_Media", 0) );
   }
   
   if ( IsEqualGUID(&ec_type, &ASF_No_Error_Correction) ) {
-    my_hv_store( info, "error_correction_type", newSVpv("ASF_No_Error_Correction", 0) );
+    my_hv_store( streaminfo, "error_correction_type", newSVpv("ASF_No_Error_Correction", 0) );
   }
   else if ( IsEqualGUID(&ec_type, &ASF_Audio_Spread) ) {
-    my_hv_store( info, "error_correction_type", newSVpv("ASF_Audio_Spread", 0) );
+    my_hv_store( streaminfo, "error_correction_type", newSVpv("ASF_Audio_Spread", 0) );
   }
   
-  my_hv_store( info, "time_offset", newSViv(time_offset) );
+  my_hv_store( streaminfo, "time_offset", newSViv(time_offset) );
   
-  my_hv_store( info, "stream_number", newSViv( flags & 0x007f ) );
-  my_hv_store( info, "encrypted", newSViv( flags & 0x8000 ) );
+  my_hv_store( streaminfo, "stream_number", newSViv( flags & 0x007f ) );
+  my_hv_store( streaminfo, "encrypted", newSViv( flags & 0x8000 ) );
+  
+  if ( my_hv_exists( info, "streams" ) ) {
+    // Add to array
+    SV **entry = my_hv_fetch( info, "streams" );
+    if ( entry != NULL ) {
+      av_push( (AV *)SvRV(*entry), (SV *)streaminfo );
+    }
+  }
+  else {
+    // Create new array
+    AV *ref = newAV();
+    av_push( ref, (SV *)streaminfo );
+    my_hv_store( info, "streams", newRV_noinc( (SV*)ref ) );
+  }
 }
