@@ -23,9 +23,10 @@
 /* Initializes the buffer structure. */
 
 void
-buffer_init(Buffer *buffer)
+buffer_init(Buffer *buffer, uint32_t len)
 {
-	const uint32_t len = 4096;
+	if (!len)
+	  len = 4096;
 
 	buffer->alloc = 0;
   Newx(buffer->buf, len, u_char);
@@ -374,4 +375,41 @@ buffer_get_short_le(Buffer *buffer)
 		croak("buffer_get_short_le: buffer error");
 
 	return (ret);
+}
+
+/*
+ * Stores a character in the buffer.
+ */
+void
+buffer_put_char(Buffer *buffer, int value)
+{
+	char ch = value;
+
+	buffer_append(buffer, &ch, 1);
+}
+
+// XXX supports U+0000 ~ U+FFFF only.
+void
+buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
+{
+  int i = 0;
+  
+  buffer_init(utf8, len);
+  
+  for (i = 0; i < len; i += 2) {
+    uint16_t wc = buffer_get_short_le(buffer);
+
+    if (wc < 0x80) {
+      buffer_put_char(utf8, wc & 0xff);      
+    }
+    else if (wc < 0x800) {
+      buffer_put_char(utf8, 0xc0 | (wc>>6));
+      buffer_put_char(utf8, 0x80 | (wc & 0x3f));
+    }
+    else {
+      buffer_put_char(utf8, 0xe0 | (wc>>12));
+      buffer_put_char(utf8, 0x80 | ((wc>>6) & 0x3f));
+      buffer_put_char(utf8, 0x80 | (wc & 0x3f));
+    }
+  }
 }

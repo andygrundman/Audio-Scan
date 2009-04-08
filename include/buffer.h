@@ -33,7 +33,7 @@ typedef struct {
 	u_int	 end;		/* Offset of last byte containing data. */
 }       Buffer;
 
-void	 buffer_init(Buffer *);
+void	 buffer_init(Buffer *, uint32_t);
 void	 buffer_clear(Buffer *);
 void	 buffer_free(Buffer *);
 

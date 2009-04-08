@@ -20,7 +20,7 @@ static void
 print_guid(GUID guid)
 {
   PerlIO_printf(
-    PerlIO_stderr(), "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+    PerlIO_stderr(), "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x ",
     guid.l, guid.w[0], guid.w[1],
     guid.b[0], guid.b[1], guid.b[2], guid.b[3],
     guid.b[4], guid.b[5], guid.b[6], guid.b[7]
@@ -51,7 +51,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
   
-  buffer_init(&asf_buf);
+  buffer_init(&asf_buf, 0);
   
   if ( !_check_buf(infile, &asf_buf, ASF_BLOCK_SIZE, ASF_BLOCK_SIZE) ) {
     err = -1;
@@ -99,11 +99,19 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     
     if ( IsEqualGUID(&tmp.ID, &ASF_File_Properties) ) {
       PerlIO_printf(PerlIO_stderr(), "Parsing File_Properties\n");
-      _parse_file_properties(&asf_buf, tmp.size - 24, info, tags);
+      _parse_file_properties(&asf_buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Properties) ) {
       PerlIO_printf(PerlIO_stderr(), "Parsing Stream_Properties\n");
-      _parse_stream_properties(&asf_buf, tmp.size - 24, info, tags);
+      _parse_stream_properties(&asf_buf, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Header_Extension) ) {
+      PerlIO_printf(PerlIO_stderr(), "Parsing Header_Extension\n");
+      if ( !_parse_header_extension(&asf_buf, tmp.size, info, tags) ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (invalid header extension object)\n", file);
+        err = -1;
+        goto out;
+      }
     }
     else {
       // Unhandled GUID
@@ -124,7 +132,7 @@ out:
 }
 
 void
-_parse_file_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
+_parse_file_properties(Buffer *buf, HV *info, HV *tags)
 {
   GUID file_id;
   uint64_t file_size;
@@ -184,7 +192,7 @@ _parse_file_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
 }
 
 void
-_parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
+_parse_stream_properties(Buffer *buf, HV *info, HV *tags)
 {
   GUID stream_type;
   GUID ec_type;
@@ -192,7 +200,7 @@ _parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   uint32_t type_data_len;
   uint32_t ec_data_len;
   uint16_t flags;
-  HV *streaminfo = newHV();
+  uint16_t stream_number;
   
   buffer_get(buf, &stream_type, 16);
   buffer_get(buf, &ec_type, 16);
@@ -200,6 +208,7 @@ _parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   type_data_len = buffer_get_int_le(buf);
   ec_data_len   = buffer_get_int_le(buf);
   flags         = buffer_get_short_le(buf);
+  stream_number = flags & 0x007f;
   
   // skip reserved bytes
   buffer_consume(buf, 4);
@@ -211,50 +220,201 @@ _parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   buffer_consume(buf, ec_data_len);
   
   if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Audio_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Audio_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Video_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Video_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Video_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Command_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Command_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Command_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_JFIF_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_JFIF_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_JFIF_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Degradable_JPEG_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Degradable_JPEG_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Degradable_JPEG_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_File_Transfer_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_File_Transfer_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_File_Transfer_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Binary_Media) ) {
-    my_hv_store( streaminfo, "stream_type", newSVpv("ASF_Binary_Media", 0) );
+    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Binary_Media", 0) );
   }
   
   if ( IsEqualGUID(&ec_type, &ASF_No_Error_Correction) ) {
-    my_hv_store( streaminfo, "error_correction_type", newSVpv("ASF_No_Error_Correction", 0) );
+    _store_stream_info( stream_number, info, newSVpv("error_correction_type", 0), newSVpv("ASF_No_Error_Correction", 0) );
   }
   else if ( IsEqualGUID(&ec_type, &ASF_Audio_Spread) ) {
-    my_hv_store( streaminfo, "error_correction_type", newSVpv("ASF_Audio_Spread", 0) );
+    _store_stream_info( stream_number, info, newSVpv("error_correction_type", 0), newSVpv("ASF_Audio_Spread", 0) );
   }
   
-  my_hv_store( streaminfo, "time_offset", newSViv(time_offset) );
+  _store_stream_info( stream_number, info, newSVpv("time_offset", 0), newSViv(time_offset) );
+  _store_stream_info( stream_number, info, newSVpv("encrypted", 0), newSViv( flags & 0x8000 ) );
+}
+
+int
+_parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
+{
+  uint32_t ext_size;
+  GUID hdr;
+  uint64_t hdr_size;
   
-  my_hv_store( streaminfo, "stream_number", newSViv( flags & 0x007f ) );
-  my_hv_store( streaminfo, "encrypted", newSViv( flags & 0x8000 ) );
+  // Skip reserved fields
+  buffer_consume(buf, 18);
   
-  if ( my_hv_exists( info, "streams" ) ) {
-    // Add to array
-    SV **entry = my_hv_fetch( info, "streams" );
-    if ( entry != NULL ) {
-      av_push( (AV *)SvRV(*entry), (SV *)streaminfo );
+  ext_size = buffer_get_int_le(buf);
+  
+  // Sanity check ext size
+  // Must be 0 or 24+, and 46 less than header extension object size
+  if (ext_size > 0) {
+    if (ext_size < 24) {
+      return 0;
+    }
+    if (ext_size != len - 46) {
+      return 0;
     }
   }
+  
+  while (ext_size > 0) {    
+    buffer_get(buf, &hdr, 16);
+    hdr_size = buffer_get_int64_le(buf);
+    ext_size -= hdr_size;
+    
+    PerlIO_printf(PerlIO_stderr(), "  extended header: ");
+    print_guid(hdr);
+    PerlIO_printf(PerlIO_stderr(), "size: %lu\n", hdr_size);
+    
+    if ( IsEqualGUID(&hdr, &ASF_Compatibility) ) {
+      // reserved for future use, just ignore
+      buffer_consume(buf, 2);
+    }
+    else if ( IsEqualGUID(&hdr, &ASF_Metadata) ) {
+      PerlIO_printf(PerlIO_stderr(), "Parsing Metadata\n");
+      if ( !_parse_metadata(buf, info, tags) ) {
+        return 0;
+      }
+    }
+    else {
+      // Unhandled
+      buffer_consume(buf, hdr_size - 24);
+    }
+  }
+  
+  return 1;
+}
+
+int
+_parse_metadata(Buffer *buf, HV *info, HV *tags)
+{
+  uint16_t records;
+  
+  records = buffer_get_short_le(buf);
+  
+  while (records) {
+    uint16_t stream_number;
+    uint16_t name_len;
+    uint16_t data_type;
+    uint32_t data_len;
+    SV *key = NULL;
+    SV *value = NULL;
+    Buffer utf8_buf;
+    
+    // Skip reserved
+    buffer_consume(buf, 2);
+    
+    stream_number = buffer_get_short_le(buf);
+    name_len      = buffer_get_short_le(buf);
+    data_type     = buffer_get_short_le(buf);
+    data_len      = buffer_get_int_le(buf);
+    
+    PerlIO_printf(PerlIO_stderr(), "name_len: %d, data_type: %d, data_len: %d\n", name_len, data_type, data_len);
+    
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
+    key = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    sv_utf8_decode(key);
+    buffer_free(&utf8_buf);
+    
+    if (data_type == TYPE_UNICODE) {
+      buffer_get_utf16le_as_utf8(buf, &utf8_buf, data_len);
+      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      sv_utf8_decode(value);
+      buffer_free(&utf8_buf);
+    }
+    else if (data_type == TYPE_BYTE) {
+      // XXX: undocumented
+      value = newSVpvn( buffer_ptr(buf), data_len );
+      buffer_consume(buf, data_len);
+    }
+    else if (data_type == TYPE_BOOL || data_type == TYPE_WORD) {
+      value = newSViv( buffer_get_short_le(buf) );
+    }
+    else if (data_type == TYPE_DWORD) {
+      value = newSViv( buffer_get_int_le(buf) );
+    }
+    else if (data_type == TYPE_QWORD) {
+      value = newSViv( buffer_get_int64_le(buf) );
+    }
+    else {
+      PerlIO_printf(PerlIO_stderr(), "Unknown data type %d\n", data_type);
+      buffer_consume(buf, data_len);
+    }
+    
+    if (value != NULL) {
+      // If stream_number is available, store the data with the stream info
+      if (stream_number > 0) {
+        _store_stream_info( stream_number, info, key, value );
+      }
+      else {
+        my_hv_store_ent( info, key, value );
+      }
+    }
+    
+    records--;
+  }
+  
+  return 1;
+}
+
+void
+_store_stream_info(int stream_number, HV *info, SV *key, SV *value )
+{
+  AV *streams;
+  HV *streaminfo;
+  
+  if ( !my_hv_exists( info, "streams" ) ) {
+    // Create
+    streams = newAV();
+    streaminfo = newHV();
+    
+    my_hv_store( streaminfo, "stream_number", newSViv(stream_number) );
+    my_hv_store_ent( streaminfo, key, value );
+    SvREFCNT_dec(key);
+    
+    av_push( streams, (SV *)streaminfo );
+    my_hv_store( info, "streams", newRV_noinc( (SV*)streams ) );
+  }
   else {
-    // Create new array
-    AV *ref = newAV();
-    av_push( ref, (SV *)streaminfo );
-    my_hv_store( info, "streams", newRV_noinc( (SV*)ref ) );
+    // Find entry for this stream number
+    SV **entry = my_hv_fetch( info, "streams" );
+    if (entry != NULL) {
+      streams = (AV *)SvRV(*entry);
+      int i = 0;
+      
+      for (i = 0; i <= av_len(streams); i++) {
+        SV **stream = av_fetch(streams, i, 0);
+        if (stream != NULL) {
+          streaminfo = (HV *)*stream;
+          SV **sn = my_hv_fetch( streaminfo, "stream_number" );
+          if (sn != NULL) {
+            if ( SvIV(*sn) == stream_number ) {
+              my_hv_store_ent( streaminfo, key, value );
+              SvREFCNT_dec(key);
+              
+              break;
+            }
+          }
+        }
+      }
+    }
   }
 }

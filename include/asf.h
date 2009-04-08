@@ -59,6 +59,15 @@ DEFINE_GUID(ASF_File_Properties, SWAP32(0x8cabdca1), SWAP16(0xa947), SWAP16(0x11
 DEFINE_GUID(ASF_Stream_Properties, SWAP32(0xb7dc0791), SWAP16(0xa9b7), SWAP16(0x11cf),
 	    0x8e, 0xe6, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65);
 
+DEFINE_GUID(ASF_Header_Extension, SWAP32(0x5fbf03b5), SWAP16(0xa92e), SWAP16(0x11cf),
+	    0x8e, 0xe3, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65);
+
+DEFINE_GUID(ASF_Compatibility, SWAP32(0x26f18b5d), SWAP16(0x4584), SWAP16(0x47ec),
+	    0x9f, 0x5f, 0x0e, 0x65, 0x1f, 0x04, 0x52, 0xc9);
+
+DEFINE_GUID(ASF_Metadata, SWAP32(0xc5f8cbea), SWAP16(0x5baf), SWAP16(0x4877),
+	    0x84, 0x67, 0xaa, 0x8c, 0x44, 0xfa, 0x4c, 0xca);
+
 DEFINE_GUID(ASF_ContentDescription, SWAP32(0x75b22633), SWAP16(0x668e), SWAP16(0x11cf),
 	    0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c);
 
@@ -67,9 +76,6 @@ DEFINE_GUID(ASF_ExtendedContentDescription, SWAP32(0xd2d0a440), SWAP16(0xe307), 
 
 DEFINE_GUID(ASF_ClientGuid, SWAP32(0x8d262e32), SWAP16(0xfc28), SWAP16(0x11d7),
 	    0xa9, 0xea, 0x00, 0x04, 0x5a, 0x6b, 0x76, 0xc2);
-
-DEFINE_GUID(ASF_HeaderExtension, SWAP32(0x5fbf03b5), SWAP16(0xa92e), SWAP16(0x11cf),
-	    0x8e, 0xe3, 0x00, 0xc0, 0x0c, 0x20, 0x53, 0x65);
 
 DEFINE_GUID(ASF_CodecList, SWAP32(0x86d15240), SWAP16(0x311d), SWAP16(0x11d0),
 	    0xa3, 0xa4, 0x00, 0xa0, 0xc9, 0x03, 0x48, 0xf6);
@@ -150,6 +156,18 @@ typedef struct _asf_object_t {
   uint8_t  reserved2;
 } _PACKED ASF_Object;
 
+enum types {
+  TYPE_UNICODE,
+  TYPE_BYTE,
+  TYPE_BOOL,
+  TYPE_DWORD,
+  TYPE_QWORD,
+  TYPE_WORD
+};
+
 static int get_asf_metadata(char *file, HV *info, HV *tags);
-void _parse_file_properties(Buffer *buf, uint64_t len, HV *info, HV *tags);
-void _parse_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags);
+void _parse_file_properties(Buffer *buf, HV *info, HV *tags);
+void _parse_stream_properties(Buffer *buf, HV *info, HV *tags);
+void _store_stream_info(int stream_number, HV *info, SV *key, SV *value );
+int _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags);
+int _parse_metadata(Buffer *buf, HV *info, HV *tags);

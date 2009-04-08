@@ -53,8 +53,8 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   int i;
   int err = 0;
   
-  buffer_init(&ogg_buf);
-  buffer_init(&vorbis_buf);
+  buffer_init(&ogg_buf, 0);
+  buffer_init(&vorbis_buf, 0);
 
   if (!(infile = PerlIO_open(file, "rb"))) {
     PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
