@@ -13,6 +13,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+ 
+// Enable for debug output
+#define DEBUG
+
+#ifdef DEBUG
+# define DEBUG_TRACE(...) PerlIO_printf(PerlIO_stderr(), __VA_ARGS__)
+#else
+# define DEBUG_TRACE(...)
+#endif
 
 /* for PRIu64 */
 #ifdef _MSC_VER

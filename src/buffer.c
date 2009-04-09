@@ -229,12 +229,16 @@ buffer_ptr(Buffer *buffer)
 /* Dumps the contents of the buffer to stderr. */
 
 void
-buffer_dump(Buffer *buffer)
+buffer_dump(Buffer *buffer, uint32_t len)
 {
 	uint32_t i;
 	u_char *ucp = buffer->buf;
+	
+	if (!len) {
+    len = buffer->end;
+  }
 
-	for (i = buffer->offset; i < buffer->end; i++) {
+	for (i = buffer->offset; i < len; i++) {
 		fprintf(stderr, "%02x ", ucp[i]);
 		if ((i-buffer->offset)%16==15)
 			fprintf(stderr, "\r\n");

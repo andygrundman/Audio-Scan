@@ -21,9 +21,22 @@ FLAC
 Infinite loop on CVE-2007-4619-1.flac
 
 Ogg
-___
+---
+
+ASF
+---
+Memory leak
 
 Tests
+ ASF
+  CBR
+  VBR
+  MBR
+  Unicode chars
+  Rip from a live stream
+  Lossless
+  Pro
+  Tests for each type of object
  Ogg
   ID3 tags at start
   Multi-stream file
