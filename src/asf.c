@@ -13,6 +13,31 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+ 
+/*
+  TODO:
+  These will be added when I see a real file that uses them.
+
+  Script Command (3.6)
+  Marker (3.7)
+  Bitrate Mutual Exclusion (3.8)
+  Error Correction (3.9)
+  Content Branding (3.13)
+  Content Encryption (3.14)
+  Extended Content Encryption (3.15)
+  Digital Signature (3.16)
+  
+  Header Extension objects:
+  
+  Group Mutual Exclusion (4.3)
+  Stream Prioritization (4.4)
+  Bandwidth Sharing (4.5)
+  Metadata Library (4.8)
+  Index Parameters (4.9)
+  Media Object Index Parameters (4.10)
+  Timecode Index Parameters (4.11)
+  Advanced Content Encryption (4.13)
+*/
 
 #include "asf.h"
 
@@ -96,27 +121,32 @@ get_asf_metadata(char *file, HV *info, HV *tags)
       goto out;
     }
     
-    print_guid(tmp.ID);
-    DEBUG_TRACE("size: %lu\n", tmp.size);
-    
     if ( IsEqualGUID(&tmp.ID, &ASF_Content_Description) ) {
-      DEBUG_TRACE("  Parsing Content_Description\n");
+      DEBUG_TRACE("Content_Description\n");
       _parse_content_description(&asf_buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_File_Properties) ) {
-      DEBUG_TRACE("  Parsing File_Properties\n");
+      DEBUG_TRACE("File_Properties\n");
       _parse_file_properties(&asf_buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Properties) ) {
-      DEBUG_TRACE("  Parsing Stream_Properties\n");
+      DEBUG_TRACE("Stream_Properties\n");
       _parse_stream_properties(&asf_buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Description) ) {
-      DEBUG_TRACE("  Parsing Extended_Content_Description\n");
+      DEBUG_TRACE("Extended_Content_Description\n");
       _parse_extended_content_description(&asf_buf, info, tags);
     }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Codec_List) ) {
+      DEBUG_TRACE("Codec_List\n");
+      _parse_codec_list(&asf_buf, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Bitrate_Properties) ) {
+      DEBUG_TRACE("Stream_Bitrate_Properties\n");
+      _parse_stream_bitrate_properties(&asf_buf, info, tags);
+    }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Header_Extension) ) {
-      DEBUG_TRACE("  Parsing Header_Extension\n");
+      DEBUG_TRACE("Header_Extension\n");
       if ( !_parse_header_extension(&asf_buf, tmp.size, info, tags) ) {
         PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (invalid header extension object)\n", file);
         err = -1;
@@ -125,6 +155,10 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     }
     else {
       // Unhandled GUID
+      PerlIO_printf(PerlIO_stderr(), "** Unhandled GUID: ");
+      print_guid(tmp.ID);
+      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", tmp.size);
+      
       buffer_consume(&asf_buf, tmp.size - 24);
     }
     
@@ -303,6 +337,7 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   uint32_t ec_data_len;
   uint16_t flags;
   uint16_t stream_number;
+  Buffer type_data_buf;
   
   buffer_get(buf, &stream_type, 16);
   buffer_get(buf, &ec_type, 16);
@@ -315,32 +350,89 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   // skip reserved bytes
   buffer_consume(buf, 4);
   
-  // skip type-specific data XXX needed for ASF_Audio_Media
+  // type-specific data
+  buffer_init(&type_data_buf, type_data_len);
+  buffer_append(&type_data_buf, buffer_ptr(buf), type_data_len);
   buffer_consume(buf, type_data_len);
   
   // skip error-correction data
   buffer_consume(buf, ec_data_len);
   
   if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
+    uint8_t is_wma = 0;
+    uint16_t codec_id;
+    SV *codec;
+    
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Audio_Media", 0) );
+    
+    // Parse WAVEFORMATEX data
+    codec_id = buffer_get_short_le(&type_data_buf);
+    switch (codec_id) {
+      case 0x000a:
+        codec = newSVpv("Windows Media Audio 9 Voice", 0);
+        is_wma = 1;
+        break;
+      case 0x0140:
+        codec = newSVpv("Windows Media Video V8", 0);
+        break;
+      case 0x0161:
+        codec = newSVpv("Windows Media Audio V7 / V8 / V9", 0);
+        is_wma = 1;
+        break;
+      case 0x0162:
+        codec = newSVpv("Windows Media Audio Professional V9", 0);
+        is_wma = 1;
+        break;
+      case 0x0163:
+        codec = newSVpv("Windows Media Audio Lossless V9", 0);
+        is_wma = 1;
+        break;
+      default:
+        codec = newSViv(codec_id);
+    }
+    
+    _store_stream_info( stream_number, info, newSVpv("codec", 0), codec );
+    _store_stream_info( stream_number, info, newSVpv("channels", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, info, newSVpv("samplerate", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, info, newSVpv("avg_bytes_per_sec", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, info, newSVpv("block_alignment", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, info, newSVpv("bits_per_sample", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+    
+    // Read WMA-specific data
+    if (is_wma) {
+      buffer_consume(&type_data_buf, 2);
+      _store_stream_info( stream_number, info, newSVpv("samples_per_block", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+      _store_stream_info( stream_number, info, newSVpv("encode_options", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+      _store_stream_info( stream_number, info, newSVpv("super_block_align", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+    }
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Video_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Video_Media", 0) );
+    
+    // XXX: type-specific data (section 9.2)
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Command_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Command_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_JFIF_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_JFIF_Media", 0) );
+    
+    // XXX: type-specific data (section 9.4.1)
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Degradable_JPEG_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Degradable_JPEG_Media", 0) );
+    
+    // XXX: type-specific data (section 9.4.2)
   }
   else if ( IsEqualGUID(&stream_type, &ASF_File_Transfer_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_File_Transfer_Media", 0) );
+    
+    // XXX: type-specific data (section 9.5)
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Binary_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Binary_Media", 0) );
+    
+    // XXX: type-specific data (section 9.5)
   }
   
   if ( IsEqualGUID(&ec_type, &ASF_No_Error_Correction) ) {
@@ -352,6 +444,8 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   
   _store_stream_info( stream_number, info, newSVpv("time_offset", 0), newSViv(time_offset) );
   _store_stream_info( stream_number, info, newSVpv("encrypted", 0), newSViv( flags & 0x8000 ) );
+  
+  buffer_free(&type_data_buf);
 }
 
 int
@@ -384,35 +478,38 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
     hdr_size = buffer_get_int64_le(buf);
     ext_size -= hdr_size;
     
-    DEBUG_TRACE("  extended header: ");
-    print_guid(hdr);
-    DEBUG_TRACE("size: %lu\n", hdr_size);
-    
     if ( IsEqualGUID(&hdr, &ASF_Metadata) ) {
-      DEBUG_TRACE("    Parsing Metadata\n");
+      DEBUG_TRACE("  Metadata\n");
       _parse_metadata(buf, info, tags);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Extended_Stream_Properties) ) {
-      DEBUG_TRACE("    Parsing Extended_Stream_Properties\n");
+      DEBUG_TRACE("  Extended_Stream_Properties\n");
       _parse_extended_stream_properties(buf, hdr_size, info, tags);
     }
-    else if ( IsEqualGUID(&hdr, &ASF_Stream_Properties) ) {
-      // Header extension can have embedded stream properties objects
-      DEBUG_TRACE("    Parsing Stream_Properties\n");
-      _parse_stream_properties(buf, info, tags);
+    else if ( IsEqualGUID(&hdr, &ASF_Language_List) ) {
+      DEBUG_TRACE("  Language_List\n");
+      _parse_language_list(buf, info, tags);
+    }
+    else if ( IsEqualGUID(&hdr, &ASF_Advanced_Mutual_Exclusion) ) {
+      DEBUG_TRACE("  Advanced_Mutual_Exclusion\n");
+      _parse_advanced_mutual_exclusion(buf, info, tags);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Compatibility) ) {
       // reserved for future use, just ignore
-      DEBUG_TRACE("    Skipping ASF_Compatibility\n");
+      DEBUG_TRACE("  Skipping ASF_Compatibility\n");
       buffer_consume(buf, 2);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Padding) ) {
       // skip padding
-      DEBUG_TRACE("    Skipping ASF_Padding\n");
+      DEBUG_TRACE("  Skipping ASF_Padding\n");
       buffer_consume(buf, hdr_size - 24);
     }
     else {
       // Unhandled
+      PerlIO_printf(PerlIO_stderr(), "  ** Unhandled extended header: ");
+      print_guid(hdr);
+      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", hdr_size);
+      
       buffer_consume(buf, hdr_size - 24);
     }
   }
@@ -538,7 +635,7 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   if ( flags & 0x08 )
     _store_stream_info( stream_number, info, newSVpv("flag_resend_cleanpoints", 0), newSViv(1) );
   
-  _store_stream_info( stream_number, info, newSVpv("language_id", 0), newSViv(lang_id) );
+  _store_stream_info( stream_number, info, newSVpv("language_index", 0), newSViv(lang_id) );
   
   if (avg_time_per_frame > 0) {
     _store_stream_info( stream_number, info, newSVpv("avg_time_per_frame", 0), newSViv( avg_time_per_frame / 10000000 ) );
@@ -574,9 +671,148 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   
   if (len) {
     // Anything left over means we have an embedded Stream Properties Object
-    DEBUG_TRACE("      Parsing embedded Stream_Properties, size %d\n", len);
+    DEBUG_TRACE("      embedded Stream_Properties, size %d\n", len);
     buffer_consume(buf, 24);
     _parse_stream_properties(buf, info, tags);
+  }
+}
+
+void
+_parse_language_list(Buffer *buf, HV *info, HV *tags)
+{
+  Buffer utf8_buf;
+  AV *list = newAV();
+  uint16_t count = buffer_get_short_le(buf);
+  
+  while ( count-- ) {
+    SV *value;
+    
+    uint8_t len = buffer_get_char(buf);
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, len);
+    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    sv_utf8_decode(value);
+    buffer_free(&utf8_buf);
+    
+    av_push( list, value );
+  }
+  
+  my_hv_store( info, "language_list", newRV_noinc( (SV*)list ) );
+}
+
+void
+_parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
+{
+  GUID mutex_type;
+  uint16_t count;
+  AV *mutex_list;
+  HV *mutex_hv = newHV();
+  SV *mutex_type_sv;
+  AV *mutex_streams = newAV();
+  
+  buffer_get(buf, &mutex_type, 16);
+  count = buffer_get_short_le(buf);
+  
+  if ( IsEqualGUID(&mutex_type, &ASF_Mutex_Language) ) {
+    mutex_type_sv = newSVpv( "ASF_Mutex_Language", 0 );
+  }
+  else if ( IsEqualGUID(&mutex_type, &ASF_Mutex_Bitrate) ) {
+    mutex_type_sv = newSVpv( "ASF_Mutex_Bitrate", 0 );
+  }
+  else {
+    mutex_type_sv = newSVpv( "ASF_Mutex_Unknown", 0 );
+  }
+  
+  while ( count-- ) {
+    av_push( mutex_streams, newSViv( buffer_get_short_le(buf) ) );
+  }
+  
+  my_hv_store_ent( mutex_hv, mutex_type_sv, newRV_noinc( (SV *)mutex_streams ) );
+  SvREFCNT_dec(mutex_type_sv);
+  
+  if ( !my_hv_exists( info, "mutex_list" ) ) {
+    mutex_list = newAV();
+    av_push( mutex_list, (SV *)mutex_hv );
+    my_hv_store( info, "mutex_list", newRV_noinc( (SV *)mutex_list ) );
+  }
+  else {
+    SV **entry = my_hv_fetch( info, "mutex_list" );
+    if (entry != NULL) {
+      mutex_list = (AV *)SvRV(*entry);
+    }
+    else {
+      return;
+    }
+    
+    av_push( mutex_list, (SV *)mutex_hv );
+  }
+}
+
+void
+_parse_codec_list(Buffer *buf, HV *info, HV *tags)
+{
+  uint32_t count;
+  AV *list = newAV();
+  
+  // Skip reserved
+  buffer_consume(buf, 16);
+  
+  count = buffer_get_int_le(buf);
+  
+  while ( count-- ) {
+    HV *codec_info = newHV();
+    uint16_t name_len;
+    uint16_t desc_len;
+    Buffer utf8_buf;
+    SV *name = NULL;
+    SV *desc = NULL;
+    
+    uint16_t codec_type = buffer_get_short_le(buf);
+    
+    switch (codec_type) {
+      case 0x0001:
+        my_hv_store( codec_info, "type", newSVpv("Video", 0) );
+        break;
+      case 0x0002:
+        my_hv_store( codec_info, "type", newSVpv("Audio", 0) );
+        break;
+      default:
+        my_hv_store( codec_info, "type", newSVpv("Unknown", 0) );
+    }
+    
+    // Unlike other objects, these lengths are the
+    // "number of Unicode chars", not bytes, so we need to double it
+    name_len = buffer_get_short_le(buf) * 2;
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
+    name = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    sv_utf8_decode(name);
+    my_hv_store( codec_info, "name", name );
+    buffer_free(&utf8_buf);
+    
+    desc_len = buffer_get_short_le(buf) * 2;
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, desc_len);
+    desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    sv_utf8_decode(desc);
+    my_hv_store( codec_info, "description", desc );
+    buffer_free(&utf8_buf);
+    
+    // Skip info
+    buffer_consume(buf, buffer_get_short_le(buf));
+    
+    av_push( list, (SV *)codec_info );
+  }
+  
+  my_hv_store( info, "codec_list", newRV_noinc( (SV *)list ) );
+}
+
+void
+_parse_stream_bitrate_properties(Buffer *buf, HV *info, HV *tags)
+{
+  uint16_t count = buffer_get_short_le(buf);
+  
+  while ( count-- ) {
+    uint16_t stream_number = buffer_get_short_le(buf) & 0x007f;
+    
+    _store_stream_info( stream_number, info, newSVpv("avg_bitrate", 0), newSViv( buffer_get_int_le(buf) ) );
   }
 }
 

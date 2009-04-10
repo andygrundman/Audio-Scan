@@ -398,6 +398,11 @@ buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
 {
   int i = 0;
   
+  // Sanity check length
+  if ( len % 2 ) {
+    croak("buffer_get_utf16le_as_utf8: bad length");
+  }
+  
   buffer_init(utf8, len);
   
   for (i = 0; i < len; i += 2) {
