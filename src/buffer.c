@@ -235,10 +235,10 @@ buffer_dump(Buffer *buffer, uint32_t len)
 	u_char *ucp = buffer->buf;
 	
 	if (!len) {
-    len = buffer->end;
+    len = buffer->end - buffer->offset;
   }
 
-	for (i = buffer->offset; i < len; i++) {
+	for (i = buffer->offset; i < buffer->offset + len; i++) {
 		fprintf(stderr, "%02x ", ucp[i]);
 		if ((i-buffer->offset)%16==15)
 			fprintf(stderr, "\r\n");
@@ -400,7 +400,7 @@ buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
   
   // Sanity check length
   if ( len % 2 ) {
-    croak("buffer_get_utf16le_as_utf8: bad length");
+    croak("buffer_get_utf16le_as_utf8: bad length %d", len);
   }
   
   buffer_init(utf8, len);

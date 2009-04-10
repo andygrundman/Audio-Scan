@@ -240,7 +240,7 @@ _parse_content_description(Buffer *buf, HV *info, HV *tags)
       value = newSVpv( buffer_ptr(&utf8_buf), 0 );
       sv_utf8_decode(value);
     
-      my_hv_store( tags, fields[i], value );
+      _store_tag( tags, newSVpv(fields[i], 0), value );
     
       buffer_free(&utf8_buf);
     }
@@ -258,6 +258,7 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
     uint16_t value_len;
     SV *key = NULL;
     SV *value = NULL;
+    HV *picture;
     Buffer utf8_buf;
     
     name_len = buffer_get_short_le(buf);
@@ -277,8 +278,56 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
       buffer_free(&utf8_buf);
     }
     else if (data_type == TYPE_BYTE) {
-      value = newSVpvn( buffer_ptr(buf), value_len );
-      buffer_consume(buf, value_len);
+      // handle picture data, interestingly it is compatible with the ID3v2 APIC frame
+      if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
+        char *tmp_ptr;
+        uint16_t mime_len = 2; // to handle double-null
+        uint16_t desc_len = 2;
+        uint32_t image_len;
+        SV *mime;
+        SV *desc;
+        
+        picture = newHV();
+        
+        my_hv_store( picture, "image_type", newSViv( buffer_get_char(buf) ) );
+
+        image_len = buffer_get_int_le(buf);
+        
+        // MIME type is a double-null-terminated UTF-16 string
+        tmp_ptr = buffer_ptr(buf);
+        while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
+          mime_len += 2;
+          tmp_ptr += 2;
+        }
+        
+        buffer_get_utf16le_as_utf8(buf, &utf8_buf, mime_len);
+        mime = newSVpv( buffer_ptr(&utf8_buf), 0 );
+        sv_utf8_decode(mime);
+        my_hv_store( picture, "mime_type", mime );
+        buffer_free(&utf8_buf);
+        
+        // Description is a double-null-terminated UTF-16 string
+        tmp_ptr = buffer_ptr(buf);
+        while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
+          desc_len += 2;
+          tmp_ptr += 2;
+        }
+        
+        buffer_get_utf16le_as_utf8(buf, &utf8_buf, desc_len);
+        desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
+        sv_utf8_decode(desc);
+        my_hv_store( picture, "description", desc );
+        buffer_free(&utf8_buf);
+        
+        my_hv_store( picture, "image", newSVpvn( buffer_ptr(buf), image_len ) );
+        buffer_consume(buf, image_len);
+        
+        value = newRV_noinc( (SV *)picture );
+      }
+      else {
+        value = newSVpvn( buffer_ptr(buf), value_len );
+        buffer_consume(buf, value_len);
+      }
     }
     else if (data_type == TYPE_BOOL) {
       value = newSViv( buffer_get_int_le(buf) );
@@ -310,9 +359,7 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
       }
 #endif
       
-      // XXX: if key exists, create array
-      my_hv_store_ent( tags, key, value );
-      SvREFCNT_dec(key);
+      _store_tag( tags, key, value );
     }
   }
 }
@@ -945,8 +992,7 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
         _store_stream_info( stream_number, info, key, value );
       }
       else {
-        my_hv_store_ent( info, key, value );
-        SvREFCNT_dec(key);
+        _store_tag( tags, key, value );
       }
     }
   }
@@ -1037,6 +1083,32 @@ _store_stream_info(int stream_number, HV *info, SV *key, SV *value )
       av_push( streams, (SV *)streaminfo );
     }
   }
+}
+
+void
+_store_tag(HV *tags, SV *key, SV *value)
+{
+  // if key exists, create array
+  if ( my_hv_exists_ent( tags, key ) ) {
+    SV **entry = my_hv_fetch( tags, SvPVX(key) );
+    if (entry != NULL) {
+      // A normal string entry, convert to array.
+      if ( SvTYPE(*entry) == SVt_PV ) {
+        AV *ref = newAV();
+        av_push( ref, newSVsv(*entry) );
+        av_push( ref, value );
+        my_hv_store_ent( tags, key, newRV_noinc( (SV*)ref ) );
+      }
+      else if ( SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+        av_push( (AV *)SvRV(*entry), value );
+      }
+    }
+  }
+  else {
+    my_hv_store_ent( tags, key, value );  
+  }
+  
+  SvREFCNT_dec(key);
 }
 
 int
