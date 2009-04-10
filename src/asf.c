@@ -18,10 +18,11 @@
   TODO:
   These will be added when I see a real file that uses them.
 
+  Header objects:
+  
   Script Command (3.6)
   Marker (3.7)
   Bitrate Mutual Exclusion (3.8)
-  Error Correction (3.9)
   Content Branding (3.13)
   Content Encryption (3.14)
   Extended Content Encryption (3.15)
@@ -35,6 +36,11 @@
   Media Object Index Parameters (4.10)
   Timecode Index Parameters (4.11)
   Advanced Content Encryption (4.13)
+  
+  Index objects:
+  
+  Media Object Index (6.3)
+  Timecode Index (6.4)
 */
 
 #include "asf.h"
@@ -42,7 +48,7 @@
 static void
 print_guid(GUID guid)
 {
-  DEBUG_TRACE(
+  PerlIO_printf(PerlIO_stderr(),
     "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x ",
     guid.l, guid.w[0], guid.w[1],
     guid.b[0], guid.b[1], guid.b[2], guid.b[3],
@@ -146,6 +152,10 @@ get_asf_metadata(char *file, HV *info, HV *tags)
         goto out;
       }
     }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Error_Correction) ) {
+      DEBUG_TRACE("Skipping Error_Correction\n");
+      buffer_consume(&asf_buf, tmp.size - 24);
+    }
     else {
       // Unhandled GUID
       PerlIO_printf(PerlIO_stderr(), "** Unhandled GUID: ");
@@ -171,6 +181,9 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     goto out;
   }
   
+  // Store offset to beginning of data
+  my_hv_store( info, "audio_offset", newSViv(hdr.size) );
+  
   data.size = buffer_get_int64_le(&asf_buf);
   
   if ( hdr.size + data.size < file_size ) {
@@ -182,7 +195,13 @@ get_asf_metadata(char *file, HV *info, HV *tags)
       goto out;
     }
     
-    //_parse_index_objects(&asf_buf, info, tags);
+    buffer_clear(&asf_buf);
+
+    if ( !_parse_index_objects(infile, file_size - hdr.size - data.size, hdr.size, &asf_buf, info, tags) ) {
+      PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Index object)\n", file);
+      err = -1;
+      goto out;
+    }
   }
   
 out:
@@ -392,7 +411,6 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
     uint8_t is_wma = 0;
     uint16_t codec_id;
-    SV *codec;
     
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Audio_Media", 0) );
     
@@ -400,29 +418,14 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
     codec_id = buffer_get_short_le(&type_data_buf);
     switch (codec_id) {
       case 0x000a:
-        codec = newSVpv("Windows Media Audio 9 Voice", 0);
-        is_wma = 1;
-        break;
-      case 0x0140:
-        codec = newSVpv("Windows Media Video V8", 0);
-        break;
       case 0x0161:
-        codec = newSVpv("Windows Media Audio V7 / V8 / V9", 0);
-        is_wma = 1;
-        break;
       case 0x0162:
-        codec = newSVpv("Windows Media Audio Professional V9", 0);
-        is_wma = 1;
-        break;
       case 0x0163:
-        codec = newSVpv("Windows Media Audio Lossless V9", 0);
         is_wma = 1;
         break;
-      default:
-        codec = newSViv(codec_id);
     }
     
-    _store_stream_info( stream_number, info, newSVpv("codec", 0), codec );
+    _store_stream_info( stream_number, info, newSVpv("codec_id", 0), newSViv(codec_id) );
     _store_stream_info( stream_number, info, newSVpv("channels", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
     _store_stream_info( stream_number, info, newSVpv("samplerate", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
     _store_stream_info( stream_number, info, newSVpv("avg_bytes_per_sec", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
@@ -1032,6 +1035,116 @@ _store_stream_info(int stream_number, HV *info, SV *key, SV *value )
       SvREFCNT_dec(key);
     
       av_push( streams, (SV *)streaminfo );
+    }
+  }
+}
+
+int
+_parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buffer *buf, HV *info, HV *tags)
+{
+  GUID tmp;
+  uint64_t size;
+  
+  while (index_size > 0) {
+    // Make sure we have enough data
+    if ( !_check_buf(infile, buf, 24, ASF_BLOCK_SIZE) ) {
+      return 0;
+    }
+  
+    buffer_get(buf, &tmp, 16);    
+    size = buffer_get_int64_le(buf);
+  
+    if ( !_check_buf(infile, buf, size - 24, ASF_BLOCK_SIZE) ) {
+      return 0;
+    }
+    
+    if ( IsEqualGUID(&tmp, &ASF_Index) ) {
+      DEBUG_TRACE("Index size %d\n", size);
+      _parse_index(buf, audio_offset, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp, &ASF_Simple_Index) ) {
+      DEBUG_TRACE("Skipping Simple_Index size %d\n", size);
+      // Simple Index contains packet number offsets, I can't
+      // see how these would be useful, so just skip them
+      buffer_consume(buf, size - 24);
+    }
+    else {
+      // Unhandled GUID
+      PerlIO_printf(PerlIO_stderr(), "** Unhandled Index GUID: ");
+      print_guid(tmp);
+      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", size);
+      
+      buffer_consume(buf, size - 24);
+    }
+      
+    index_size -= size;
+  }
+  
+  return 1;
+}
+
+void
+_parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
+{
+  AV *specs   = newAV();
+  AV *blocks  = newAV();
+  uint16_t spec_count;
+  uint32_t blocks_count;
+  int i;
+  
+  // Skip index entry time interval, it is read from Index Parameters
+  buffer_consume(buf, 4);
+  
+  spec_count   = buffer_get_short_le(buf);
+  blocks_count = buffer_get_int_le(buf);
+  
+  for (i = 0; i < spec_count; i++) {
+    // Add stream number
+    av_push( specs, newSViv( buffer_get_short_le(buf) ) );
+    // Skip index type, this is already read from Index Parameters
+    buffer_consume(buf, 2);
+  }
+  
+  my_hv_store( info, "index_specifiers", newRV_noinc( (SV *)specs ) );
+  
+  // XXX: if blocks_count > 1 the file is larger than 2^32 bytes and
+  // our stored index data is not valid.  This seems unlikely to occur in real life...
+  while ( blocks_count-- ) {
+    AV *offsets[spec_count];
+    uint32_t entry_count = buffer_get_int_le(buf);
+    
+    for (i = 0; i < spec_count; i++) {
+      uint64_t block_pos;
+      
+      // Init offsets array for each spec_count
+      offsets[i] = newAV();
+      
+      block_pos = buffer_get_int64_le(buf);
+      av_push( blocks, newSViv(block_pos) );
+    }
+    
+    my_hv_store( info, "index_blocks", newRV_noinc( (SV *)blocks ) );
+    
+    while ( entry_count-- ) {      
+      for (i = 0; i < spec_count; i++) {
+        // These are byte offsets relative to start of data object,
+        // so we add audio_offset here
+        av_push( offsets[i], newSViv( audio_offset + buffer_get_int_le(buf) ) );
+      }
+    }
+    
+    if (spec_count == 1) {
+      my_hv_store( info, "index_offsets", newRV_noinc( (SV *)offsets[0] ) );
+    }
+    else {
+      // Nested arrays, one per spec_count (stream)
+      AV *offset_list = newAV();
+          
+      for (i = 0; i < spec_count; i++) {
+        av_push( offset_list, newRV_noinc( (SV *)offsets[i] ) );
+      }
+      
+      my_hv_store( info, "index_offsets", newRV_noinc( (SV *)offset_list ) );
     }
   }
 }
