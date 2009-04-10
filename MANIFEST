@@ -1,14 +1,15 @@
 Changes
 COPYING
 hints/darwin.pl
+include/asf.h
 include/buffer.h
 include/common.h
 include/flac.h
 include/mp3.h
+include/ogg.h
 include/pinttypes.h
 include/ppport.h
 include/pstdint.h
-include/ogg.h
 lib/Audio/Scan.pm
 libid3tag/aclocal.m4
 libid3tag/CHANGES
@@ -88,7 +89,9 @@ libid3tag/version.h
 Makefile.PL
 MANIFEST			This list of files
 README
+README.win32
 Scan.xs
+src/asf.c
 src/buffer.c
 src/common.c
 src/flac.c
@@ -102,6 +105,16 @@ t/04critic.t
 t/05mp3.t
 t/06flac.t
 t/07ogg.t
+t/08asf.t
+t/asf/wma-live.wma
+t/asf/wma92-32k.wma
+t/asf/wma92-48k-pro.wma
+t/asf/wma92-lossless.wma
+t/asf/wma92-mbr.wma
+t/asf/wma92-vbr.wma
+t/asf/wma92-voice.wma
+t/asf/wmv92-with-audio.wmv
+t/asf/wmv92.wmv
 t/flac/appId.flac
 t/flac/CVE-2007-4619-1.flac
 t/flac/CVE-2007-4619-12.flac

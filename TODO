@@ -25,19 +25,9 @@ Ogg
 
 ASF
 ---
-Memory leak
+Refactor a bit
 
 Tests
- ASF
-  CBR
-  VBR
-  MBR
-  Unicode chars
-  Rip from a live stream
-  Lossless
-  Pro
-  Voice
-  Tests for each type of object
  Ogg
   ID3 tags at start
   Multi-stream file
