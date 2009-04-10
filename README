@@ -42,7 +42,10 @@ METHODS
     If you only need the tags and don't care about the metadata, use this
     method.
 
-MP3 DETAILS
+  has_flac()
+    Returns 1 if FLAC support was compiled in, or 0 if not.
+
+MP3
   INFO
     The following metadata about a file may be returned:
 
@@ -188,6 +191,84 @@ FLAC
             color_index
             image_data
             picture_type
+
+ASF (Windows Media Audio/Video)
+  INFO
+    The following metadata about a file may be returned. Reading the ASF
+    spec is encouraged if you want to find out more about any of these
+    values.
+
+        audio_offset (byte offset to first data packet)
+        broadcast (boolean, whether the file is a live broadcast or not)
+        codec_list (array of information about codecs used in the file)
+        creation_date (UNIX timestamp when file was created)
+        data_packets
+        file_id (unique file ID)
+        file_size
+        index_blocks
+        index_entry_interval (in milliseconds)
+        index_offsets (byte offsets for each second of audio, per stream. Useful for seeking)
+        index_specifiers (indicates which stream a given index_offset points to)
+        language_list (array of languages referenced by the file's metadata)
+        max_bitrate
+        max_packet_size
+        min_packet_size
+        mutex_list (mutually exclusive stream information)
+        play_duration_ms
+        preroll
+        seekable (boolean, whether the file is seekable or not)
+        send_duration_ms
+        song_length_ms (the actual length of the audio, in milliseconds)
+
+    STREAMS
+
+        The streams array contains metadata related to an individul stream within the file.
+        The following metadata may be returned:
+        
+    DeviceConformanceTemplate
+        IsVBR
+        alt_bitrate
+        alt_buffer_fullness
+        alt_buffer_size
+        avg_bitrate (most accurate bitrate for this stream)
+        avg_bytes_per_sec (audio only)
+        bitrate
+        bits_per_sample (audio only)
+        block_alignment (audio only)
+        bpp (video only)
+        buffer_fullness
+        buffer_size
+        channels (audio only)
+        codec_id (audio only)
+        compression_id (video only)
+        encode_options
+        encrypted (boolean)
+        error_correction_type
+        flag_seekable (boolean)
+        height (video only)
+        index_type
+        language_index (offset into language_list array)
+        max_object_size
+        samplerate (in kHz) (audio only)
+        samples_per_block
+        stream_number
+        stream_type
+        super_block_align
+        time_offset
+        width (video only)
+
+  TAGS
+    Raw tags are returned. In contrast to the other formats, tag keys are
+    NOT capitalized. There is one special key:
+
+    WM/Picture
+
+    Pictures are returned as a hash with the following keys:
+
+        image_type (numeric type, same as ID3v2 APIC)
+        mime_type
+        description
+        image
 
 THANKS
     Some of the file format parsing code was derived from the mt-daapd
