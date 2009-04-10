@@ -72,6 +72,10 @@ If you only need file metadata and don't care about tags, you can use this metho
 
 If you only need the tags and don't care about the metadata, use this method.
 
+=head2 has_flac()
+
+Returns 1 if FLAC support was compiled in, or 0 if not.
+
 =head1 MP3
 
 =head2 INFO
