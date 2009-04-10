@@ -95,6 +95,13 @@ DEFINE_GUID(ASF_Codec_List, SWAP32(0x86d15240), SWAP16(0x311d), SWAP16(0x11d0),
 DEFINE_GUID(ASF_Stream_Bitrate_Properties, SWAP32(0x7bf875ce), SWAP16(0x468d), SWAP16(0x11d1),
 	    0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2);
 
+DEFINE_GUID(ASF_Metadata_Library, SWAP32(0x44231c94), SWAP16(0x9498), SWAP16(0x49d1),
+	    0xa1, 0x41, 0x1d, 0x13, 0x4e, 0x45, 0x70, 0x54);
+
+// XXX: Can't find any documentation on this object, we will just ignore it
+DEFINE_GUID(ASF_Index_Placeholder, SWAP32(0xd9aade20), SWAP16(0x7c17), SWAP16(0x4f9c),
+	    0xbc, 0x28, 0x85, 0x55, 0xdd, 0x98, 0xe2, 0xa2);
+  	    
 DEFINE_GUID(ASF_Data, SWAP32(0x75b22636), SWAP16(0x668e), SWAP16(0x11cf),
 	    0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c);
 
@@ -180,7 +187,8 @@ enum types {
   TYPE_BOOL,
   TYPE_DWORD,
   TYPE_QWORD,
-  TYPE_WORD
+  TYPE_WORD,
+  TYPE_GUID
 };
 
 static int get_asf_metadata(char *file, HV *info, HV *tags);
@@ -196,3 +204,5 @@ void _parse_language_list(Buffer *buf, HV *info, HV *tags);
 void _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags);
 void _parse_codec_list(Buffer *buf, HV *info, HV *tags);
 void _parse_stream_bitrate_properties(Buffer *buf, HV *info, HV *tags);
+void _parse_metadata_library(Buffer *buf, HV *info, HV *tags);
+void _parse_index_parameters(Buffer *buf, HV *info, HV *tags);
