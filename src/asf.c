@@ -106,13 +106,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
       goto out;
     }
     
-    buffer_get(&asf_buf, &tmp.ID, 16);
-    
-    if ( IsEqualGUID(&tmp.ID, &ASF_Data) ) {
-      // if we reach the Data object, seek past it to get to the Index object(s)
-      //break;
-    }
-    
+    buffer_get(&asf_buf, &tmp.ID, 16);    
     tmp.size = buffer_get_int64_le(&asf_buf);
     
     if ( !_check_buf(infile, &asf_buf, tmp.size - 24, ASF_BLOCK_SIZE) ) {
@@ -902,7 +896,6 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
       buffer_free(&utf8_buf);
     }
     else if (data_type == TYPE_BYTE) {
-      // XXX: undocumented
       value = newSVpvn( buffer_ptr(buf), data_len );
       buffer_consume(buf, data_len);
     }
