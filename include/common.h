@@ -15,7 +15,7 @@
  */
  
 // Enable for debug output
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 # define DEBUG_TRACE(...) PerlIO_printf(PerlIO_stderr(), __VA_ARGS__)
