@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 100;
+use Test::More tests => 104;
 
 use Audio::Scan;
 use Encode;
@@ -120,6 +120,11 @@ use Encode;
     is( $tags->{'Latin1 Key'}, $pate, 'Latin1 tag ok' );
     is( $tags->{'Russian Key'}, $ber, 'Unicode tag ok' );
     is( $tags->{$ber}, $yc, 'Unicode key/value ok' );
+    
+    is( ref $tags->{'WM/Picture'}, 'HASH', 'WM/Picture ok' );
+    is( $tags->{'WM/Picture'}->{image_type}, 3, 'WM/Picture type ok' );
+    is( $tags->{'WM/Picture'}->{mime_type}, 'image/jpeg', 'WM/Picture MIME type ok' );
+    is( length($tags->{'WM/Picture'}->{image}), 2103, 'WM/Picture length ok' );
 }
 
 # WMA Pro 10 file
