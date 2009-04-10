@@ -406,14 +406,17 @@ _parse_file_properties(Buffer *buf, HV *info, HV *tags)
   
   if ( !broadcast ) {
     creation_date = (creation_date - 116444736000000000ULL) / 10000000;
-    play_duration /= 10000000;
-    send_duration /= 10000000;
+    play_duration /= 10000;
+    send_duration /= 10000;
     
     my_hv_store( info, "file_size", newSViv(file_size) );
     my_hv_store( info, "creation_date", newSViv(creation_date) );
     my_hv_store( info, "data_packets", newSViv(data_packets) );
-    my_hv_store( info, "play_duration", newSViv(play_duration) );
-    my_hv_store( info, "send_duration", newSViv(send_duration) );
+    my_hv_store( info, "play_duration_ms", newSViv(play_duration) );
+    my_hv_store( info, "send_duration_ms", newSViv(send_duration) );
+    
+    // Calculate actual song duration
+    my_hv_store( info, "song_length_ms", newSViv( play_duration - preroll ) );
   }
   
   my_hv_store( info, "preroll", newSViv(preroll) );
@@ -490,7 +493,20 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   else if ( IsEqualGUID(&stream_type, &ASF_Video_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Video_Media", 0) );
     
-    // XXX: type-specific data (section 9.2)
+    DEBUG_TRACE("type_data_len: %d\n", type_data_len);
+    
+    // Read video-specific data
+    _store_stream_info( stream_number, info, newSVpv("width", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, info, newSVpv("height", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+        
+    // Skip format size, width, height, reserved
+    buffer_consume(&type_data_buf, 17);
+    
+    _store_stream_info( stream_number, info, newSVpv("bpp", 0), newSVuv( buffer_get_short_le(&type_data_buf) ) );
+    
+    _store_stream_info( stream_number, info, newSVpv("compression_id", 0), newSVpv( buffer_ptr(&type_data_buf), 4 ) );
+
+    // Rest of the data does not seem to apply to video    
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Command_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Command_Media", 0) );
@@ -564,7 +580,7 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
       _parse_metadata(buf, info, tags);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Extended_Stream_Properties) ) {
-      DEBUG_TRACE("  Extended_Stream_Properties\n");
+      DEBUG_TRACE("  Extended_Stream_Properties size %d\n", hdr_size);
       _parse_extended_stream_properties(buf, hdr_size, info, tags);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Language_List) ) {
@@ -740,10 +756,11 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   _store_stream_info( stream_number, info, newSVpv("language_index", 0), newSViv(lang_id) );
   
   if (avg_time_per_frame > 0) {
-    _store_stream_info( stream_number, info, newSVpv("avg_time_per_frame", 0), newSViv( avg_time_per_frame / 10000000 ) );
+    // XXX: can't get this to divide properly (?!)
+    //_store_stream_info( stream_number, info, newSVpv("avg_time_per_frame", 0), newSVuv(avg_time_per_frame / 10000) );
   }
   
-  while (stream_name_count) {
+  while ( stream_name_count-- ) {
     uint16_t stream_name_len;
     
     // stream_name_lang_id
@@ -755,19 +772,17 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
     // XXX, store this?
     buffer_consume(buf, stream_name_len);
     
-    stream_name_count--;
     len -= 4 + stream_name_len;
   }
   
-  while (payload_ext_count) {
+  while ( payload_ext_count-- ) {
     // Skip
     uint32_t payload_len;
     
     buffer_consume(buf, 18);
     payload_len = buffer_get_int_le(buf);
-    buffer_consume(buf, len);
+    buffer_consume(buf, payload_len);
     
-    payload_ext_count--;
     len -= 22 + payload_len;
   }
   
@@ -833,7 +848,7 @@ _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
   
   if ( !my_hv_exists( info, "mutex_list" ) ) {
     mutex_list = newAV();
-    av_push( mutex_list, (SV *)mutex_hv );
+    av_push( mutex_list, newRV_noinc( (SV *)mutex_hv ) );
     my_hv_store( info, "mutex_list", newRV_noinc( (SV *)mutex_list ) );
   }
   else {
@@ -845,7 +860,7 @@ _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
       return;
     }
     
-    av_push( mutex_list, (SV *)mutex_hv );
+    av_push( mutex_list, newRV_noinc( (SV *)mutex_hv ) );
   }
 }
 
@@ -900,7 +915,7 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
     // Skip info
     buffer_consume(buf, buffer_get_short_le(buf));
     
-    av_push( list, (SV *)codec_info );
+    av_push( list, newRV_noinc( (SV *)codec_info ) );
   }
   
   my_hv_store( info, "codec_list", newRV_noinc( (SV *)list ) );
@@ -1057,7 +1072,7 @@ _store_stream_info(int stream_number, HV *info, SV *key, SV *value )
       if (stream != NULL) {
         SV **sn;
         
-        streaminfo = (HV *)*stream;        
+        streaminfo = (HV *)SvRV(*stream);        
         sn = my_hv_fetch( streaminfo, "stream_number" );
         if (sn != NULL) {
           if ( SvIV(*sn) == stream_number ) {
@@ -1080,7 +1095,7 @@ _store_stream_info(int stream_number, HV *info, SV *key, SV *value )
       my_hv_store_ent( streaminfo, key, value );
       SvREFCNT_dec(key);
     
-      av_push( streams, (SV *)streaminfo );
+      av_push( streams, newRV_noinc( (SV *)streaminfo ) );
     }
   }
 }
