@@ -87,7 +87,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     goto out;
   }
   
-  buffer_get(&asf_buf, &hdr.ID, 16);
+  buffer_get_guid(&asf_buf, &hdr.ID);
   
   if ( !IsEqualGUID(&hdr.ID, &ASF_Header_Object) ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF header: %s\n", file);
@@ -112,7 +112,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
       goto out;
     }
     
-    buffer_get(&asf_buf, &tmp.ID, 16);    
+    buffer_get_guid(&asf_buf, &tmp.ID);
     tmp.size = buffer_get_int64_le(&asf_buf);
     
     if ( !_check_buf(infile, &asf_buf, tmp.size - 24, ASF_BLOCK_SIZE) ) {
@@ -173,7 +173,7 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     goto out;
   }
   
-  buffer_get(&asf_buf, &data.ID, 16);
+  buffer_get_guid(&asf_buf, &data.ID);
   
   if ( !IsEqualGUID(&data.ID, &ASF_Data) ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (no Data object after Header)\n", file);
@@ -571,7 +571,7 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
   DEBUG_TRACE("  size: %d\n", ext_size);
   
   while (ext_size > 0) {
-    buffer_get(buf, &hdr, 16);
+    buffer_get_guid(buf, &hdr);
     hdr_size = buffer_get_int64_le(buf);
     ext_size -= hdr_size;
     

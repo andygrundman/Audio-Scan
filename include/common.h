@@ -23,23 +23,6 @@
 # define DEBUG_TRACE(...)
 #endif
 
-#ifndef __APPLE__
-#  include <endian.h>
-#else
-#  include <machine/endian.h>
-#  define __LITTLE_ENDIAN  LITTLE_ENDIAN
-#  define __BIG_ENDIAN     BIG_ENDIAN
-#  define __BYTE_ORDER     BYTE_ORDER
-#endif
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define SWAP32(l) (l)
-#define SWAP16(w) (w)
-#else
-#define SWAP32(l) ( (((l)>>24)&0x000000ff) | (((l)>>8)&0x0000ff00) | (((l)<<8)&0x00ff0000) | (((l)<<24)&0xff000000) )
-#define SWAP16(w) ( (((w)>>8)&0x00ff) | (((w)<<8)&0xff00) )
-#endif
-
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
 # define _PACKED __attribute((packed))
 #else
