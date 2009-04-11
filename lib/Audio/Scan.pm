@@ -45,8 +45,8 @@ Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF
 =head1 DESCRIPTION
 
 Audio::Scan is a C-based scanner for audio file metadata and tag information. It currently
-supports MP3 via an included version of libid3tag, Ogg Vorbis, and FLAC (if libFLAC is
-installed).  A future release will add support for AAC, WMA, WAV, and possibly others.
+supports MP3 via an included version of libid3tag, Ogg Vorbis, FLAC (if libFLAC is
+installed), and ASF.  A future release will add support for AAC, WAV, and possibly others.
 
 See below for specific details about each file format.
 
@@ -60,6 +60,7 @@ determined by the file's extension.  Supported extensions are:
     MP3:  mp3, mp2
     Ogg:  ogg, oga
     FLAC: flc, flac, fla
+    ASF:  wma, wmv, asf
 
 This method returns a hashref containing two other hashrefs: info and tags.  The
 contents of the info and tag hashes vary depending on file format, see below for details.
@@ -261,8 +262,8 @@ want to find out more about any of these values.
 
 STREAMS
 
-    The streams array contains metadata related to an individul stream within the file.
-    The following metadata may be returned:
+The streams array contains metadata related to an individul stream within the file.
+The following metadata may be returned:
     
     DeviceConformanceTemplate
     IsVBR
