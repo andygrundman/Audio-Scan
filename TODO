@@ -19,7 +19,7 @@ Support iTunNORM, translate into replay gain values
 FLAC
 ----
 Infinite loop on CVE-2007-4619-1.flac
-Tests broken on Sparc, endian issue?
+Refuse to use old versions of libFLAC that don't support picture
 
 Ogg
 ---
