@@ -19,6 +19,7 @@ Support iTunNORM, translate into replay gain values
 FLAC
 ----
 Infinite loop on CVE-2007-4619-1.flac
+Tests broken on Sparc, endian issue?
 
 Ogg
 ---
@@ -26,8 +27,13 @@ Ogg
 ASF
 ---
 Refactor a bit
+Support new GUIDs in Audio::WMA test files
 
 Tests
+ ASF
+  DRM
+ WAV
+  ID3 tags
  Ogg
   ID3 tags at start
   Multi-stream file
