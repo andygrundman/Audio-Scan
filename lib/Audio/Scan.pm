@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C scanning of audio file metadata
+Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF
 
 =head1 SYNOPSIS
 
