@@ -1,13 +1,17 @@
 Revision history for Audio::Scan
 
-0.02 2009-04-10 17:15:00
-    - ASF (WMA/WMV) parsing support.
-    - Improved directory structure.
-    - Added build instructions for Win32.
-    - Skip FLAC tests if FLAC support was not built.
-    - Don't try and build Universal Binary on PPC Macs.
-    - Fixed #define MIN for platforms that don't have it.
+0.03    2009-04-11 14:30:00
+        - Fixed big-endian GUID issues with ASF.
+        - (libid3tag) Updated to latest config.guess.
 
-0.01  2009-04-03 11:00:00
-    - Initial release.
+0.02    2009-04-10 17:15:00
+        - ASF (WMA/WMV) parsing support.
+        - Improved directory structure.
+        - Added build instructions for Win32.
+        - Skip FLAC tests if FLAC support was not built.
+        - Don't try and build Universal Binary on PPC Macs.
+        - Fixed #define MIN for platforms that don't have it.
+
+0.01    2009-04-03 11:00:00
+        - Initial release.
 
