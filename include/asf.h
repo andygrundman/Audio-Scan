@@ -14,41 +14,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
  
-#ifndef __APPLE__
-#  include <endian.h>
-#else
-#  include <machine/endian.h>
-#  define __LITTLE_ENDIAN  LITTLE_ENDIAN
-#  define __BIG_ENDIAN     BIG_ENDIAN
-#  define __BYTE_ORDER     BYTE_ORDER
-#endif
- 
 #define ASF_BLOCK_SIZE 8192
-
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
-# define _PACKED __attribute((packed))
-#else
-# define _PACKED
-#endif
-
- typedef struct _GUID {
-   uint32_t l;
-   uint16_t w[2];
-   uint8_t  b[8];
- } _PACKED GUID;
 
 #define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
   GUID name = {l, {w1, w2}, {b1, b2, b3, b4, b5, b6, b7, b8}}
   
 #define IsEqualGUID(rguid1, rguid2) (!memcmp(rguid1, rguid2, sizeof(GUID)))
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define SWAP32(l) (l)
-#define SWAP16(w) (w)
-#else
-#define SWAP32(l) ( (((l)>>24)&0x000000ff) | (((l)>>8)&0x0000ff00) | (((l)<<8)&0x00ff0000) | (((l)<<24)&0xff000000) )
-#define SWAP16(w) ( (((w)>>8)&0x00ff) | (((w)<<8)&0xff00) )
-#endif
 
 DEFINE_GUID(ASF_Header_Object, SWAP32(0x75b22630), SWAP16(0x668e), SWAP16(0x11cf),
       0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c);

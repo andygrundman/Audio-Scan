@@ -422,3 +422,17 @@ buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
     }
   }
 }
+      
+void
+buffer_get_guid(Buffer *buffer, GUID *g)
+{
+  uint8_t i = 0;
+  
+  g->l    = SWAP32(buffer_get_int_le(buffer));
+  g->w[0] = SWAP16(buffer_get_short_le(buffer));
+  g->w[1] = SWAP16(buffer_get_short_le(buffer));
+  
+  for (i = 0; i < 8; i++) {
+    g->b[i] = buffer_get_char(buffer);
+  }
+}
