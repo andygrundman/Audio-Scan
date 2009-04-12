@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 118;
+use Test::More tests => 122;
 
 use Audio::Scan;
 use Encode;
@@ -229,6 +229,19 @@ use Encode;
     is( $info->{script_commands}->[1]->{time}, 1579, 'Script time 2 ok' );
     is( $info->{script_commands}->[1]->{type}, 1, 'Script type 2 ok' );
 }
+
+# File with JFIF image type and MP3 codec
+{
+    my $s = Audio::Scan->scan( _f('jfif.wma') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{streams}->[0]->{stream_type}, 'ASF_JFIF_Media', 'JFIF stream ok' );
+    is( $info->{streams}->[1]->{codec_id}, 85, 'MP3 codec ID ok' );
+    is( $info->{streams}->[0]->{width}, 320, 'JFIF width ok' );
+    is( $info->{streams}->[0]->{height}, 240, 'JFIF height ok' );
+}
+    
 
 sub _f {
     return catfile( $FindBin::Bin, 'asf', shift );

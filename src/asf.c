@@ -526,7 +526,9 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   else if ( IsEqualGUID(&stream_type, &ASF_JFIF_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_JFIF_Media", 0) );
     
-    // XXX: type-specific data (section 9.4.1)
+    // type-specific data
+    _store_stream_info( stream_number, info, newSVpv("width", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, info, newSVpv("height", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Degradable_JPEG_Media) ) {
     _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Degradable_JPEG_Media", 0) );
