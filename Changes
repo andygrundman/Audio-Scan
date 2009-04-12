@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.04
+0.04    2009-04-12 16:10:00
         - ASF: Support for Content Encryption, Extended Content
           Encryption, Script Command, and Digital Signature objects.
         - ASF: Fixed handling of multiple WM/Picture tags.
