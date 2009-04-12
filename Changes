@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.04
+        - ASF: Support for Content Encryption, Extended Content
+          Encryption, Script Command, and Digital Signature objects.
+
 0.03    2009-04-11 14:30:00
         - Fixed big-endian GUID issues with ASF.
         - (libid3tag) Updated to latest config.guess.

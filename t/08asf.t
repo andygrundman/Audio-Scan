@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 104;
+use Test::More tests => 118;
 
 use Audio::Scan;
 use Encode;
@@ -204,6 +204,30 @@ use Encode;
     ok( !exists $info->{file_size}, 'Live stream has no file size ok' );
     
     is( $info->{streams}->[1]->{stream_type}, 'ASF_Command_Media', 'Live stream metadata stream ok' );
+}
+
+# File with DRM, script commands, and 2 images
+{
+    my $s = Audio::Scan->scan( _f('drm.wma') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{streams}->[0]->{encrypted}, 1, 'DRM encrypted flag set ok' );
+    is( $info->{drm_key}, 'pMYQ3zAwEE+/lAEL5hP0Ug==', 'DRM key ok' );
+    is( $info->{drm_license_url}, 'http://switchboard.real.com/rhapsody/?cd=wmupgrade', 'DRM license URL ok' );
+    is( $info->{drm_protection_type}, 'DRM', 'DRM protection type ok' );
+    
+    is( ref $info->{script_types}, 'ARRAY', 'Script types ok' );
+    is( $info->{script_types}->[0], 'URL', 'Script type URL ok' );
+    is( $info->{script_types}->[1], 'FILENAME', 'Script type FILENAME ok' );
+    is( ref $info->{script_commands}, 'ARRAY', 'Script commands ok' );
+    is( $info->{script_commands}->[0]->{command}, 'http://www.microsoft.com/isapi/redir.dll?Prd=WMT4&Sbp=DRM&Plcid=0x0409&Pver=4.0&WMTFeature=DRM', 'Script command 1 ok' );
+    is( $info->{script_commands}->[0]->{time}, 1579, 'Script time 1 ok' );
+    is( $info->{script_commands}->[0]->{type}, 0, 'Script type 1 ok' );
+    is( $info->{script_commands}->[1]->{command}, '', 'Script command 2 ok' );
+    is( $info->{script_commands}->[1]->{time}, 1579, 'Script time 2 ok' );
+    is( $info->{script_commands}->[1]->{type}, 1, 'Script type 2 ok' );
 }
 
 sub _f {

@@ -20,13 +20,9 @@
 
   Header objects:
   
-  Script Command (3.6)
   Marker (3.7)
   Bitrate Mutual Exclusion (3.8)
   Content Branding (3.13)
-  Content Encryption (3.14)
-  Extended Content Encryption (3.15)
-  Digital Signature (3.16)
   
   Header Extension objects:
   
@@ -143,6 +139,22 @@ get_asf_metadata(char *file, HV *info, HV *tags)
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Bitrate_Properties) ) {
       DEBUG_TRACE("Stream_Bitrate_Properties\n");
       _parse_stream_bitrate_properties(&asf_buf, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Content_Encryption) ) {
+      DEBUG_TRACE("Content_Encryption\n");
+      _parse_content_encryption(&asf_buf, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Encryption) ) {
+      DEBUG_TRACE("Skipping Extended_Content_Encryption\n");
+      buffer_consume(&asf_buf, tmp.size - 24);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Script_Command) ) {
+      DEBUG_TRACE("Script_Command\n");
+      _parse_script_command(&asf_buf, info, tags);
+    }
+    else if ( IsEqualGUID(&tmp.ID, &ASF_Digital_Signature) ) {
+      DEBUG_TRACE("Skipping Digital_Signature\n");
+      buffer_consume(&asf_buf, tmp.size - 24);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Header_Extension) ) {
       DEBUG_TRACE("Header_Extension\n");
@@ -540,7 +552,7 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   }
   
   _store_stream_info( stream_number, info, newSVpv("time_offset", 0), newSViv(time_offset) );
-  _store_stream_info( stream_number, info, newSVpv("encrypted", 0), newSViv( flags & 0x8000 ) );
+  _store_stream_info( stream_number, info, newSVpv("encrypted", 0), newSVuv( flags & 0x8000 ? 1 : 0 ) );
   
   buffer_free(&type_data_buf);
 }
@@ -1235,3 +1247,78 @@ _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
     }
   }
 }
+
+void
+_parse_content_encryption(Buffer *buf, HV *info, HV *tags)
+{
+  uint32_t protection_type_len;
+  uint32_t key_len;
+  uint32_t license_url_len;
+  
+  // Skip secret data
+  buffer_consume(buf, buffer_get_int_le(buf));
+  
+  protection_type_len = buffer_get_int_le(buf);
+  my_hv_store( info, "drm_protection_type", newSVpvn( buffer_ptr(buf), protection_type_len - 1 ) );
+  buffer_consume(buf, protection_type_len);
+  
+  key_len = buffer_get_int_le(buf);
+  my_hv_store( info, "drm_key", newSVpvn( buffer_ptr(buf), key_len - 1 ) );
+  buffer_consume(buf, key_len);
+  
+  license_url_len = buffer_get_int_le(buf);
+  my_hv_store( info, "drm_license_url", newSVpvn( buffer_ptr(buf), license_url_len - 1 ) );
+  buffer_consume(buf, license_url_len);
+}
+
+void
+_parse_script_command(Buffer *buf, HV *info, HV *tags)
+{
+  uint16_t command_count;
+  uint16_t type_count;
+  Buffer utf8_buf;
+  AV *types = newAV();
+  AV *commands = newAV();
+  
+  // Skip reserved
+  buffer_consume(buf, 16);
+  
+  command_count = buffer_get_short_le(buf);
+  type_count    = buffer_get_short_le(buf);
+  
+  while ( type_count-- ) {
+    SV *value;
+    uint16_t len = buffer_get_short_le(buf);
+    
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, len * 2);
+    value = newSVpvn( buffer_ptr(&utf8_buf), buffer_len(&utf8_buf) );
+    sv_utf8_decode(value);
+    buffer_free(&utf8_buf);
+    
+    av_push( types, value );
+  }
+  
+  while ( command_count-- ) {
+    HV *command = newHV();
+    SV *value;
+    
+    uint32_t pres_time  = buffer_get_int_le(buf);
+    uint16_t type_index = buffer_get_short_le(buf);
+    uint16_t name_len   = buffer_get_short_le(buf);
+    
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len * 2);
+    value = newSVpvn( buffer_ptr(&utf8_buf), buffer_len(&utf8_buf) );
+    sv_utf8_decode(value);
+    buffer_free(&utf8_buf);
+    
+    my_hv_store( command, "time", newSVuv(pres_time) );
+    my_hv_store( command, "type", newSVuv(type_index) );
+    my_hv_store( command, "command", value );
+    
+    av_push( commands, newRV_noinc( (SV *)command ) );
+  }
+  
+  my_hv_store( info, "script_types", newRV_noinc( (SV *)types ) );
+  my_hv_store( info, "script_commands", newRV_noinc( (SV *)commands ) );
+}
+     
