@@ -106,6 +106,8 @@ t/05mp3.t
 t/06flac.t
 t/07ogg.t
 t/08asf.t
+t/asf/drm.wma
+t/asf/jfif.wma
 t/asf/wma-live.wma
 t/asf/wma92-32k.wma
 t/asf/wma92-48k-pro.wma
