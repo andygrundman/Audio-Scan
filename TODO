@@ -27,9 +27,6 @@ Ogg
 ASF
 ---
 Refactor a bit
-WM/Picture not handled properly in Metadata_Library (drm.wma)
-Read JFIF-specific data (jfif.wma)
-Make sure all reads of utf8_buf have a length
 
 Tests
  ASF

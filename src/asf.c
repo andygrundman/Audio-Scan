@@ -270,7 +270,6 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
     uint16_t value_len;
     SV *key = NULL;
     SV *value = NULL;
-    HV *picture;
     Buffer utf8_buf;
     
     name_len = buffer_get_short_le(buf);
@@ -292,49 +291,7 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
     else if (data_type == TYPE_BYTE) {
       // handle picture data, interestingly it is compatible with the ID3v2 APIC frame
       if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
-        char *tmp_ptr;
-        uint16_t mime_len = 2; // to handle double-null
-        uint16_t desc_len = 2;
-        uint32_t image_len;
-        SV *mime;
-        SV *desc;
-        
-        picture = newHV();
-        
-        my_hv_store( picture, "image_type", newSViv( buffer_get_char(buf) ) );
-
-        image_len = buffer_get_int_le(buf);
-        
-        // MIME type is a double-null-terminated UTF-16 string
-        tmp_ptr = buffer_ptr(buf);
-        while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
-          mime_len += 2;
-          tmp_ptr += 2;
-        }
-        
-        buffer_get_utf16le_as_utf8(buf, &utf8_buf, mime_len);
-        mime = newSVpv( buffer_ptr(&utf8_buf), 0 );
-        sv_utf8_decode(mime);
-        my_hv_store( picture, "mime_type", mime );
-        buffer_free(&utf8_buf);
-        
-        // Description is a double-null-terminated UTF-16 string
-        tmp_ptr = buffer_ptr(buf);
-        while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
-          desc_len += 2;
-          tmp_ptr += 2;
-        }
-        
-        buffer_get_utf16le_as_utf8(buf, &utf8_buf, desc_len);
-        desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
-        sv_utf8_decode(desc);
-        my_hv_store( picture, "description", desc );
-        buffer_free(&utf8_buf);
-        
-        my_hv_store( picture, "image", newSVpvn( buffer_ptr(buf), image_len ) );
-        buffer_consume(buf, image_len);
-        
-        value = newRV_noinc( (SV *)picture );
+        value = _parse_picture(buf);
       }
       else {
         value = newSVpvn( buffer_ptr(buf), value_len );
@@ -975,8 +932,14 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
       buffer_free(&utf8_buf);
     }
     else if (data_type == TYPE_BYTE) {
-      value = newSVpvn( buffer_ptr(buf), data_len );
-      buffer_consume(buf, data_len);
+      // handle picture data
+      if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
+        value = _parse_picture(buf);
+      }
+      else {
+        value = newSVpvn( buffer_ptr(buf), data_len );
+        buffer_consume(buf, data_len);
+      }
     }
     else if (data_type == TYPE_BOOL || data_type == TYPE_WORD) {
       value = newSViv( buffer_get_short_le(buf) );
@@ -1121,15 +1084,15 @@ _store_tag(HV *tags, SV *key, SV *value)
   if ( my_hv_exists_ent( tags, key ) ) {
     SV **entry = my_hv_fetch( tags, SvPVX(key) );
     if (entry != NULL) {
-      // A normal string entry, convert to array.
-      if ( SvTYPE(*entry) == SVt_PV ) {
+      if ( SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+        av_push( (AV *)SvRV(*entry), value );
+      }
+      else {
+      // A non-array entry, convert to array.
         AV *ref = newAV();
         av_push( ref, newSVsv(*entry) );
         av_push( ref, value );
         my_hv_store_ent( tags, key, newRV_noinc( (SV*)ref ) );
-      }
-      else if ( SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
-        av_push( (AV *)SvRV(*entry), value );
       }
     }
   }
@@ -1293,7 +1256,7 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     uint16_t len = buffer_get_short_le(buf);
     
     buffer_get_utf16le_as_utf8(buf, &utf8_buf, len * 2);
-    value = newSVpvn( buffer_ptr(&utf8_buf), buffer_len(&utf8_buf) );
+    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(value);
     buffer_free(&utf8_buf);
     
@@ -1309,7 +1272,7 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     uint16_t name_len   = buffer_get_short_le(buf);
     
     buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len * 2);
-    value = newSVpvn( buffer_ptr(&utf8_buf), buffer_len(&utf8_buf) );
+    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(value);
     buffer_free(&utf8_buf);
     
@@ -1323,4 +1286,51 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
   my_hv_store( info, "script_types", newRV_noinc( (SV *)types ) );
   my_hv_store( info, "script_commands", newRV_noinc( (SV *)commands ) );
 }
-     
+
+SV *
+_parse_picture(Buffer *buf)
+{
+  char *tmp_ptr;
+  uint16_t mime_len = 2; // to handle double-null
+  uint16_t desc_len = 2;
+  uint32_t image_len;
+  SV *mime;
+  SV *desc;
+  HV *picture = newHV();
+  Buffer utf8_buf;
+  
+  my_hv_store( picture, "image_type", newSVuv( buffer_get_char(buf) ) );
+
+  image_len = buffer_get_int_le(buf);
+  
+  // MIME type is a double-null-terminated UTF-16 string
+  tmp_ptr = buffer_ptr(buf);
+  while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
+    mime_len += 2;
+    tmp_ptr += 2;
+  }
+  
+  buffer_get_utf16le_as_utf8(buf, &utf8_buf, mime_len);
+  mime = newSVpv( buffer_ptr(&utf8_buf), 0 );
+  sv_utf8_decode(mime);
+  my_hv_store( picture, "mime_type", mime );
+  buffer_free(&utf8_buf);
+  
+  // Description is a double-null-terminated UTF-16 string
+  tmp_ptr = buffer_ptr(buf);
+  while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
+    desc_len += 2;
+    tmp_ptr += 2;
+  }
+  
+  buffer_get_utf16le_as_utf8(buf, &utf8_buf, desc_len);
+  desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
+  sv_utf8_decode(desc);
+  my_hv_store( picture, "description", desc );
+  buffer_free(&utf8_buf);
+  
+  my_hv_store( picture, "image", newSVpvn( buffer_ptr(buf), image_len ) );
+  buffer_consume(buf, image_len);
+  
+  return newRV_noinc( (SV *)picture );
+}

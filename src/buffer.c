@@ -421,6 +421,11 @@ buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
       buffer_put_char(utf8, 0x80 | (wc & 0x3f));
     }
   }
+  
+  // Add null if one wasn't provided
+  if ( (utf8->buf + utf8->end - 1)[0] != 0 ) {
+    buffer_put_char(utf8, 0);
+  }
 }
       
 void

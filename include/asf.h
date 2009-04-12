@@ -174,3 +174,4 @@ int _parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, 
 void _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags);
 void _parse_content_encryption(Buffer *buf, HV *info, HV *tags);
 void _parse_script_command(Buffer *buf, HV *info, HV *tags);
+SV *_parse_picture(Buffer *buf);

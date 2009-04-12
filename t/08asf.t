@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 122;
+use Test::More tests => 127;
 
 use Audio::Scan;
 use Encode;
@@ -228,6 +228,12 @@ use Encode;
     is( $info->{script_commands}->[1]->{command}, '', 'Script command 2 ok' );
     is( $info->{script_commands}->[1]->{time}, 1579, 'Script time 2 ok' );
     is( $info->{script_commands}->[1]->{type}, 1, 'Script type 2 ok' );
+    
+    is( ref $tags->{'WM/Picture'}, 'ARRAY', 'WM/Picture array ok' );
+    is( $tags->{'WM/Picture'}->[0]->{description}, 'Large Cover Art', 'WM/Picture 1 description ok' );
+    is( length( $tags->{'WM/Picture'}->[0]->{image} ), 4644, 'WM/Picture 1 image ok' );
+    is( $tags->{'WM/Picture'}->[1]->{description}, 'Cover Art', 'WM/Picture 2 description ok' );
+    is( length( $tags->{'WM/Picture'}->[1]->{image} ), 2110, 'WM/Picture 2 image ok ');
 }
 
 # File with JFIF image type and MP3 codec
