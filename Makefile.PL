@@ -36,7 +36,9 @@ END
 }
 
 my @check = qw(/usr/include /usr/local/include /opt/local/include);
-push @check, split /:/, $ENV{INCLUDE};
+
+# Check in environment-supplied locations before standard ones - keeps cross compilers happier
+unshift @check, split /:/, $ENV{INCLUDE};
 
 if ( $^O =~ /Win32/ ) {
     push @check, '../flac-1.2.1/include';
