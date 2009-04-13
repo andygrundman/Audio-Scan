@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 127;
+use Test::More tests => 128;
 
 use Audio::Scan;
 use Encode;
@@ -218,6 +218,8 @@ use Encode;
     is( $info->{drm_license_url}, 'http://switchboard.real.com/rhapsody/?cd=wmupgrade', 'DRM license URL ok' );
     is( $info->{drm_protection_type}, 'DRM', 'DRM protection type ok' );
     
+    like( $info->{drm_data}, qr{<RhapsodyAlbumArtistId>16826</RhapsodyAlbumArtistId>}, 'Extended encryption data ok' );
+
     is( ref $info->{script_types}, 'ARRAY', 'Script types ok' );
     is( $info->{script_types}->[0], 'URL', 'Script type URL ok' );
     is( $info->{script_types}->[1], 'FILENAME', 'Script type FILENAME ok' );

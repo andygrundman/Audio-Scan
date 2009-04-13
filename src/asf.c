@@ -145,8 +145,8 @@ get_asf_metadata(char *file, HV *info, HV *tags)
       _parse_content_encryption(&asf_buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Encryption) ) {
-      DEBUG_TRACE("Skipping Extended_Content_Encryption\n");
-      buffer_consume(&asf_buf, tmp.size - 24);
+      DEBUG_TRACE("Extended_Content_Encryption\n");
+      _parse_extended_content_encryption(&asf_buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Script_Command) ) {
       DEBUG_TRACE("Script_Command\n");
@@ -1234,6 +1234,28 @@ _parse_content_encryption(Buffer *buf, HV *info, HV *tags)
   license_url_len = buffer_get_int_le(buf);
   my_hv_store( info, "drm_license_url", newSVpvn( buffer_ptr(buf), license_url_len - 1 ) );
   buffer_consume(buf, license_url_len);
+}
+
+void
+_parse_extended_content_encryption(Buffer *buf, HV *info, HV *tags)
+{
+  uint32_t len = buffer_get_int_le(buf);
+  Buffer utf8_buf;
+  SV *value;
+  unsigned char *tmp_ptr = buffer_ptr(buf);
+    
+  if ( tmp_ptr[0] == 0xFF && tmp_ptr[1] == 0xFE ) {
+    buffer_consume(buf, 2);
+    buffer_get_utf16le_as_utf8(buf, &utf8_buf, len - 2);
+    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    sv_utf8_decode(value);
+    buffer_free(&utf8_buf);
+    
+    my_hv_store( info, "drm_data", value );
+  }
+  else {
+    buffer_consume(buf, len);
+  }
 }
 
 void

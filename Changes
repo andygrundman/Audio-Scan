@@ -2,6 +2,7 @@ Revision history for Audio::Scan
 
 0.05
         - ASF: Fixed bug with empty script command names.
+        - ASF: Support Extended Content Encryption.
 
 0.04    2009-04-12 16:10:00
         - ASF: Support for Content Encryption, Extended Content

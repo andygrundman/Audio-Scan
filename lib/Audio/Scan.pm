@@ -243,6 +243,10 @@ want to find out more about any of these values.
     codec_list (array of information about codecs used in the file)
     creation_date (UNIX timestamp when file was created)
     data_packets
+    drm_key
+    drm_license_url
+    drm_protection_type
+    drm_data
     file_id (unique file ID)
     file_size
     index_blocks
@@ -256,6 +260,8 @@ want to find out more about any of these values.
     mutex_list (mutually exclusive stream information)
     play_duration_ms
     preroll
+    script_commands
+    script_types
     seekable (boolean, whether the file is seekable or not)
     send_duration_ms
     song_length_ms (the actual length of the audio, in milliseconds)
@@ -299,8 +305,8 @@ The following metadata may be returned:
 
 =head2 TAGS
 
-Raw tags are returned.  In contrast to the other formats, tag keys are NOT capitalized.
-There is one special key:
+Raw tags are returned.  Tags that occur more than once are returned as arrays.
+In contrast to the other formats, tag keys are NOT capitalized. There is one special key:
 
 WM/Picture
 
