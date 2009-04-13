@@ -13,11 +13,12 @@ if ( $^O !~ /Win32/ ) {
     push @LIBS, '-lz';
 }
 
-my ($help, $flac_inc, $flac_lib);
+my ($help, $flac_inc, $flac_lib, $flac_static);
 my $result = GetOptions(
     "help|h"                 => \$help,
     "with-flac-includes=s"   => \$flac_inc,
     "with-flac-libs=s"       => \$flac_lib,
+    "with-flac-static"       => \$flac_static,
 );
 
 if ( $help || !$result ) {
@@ -29,6 +30,7 @@ Configure Audio::Scan module.
 Options:
      --with-flac-includes       Path to directory containing FLAC/all.h
      --with-flac-libs           Path to directory containing libFLAC
+     --with-flac-static         Statically link in libFLAC (requires libFLAC.a and libogg.a)
 
 END
 
@@ -55,8 +57,21 @@ for my $incdir ( $flac_inc, @check ) {
         if ( $flac_lib ) {
             push @LIBPATH, '-L' . $flac_lib;
         }
-
-        push @LIBS, '-lFLAC';
+        
+        if ( $flac_static ) {
+            if ( $flac_lib ) {
+                $MYEXTLIB .= $flac_lib . '/' . 'libFLAC$(LIB_EXT) ';
+                $MYEXTLIB .= $flac_lib . '/' . 'libogg$(LIB_EXT) ';
+            }
+            else {
+                $MYEXTLIB .= $flac_inc . '/../lib/libFLAC$(LIB_EXT) ';
+                $MYEXTLIB .= $flac_inc . '/../lib/libogg$(LIB_EXT) ';
+            }
+        }
+        else {
+            push @LIBS, '-lFLAC';
+        }
+        
         last;
     }
 }
@@ -102,7 +117,7 @@ fixflac:
 END
     };
     
-    $MYEXTLIB = 'libid3tag/msvc++/Release/libid3tag.lib ';
+    $MYEXTLIB .= 'libid3tag/msvc++/Release/libid3tag.lib ';
     $MYEXTLIB .= '../zlib-1.2.3/projects/visualc6/Win32_LIB_Release/zlib.lib ';
     $MYEXTLIB .= '../flac-1.2.1/obj/release/lib/libFLAC_dynamic.lib ';
 }
@@ -114,7 +129,7 @@ else {
         push @LIBS, '-lid3tag';
     }
     else {
-        $MYEXTLIB = 'libid3tag/.libs/libid3tag$(LIB_EXT)';
+        $MYEXTLIB .= 'libid3tag/.libs/libid3tag$(LIB_EXT) ';
     }
 }
 
