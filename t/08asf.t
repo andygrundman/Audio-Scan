@@ -225,7 +225,7 @@ use Encode;
     is( $info->{script_commands}->[0]->{command}, 'http://www.microsoft.com/isapi/redir.dll?Prd=WMT4&Sbp=DRM&Plcid=0x0409&Pver=4.0&WMTFeature=DRM', 'Script command 1 ok' );
     is( $info->{script_commands}->[0]->{time}, 1579, 'Script time 1 ok' );
     is( $info->{script_commands}->[0]->{type}, 0, 'Script type 1 ok' );
-    is( $info->{script_commands}->[1]->{command}, '', 'Script command 2 ok' );
+    is( $info->{script_commands}->[1]->{command}, undef, 'Script command 2 ok' );
     is( $info->{script_commands}->[1]->{time}, 1579, 'Script time 2 ok' );
     is( $info->{script_commands}->[1]->{type}, 1, 'Script type 2 ok' );
     

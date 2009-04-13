@@ -1271,14 +1271,16 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     uint16_t type_index = buffer_get_short_le(buf);
     uint16_t name_len   = buffer_get_short_le(buf);
     
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len * 2);
-    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
-    sv_utf8_decode(value);
-    buffer_free(&utf8_buf);
+    if (name_len) {
+      buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len * 2);
+      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      sv_utf8_decode(value);
+      buffer_free(&utf8_buf);
+      my_hv_store( command, "command", value );
+    }
     
     my_hv_store( command, "time", newSVuv(pres_time) );
     my_hv_store( command, "type", newSVuv(type_index) );
-    my_hv_store( command, "command", value );
     
     av_push( commands, newRV_noinc( (SV *)command ) );
   }
