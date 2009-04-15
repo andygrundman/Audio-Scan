@@ -48,38 +48,51 @@ if ( $^O =~ /Win32/ ) {
 
 # Look for libFLAC
 for my $incdir ( $flac_inc, @check ) {
-    if ( $incdir && -e catfile( $incdir, 'FLAC/all.h' ) ) {
-        $FLAC = 1;
-        $flac_inc = $incdir;
-
-        push @INC, '-I' . $flac_inc;
-
-        if ( $flac_lib ) {
-            push @LIBPATH, '-L' . $flac_lib;
+    if ( $incdir && -e catfile( $incdir, 'FLAC/export.h' ) ) {
+        # Check for a new enough version
+        my $current;
+        open my $fh, '<', catfile( $incdir, 'FLAC/export.h' );
+        while ( <$fh> ) {
+            if ( /FLAC_API_VERSION_CURRENT/ ) {
+                $current = 1;
+                last;
+            }
         }
-        
-        if ( $flac_static ) {
+        close $fh;
+
+        if ( $current ) {
+            $FLAC = 1;
+            $flac_inc = $incdir;
+
+            push @INC, '-I' . $flac_inc;
+
             if ( $flac_lib ) {
-                $MYEXTLIB .= $flac_lib . '/' . 'libFLAC$(LIB_EXT) ';
-                $MYEXTLIB .= $flac_lib . '/' . 'libogg$(LIB_EXT) ';
+                push @LIBPATH, '-L' . $flac_lib;
+            }
+        
+            if ( $flac_static ) {
+                if ( $flac_lib ) {
+                    $MYEXTLIB .= $flac_lib . '/' . 'libFLAC$(LIB_EXT) ';
+                    $MYEXTLIB .= $flac_lib . '/' . 'libogg$(LIB_EXT) ';
+                }
+                else {
+                    $MYEXTLIB .= $flac_inc . '/../lib/libFLAC$(LIB_EXT) ';
+                    $MYEXTLIB .= $flac_inc . '/../lib/libogg$(LIB_EXT) ';
+                }
             }
             else {
-                $MYEXTLIB .= $flac_inc . '/../lib/libFLAC$(LIB_EXT) ';
-                $MYEXTLIB .= $flac_inc . '/../lib/libogg$(LIB_EXT) ';
+                push @LIBS, '-lFLAC';
             }
-        }
-        else {
-            push @LIBS, '-lFLAC';
-        }
         
-        last;
+            last;
+        }
     }
 }
 
 print "\n";
 print "Audio::Scan will be built with:\n\n";
 print "   MP3 support:     yes\n";
-print "  FLAC support:     " . ( $FLAC ? "yes ($flac_inc)" : "no, install libFLAC" ) . "\n";
+print "  FLAC support:     " . ( $FLAC ? "yes ($flac_inc)" : "no, install libFLAC 1.1.3+" ) . "\n";
 print "   OGG support:     yes\n";
 print "   ASF support:     yes\n";
 print "\n";
