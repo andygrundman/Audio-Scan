@@ -51,7 +51,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   int i;
   int err = 0;
   
-  buffer_init(&ogg_buf, 0);
+  buffer_init(&ogg_buf, OGG_BLOCK_SIZE);
   buffer_init(&vorbis_buf, 0);
   
   PerlIO_seek(infile, 0, SEEK_END);
@@ -338,4 +338,41 @@ _parse_comments(Buffer *vorbis_buf, HV *tags)
     
     Safefree(tmp);
   }
+}
+
+static int
+ogg_find_frame(PerlIO *infile, char *file, int offset)
+{
+  Buffer ogg_buf;
+  unsigned char *bptr;
+  unsigned int buf_size;
+  int frame_offset = -1;
+  
+  PerlIO_seek(infile, offset, SEEK_SET);
+  
+  buffer_init(&ogg_buf, OGG_BLOCK_SIZE);
+  
+  if ( !_check_buf(infile, &ogg_buf, OGG_BLOCK_SIZE, OGG_BLOCK_SIZE) ) {
+    goto out;
+  }
+  
+  bptr = (unsigned char *)buffer_ptr(&ogg_buf);
+  buf_size = buffer_len(&ogg_buf);
+  
+  while (
+    buf_size >= 4
+    && (bptr[0] != 'O' || bptr[1] != 'g' || bptr[2] != 'g' || bptr[3] != 'S')
+  ) {
+    bptr++;
+    buf_size--;
+  }
+  
+  if (buf_size >= 4) {
+    frame_offset = offset + OGG_BLOCK_SIZE - buf_size;
+  }
+
+out:
+  buffer_free(&ogg_buf);
+
+  return frame_offset;
 }

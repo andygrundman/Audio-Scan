@@ -25,6 +25,7 @@ typedef struct {
   char*	type;
   int (*get_tags)(PerlIO *infile, char *file, HV *info, HV *tags);
   int (*get_fileinfo)(PerlIO *infile, char *file, HV *tags);
+  int (*find_frame)(PerlIO *infile, char *file, int offset);
 } taghandler;
 
 struct _types audio_types[] = {
@@ -39,25 +40,22 @@ struct _types audio_types[] = {
 };
 
 static taghandler taghandlers[] = {
-  { "aac", 0, 0 },
-  { "mp3", get_mp3tags, get_mp3fileinfo },
-  { "ogg", get_ogg_metadata, 0 },
+  { "aac", 0, 0, 0 },
+  { "mp3", get_mp3tags, get_mp3fileinfo, 0 },
+  { "ogg", get_ogg_metadata, 0, ogg_find_frame },
 #ifdef HAVE_FLAC
-  { "flc", get_flac_metadata, 0 },
+  { "flc", get_flac_metadata, 0, 0 },
 #endif
-  { "asf", get_asf_metadata, 0 },
+  { "asf", get_asf_metadata, 0, 0 },
   { NULL, 0, 0 }
 };
 
-HV *
-_scan( char *suffix, PerlIO *infile, SV *path, uint8_t filter )
+static taghandler *
+_get_taghandler(char *suffix)
 {
   int typeindex = -1;
   int i, j;
-  HV *out = newHV();
-  
-  // don't leak
-  sv_2mortal( (SV*)out );
+  taghandler *hdl = NULL;
   
   for (i=0; typeindex==-1 && audio_types[i].type; i++) {
     for (j=0; typeindex==-1 && audio_types[i].suffix[j]; j++) {
@@ -71,15 +69,29 @@ _scan( char *suffix, PerlIO *infile, SV *path, uint8_t filter )
       }
     }
   }
-
+    
   if (typeindex > 0) {
-    taghandler *hdl;
-    HV *info = newHV();
-
-    // dispatch to appropriate tag handler
     for (hdl = taghandlers; hdl->type; ++hdl)
       if (!strcmp(hdl->type, audio_types[typeindex].type))
         break;
+  }
+  
+  return hdl;
+}
+
+HV *
+_scan( char *suffix, PerlIO *infile, SV *path, uint8_t filter )
+{
+  taghandler *hdl;
+  HV *out = newHV();
+  
+  // don't leak
+  sv_2mortal( (SV*)out );
+  
+  hdl = _get_taghandler(suffix);
+  
+  if (hdl) {
+    HV *info = newHV();
 
     // Ignore filter if a file type has only one function (FLAC/Ogg)
     if ( !hdl->get_fileinfo ) {
@@ -100,10 +112,23 @@ _scan( char *suffix, PerlIO *infile, SV *path, uint8_t filter )
     hv_store( out, "info", 4, newRV_noinc( (SV *)info ), 0 );
   }
   else {
-    croak("Audio::Scan unsupported file type: %s %s", suffix, SvPVX(path));
+    croak("Audio::Scan unsupported file type: %s (%s)", suffix, SvPVX(path));
   }
   
   return out;
+}
+
+int
+_find_frame( char *suffix, PerlIO *infile, SV *path, int offset )
+{
+  int frame = -1;
+  taghandler *hdl = _get_taghandler(suffix);
+  
+  if (hdl && hdl->find_frame) {
+    frame = hdl->find_frame(infile, SvPVX(path), offset);
+  }
+  
+  return frame;
 }
 
 MODULE = Audio::Scan		PACKAGE = Audio::Scan
@@ -140,7 +165,6 @@ CODE:
 
   suffix++;
   
-  // Open file
   if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
     PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
     XSRETURN_UNDEF;
@@ -168,6 +192,46 @@ CODE:
   }
 
   RETVAL = _scan( suffix, fh, newSVpv("(filehandle)", 0), filter );
+}
+OUTPUT:
+  RETVAL
+
+int
+find_frame(char *, SV *path, int offset)
+CODE:
+{
+  PerlIO *infile;
+  char *suffix = strrchr( SvPVX(path), '.' );
+  
+  if ( !suffix ) {
+    RETVAL = -1;
+    return;
+  }
+  
+  suffix++;
+  
+  if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
+    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
+    RETVAL = -1;
+    return;
+  }
+  
+  RETVAL = _find_frame( suffix, infile, path, offset );
+  
+  PerlIO_close(infile);
+}
+OUTPUT:
+  RETVAL
+
+int
+find_frame_fh(char *, SV *type, SV *sfh, int offset)
+CODE:
+{
+  char *suffix = SvPVX(type);
+  
+  PerlIO *fh = IoIFP(sv_2io(sfh));
+  
+  RETVAL = _find_frame( suffix, fh, newSVpv("(filehandle)", 0), offset );
 }
 OUTPUT:
   RETVAL

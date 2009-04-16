@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 31;
+use Test::More tests => 33;
 
 use Audio::Scan;
 use Encode;
@@ -121,6 +121,23 @@ use Encode;
     is($tags->{YEAR}, 2009, 'Year Tag ok via filehandle');
 
     is($info->{bitrate_average}, 12141, 'Bitrate ok via filehandle');
+    
+    close $fh;
+}
+
+# Find frame offset
+{
+    my $offset = Audio::Scan->find_frame( _f('bug1155-1.ogg'), 17005 );
+    
+    is( $offset, 21351, 'Find frame ok' );
+}
+
+{
+    open my $fh, '<', _f('bug1155-1.ogg');
+    
+    my $offset = Audio::Scan->find_frame_fh( ogg => $fh, 16600 );
+    
+    is( $offset, 17004, 'Find frame via filehandle ok' );
     
     close $fh;
 }

@@ -83,6 +83,15 @@ If you only need the tags and don't care about the metadata, use this method.
 Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or "ogg".
 Note that FLAC does not support reading from a filehandle.
 
+=head2 find_frame( $path, $offset )
+
+Returns the byte offset to the first audio frame starting from $offset.
+Only supported for Ogg currently.
+
+=head2 find_frame_fh( $type => $fh, $offset )
+
+Same as L<find_frame>, but with a filehandle.
+
 =head2 has_flac()
 
 Returns 1 if FLAC support was compiled in, or 0 if not.

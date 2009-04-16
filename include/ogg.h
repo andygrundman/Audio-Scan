@@ -17,4 +17,5 @@
 #define OGG_BLOCK_SIZE 4500
 
 static int get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
+static int ogg_find_frame(PerlIO *infile, char *file, int offset);
 void _parse_comments(Buffer *vorbis_buf, HV *tags);
