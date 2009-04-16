@@ -11,6 +11,11 @@ SYNOPSIS
 
         # Just tags
         my $tags = Audio::Scan->scan_tags('/path/to/file.mp3');
+        
+    # Scan a filehandle
+        open my $fh, '<', 'my.mp3';
+        my $data = Audio::Scan->scan_fh( mp3 => $fh );
+        close $fh;
 
 DESCRIPTION
     Audio::Scan is a C-based scanner for audio file metadata and tag
@@ -42,6 +47,10 @@ METHODS
   scan_tags( $path )
     If you only need the tags and don't care about the metadata, use this
     method.
+
+  scan_fh( $type => $fh )
+    Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or
+    "ogg". Note that FLAC does not support reading from a filehandle.
 
   has_flac()
     Returns 1 if FLAC support was compiled in, or 0 if not.
@@ -204,6 +213,10 @@ ASF (Windows Media Audio/Video)
         codec_list (array of information about codecs used in the file)
         creation_date (UNIX timestamp when file was created)
         data_packets
+        drm_key
+        drm_license_url
+        drm_protection_type
+        drm_data
         file_id (unique file ID)
         file_size
         index_blocks
@@ -217,6 +230,8 @@ ASF (Windows Media Audio/Video)
         mutex_list (mutually exclusive stream information)
         play_duration_ms
         preroll
+        script_commands
+        script_types
         seekable (boolean, whether the file is seekable or not)
         send_duration_ms
         song_length_ms (the actual length of the audio, in milliseconds)
@@ -259,8 +274,9 @@ ASF (Windows Media Audio/Video)
         width (video only)
 
   TAGS
-    Raw tags are returned. In contrast to the other formats, tag keys are
-    NOT capitalized. There is one special key:
+    Raw tags are returned. Tags that occur more than once are returned as
+    arrays. In contrast to the other formats, tag keys are NOT capitalized.
+    There is one special key:
 
     WM/Picture
 
