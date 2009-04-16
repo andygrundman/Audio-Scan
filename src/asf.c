@@ -864,6 +864,12 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
     name = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(name);
     my_hv_store( codec_info, "name", name );
+    
+    // Set a 'lossless' flag in info if Lossless codec is used
+    if ( strstr( buffer_ptr(&utf8_buf), "Lossless" ) ) {
+      my_hv_store( info, "lossless", newSVuv(1) );
+    }
+    
     buffer_free(&utf8_buf);
     
     desc_len = buffer_get_short_le(buf) * 2;

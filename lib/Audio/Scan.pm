@@ -273,6 +273,7 @@ want to find out more about any of these values.
     index_offsets (byte offsets for each second of audio, per stream. Useful for seeking)
     index_specifiers (indicates which stream a given index_offset points to)
     language_list (array of languages referenced by the file's metadata)
+    lossless (boolean)
     max_bitrate
     max_packet_size
     min_packet_size

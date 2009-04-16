@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 130;
+use Test::More tests => 131;
 
 use Audio::Scan;
 use Encode;
@@ -146,6 +146,7 @@ use Encode;
     is( $info->{codec_list}->[0]->{name}, 'Windows Media Audio 9.2 Lossless', 'WMA Lossless ok' );
     is( $info->{streams}->[0]->{codec_id}, 0x0163, 'WMA Lossless codec ID ok' );
     is( $info->{streams}->[0]->{avg_bitrate}, 607494, 'WMA Lossless average bitrate ok' );
+    is( $info->{lossless}, 1, 'WMA Lossless flag ok' );
 }
 
 # WMA Voice file with duplicate tags
