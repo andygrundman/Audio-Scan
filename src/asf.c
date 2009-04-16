@@ -53,10 +53,8 @@ print_guid(GUID guid)
 }
 
 static int
-get_asf_metadata(char *file, HV *info, HV *tags)
+get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  PerlIO *infile;
-  
   Buffer asf_buf;
   ASF_Object hdr;
   ASF_Object data;
@@ -65,12 +63,6 @@ get_asf_metadata(char *file, HV *info, HV *tags)
   off_t file_size;
   
   int err = 0;
-  
-  if (!(infile = PerlIO_open(file, "rb"))) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
-    err = -1;
-    goto out;
-  }
   
   PerlIO_seek(infile, 0, SEEK_END);
   file_size = PerlIO_tell(infile);
@@ -217,8 +209,6 @@ get_asf_metadata(char *file, HV *info, HV *tags)
   }
   
 out:
-  if (infile) PerlIO_close(infile);
-
   buffer_free(&asf_buf);
 
   if (err) return err;

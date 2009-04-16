@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 28;
+use Test::More tests => 31;
 
 use Audio::Scan;
 use Encode;
@@ -106,6 +106,23 @@ use Encode;
     
     is($info->{song_length_ms}, 225986, 'Bug905 song length ok' );
     is($tags->{DATE}, '08-05-1998', 'Bug905 date ok');
+}
+
+# Scan via a filehandle
+{
+    open my $fh, '<', _f('test.ogg');
+    
+    my $s = Audio::Scan->scan_fh( ogg => $fh );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+
+    is($tags->{ARTIST}, 'Test Artist', 'ASCII Tag ok via filehandle');
+    is($tags->{YEAR}, 2009, 'Year Tag ok via filehandle');
+
+    is($info->{bitrate_average}, 12141, 'Bitrate ok via filehandle');
+    
+    close $fh;
 }
 
 sub _f {

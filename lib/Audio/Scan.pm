@@ -41,6 +41,11 @@ Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF
 
     # Just tags
     my $tags = Audio::Scan->scan_tags('/path/to/file.mp3');
+    
+    # Scan a filehandle
+    open my $fh, '<', 'my.mp3';
+    my $data = Audio::Scan->scan_fh( mp3 => $fh );
+    close $fh;
 
 =head1 DESCRIPTION
 
@@ -72,6 +77,11 @@ If you only need file metadata and don't care about tags, you can use this metho
 =head2 scan_tags( $path )
 
 If you only need the tags and don't care about the metadata, use this method.
+
+=head2 scan_fh( $type => $fh )
+
+Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or "ogg".
+Note that FLAC does not support reading from a filehandle.
 
 =head2 has_flac()
 

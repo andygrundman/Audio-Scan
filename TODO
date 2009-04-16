@@ -1,9 +1,9 @@
 General
 -------
+Pass in an optional hash to use for tag mapping
 
 MP3
 ---
-Support for reading from a filehandle (without seeking?)
 Lyrics3 support
 APEv2 support
 RIFF-MP3 support

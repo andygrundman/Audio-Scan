@@ -148,8 +148,8 @@ const char *presets_old[] = {
   "medium/fast"
 };
 
-static int get_mp3tags(char *file, HV *info, HV *tags);
-static int get_mp3fileinfo(char *file, HV *info);
+static int get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags);
+static int get_mp3fileinfo(PerlIO *infile, char *file, HV *info);
 static int _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi);
 
 // bitrate_tbl[layer_index][bitrate_index]

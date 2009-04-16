@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 128;
+use Test::More tests => 130;
 
 use Audio::Scan;
 use Encode;
@@ -249,7 +249,21 @@ use Encode;
     is( $info->{streams}->[0]->{width}, 320, 'JFIF width ok' );
     is( $info->{streams}->[0]->{height}, 240, 'JFIF height ok' );
 }
+
+# Scan via a filehandle
+{
+    open my $fh, '<', _f('wma92-32k.wma');
     
+    my $s = Audio::Scan->scan_fh( asf => $fh );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{audio_offset}, 5111, 'Audio offset ok via filehandle' );
+    is( $tags->{Author}, 'Author String', 'Author tag ok via filehandle' );
+    
+    close $fh;
+}
 
 sub _f {
     return catfile( $FindBin::Bin, 'asf', shift );

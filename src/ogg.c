@@ -17,10 +17,8 @@
 #include "ogg.h"
 
 static int
-get_ogg_metadata(char *file, HV *info, HV *tags)
+get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  PerlIO *infile;
-  
   Buffer ogg_buf, vorbis_buf;
   unsigned char *bptr;
   unsigned int buf_size;
@@ -55,13 +53,7 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   
   buffer_init(&ogg_buf, 0);
   buffer_init(&vorbis_buf, 0);
-
-  if (!(infile = PerlIO_open(file, "rb"))) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
-    err = -1;
-    goto out;
-  }
-
+  
   PerlIO_seek(infile, 0, SEEK_END);
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
@@ -309,8 +301,6 @@ get_ogg_metadata(char *file, HV *info, HV *tags)
   }
   
 out:
-  if (infile) PerlIO_close(infile);
-  
   buffer_free(&ogg_buf);
   buffer_free(&vorbis_buf);
 

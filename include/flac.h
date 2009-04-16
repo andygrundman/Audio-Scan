@@ -19,4 +19,4 @@
 #define FLACHEADERFLAG "fLaC"
 #define ID3HEADERFLAG  "ID3"
 
-static int get_flac_metadata(char *file, HV *info, HV *tags);
+static int get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags);

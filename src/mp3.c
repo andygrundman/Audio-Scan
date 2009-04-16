@@ -38,7 +38,7 @@ _varint(unsigned char *buf, int length)
 }
 
 static int
-get_mp3tags(char *file, HV *info, HV *tags)
+get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
   struct id3_file *pid3file;
   struct id3_tag *pid3tag;
@@ -53,9 +53,9 @@ get_mp3tags(char *file, HV *info, HV *tags)
   char *utf8_key;
   char *utf8_value;
 
-  pid3file = id3_file_open(file, ID3_FILE_MODE_READONLY);
+  pid3file = id3_file_fdopen( PerlIO_fileno(infile), ID3_FILE_MODE_READONLY );
   if (!pid3file) {
-    PerlIO_printf(PerlIO_stderr(), "Cannot open %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "libid3tag cannot open %s\n", file);
     return -1;
   }
 
@@ -65,7 +65,7 @@ get_mp3tags(char *file, HV *info, HV *tags)
     err = errno;
     id3_file_close(pid3file);
     errno = err;
-    PerlIO_printf(PerlIO_stderr(), "Cannot get ID3 tag for %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "libid3tag cannot get ID3 tag for %s\n", file);
     return -1;
   }
 
@@ -787,9 +787,8 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
 }
 
 static int
-get_mp3fileinfo(char *file, HV *info)
+get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 {
-  PerlIO *infile;
   struct mp3_frameinfo fi;
 
   unsigned char *buf;
@@ -811,12 +810,6 @@ get_mp3fileinfo(char *file, HV *info)
   
   Newxz(buf, BLOCK_SIZE, char);
   buf_ptr = buf;
-
-  if (!(infile = PerlIO_open(file, "rb"))) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", file);
-    err = -1;
-    goto out;
-  }
 
   memset((void*)&fi, 0, sizeof(fi));
 
@@ -1048,7 +1041,6 @@ get_mp3fileinfo(char *file, HV *info)
   }
 
 out:
-  if (infile) PerlIO_close(infile);
   if (buf_ptr) Safefree(buf_ptr);
 
   if (err) return err;

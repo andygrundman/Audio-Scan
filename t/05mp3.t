@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 194;
+use Test::More tests => 197;
 
 use Audio::Scan;
 use Encode;
@@ -592,6 +592,22 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TIPL}->[1], 'Steve Albini', 'ID3v2.4 TIPL string 2 ok' );
     is( $tags->{TIPL}->[2], 'engineer', 'ID3v2.4 TIPL string 3 ok' );
     is( $tags->{TIPL}->[3], 'Steve Albini', 'ID3v2.4 TIPL string 4 ok' );
+}
+
+# Scan via a filehandle
+{
+    open my $fh, '<', _f('v2.4.mp3');
+    
+    my $s = Audio::Scan->scan_fh( mp3 => $fh );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+
+    is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 version ok via filehandle' );
+    is( $tags->{TPE1}, 'Artist Name', 'ID3v2.4 artist ok via filehandle' );
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 title ok via filehandle' );
+    
+    close $fh;
 }
 
 sub _f {    

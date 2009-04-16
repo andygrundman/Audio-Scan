@@ -154,7 +154,7 @@ enum types {
   TYPE_GUID
 };
 
-static int get_asf_metadata(char *file, HV *info, HV *tags);
+static int get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
 void _parse_content_description(Buffer *buf, HV *info, HV *tags);
 void _parse_extended_content_description(Buffer *buf, HV *info, HV *tags);
 void _parse_file_properties(Buffer *buf, HV *info, HV *tags);

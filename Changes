@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.06
+        - Added scan_fh( $type => $fh ) method to scan a filehandle.
         - Don't build FLAC support with < libFLAC 1.1.3.
         - --with-flac-static flag for statically-linking libFLAC.
 

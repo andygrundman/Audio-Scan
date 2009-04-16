@@ -317,7 +317,7 @@ void print_error_with_chain_status(FLAC__Metadata_Chain *chain, const char *form
 }
 
 static int
-get_flac_metadata(char *file, HV *info, HV *tags)
+get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 {
   FLAC__Metadata_Chain *chain = FLAC__metadata_chain_new();
 
@@ -372,16 +372,9 @@ get_flac_metadata(char *file, HV *info, HV *tags)
     long len;
     struct stat st;
     float totalMS;
-    PerlIO *fh;
 
-    if ((fh = PerlIO_open(file, "rb")) == NULL) {
-      PerlIO_printf(PerlIO_stderr(), "Couldn't open file [%s] for reading! %s\n", file, strerror(errno));
-      return -1;
-    }
-
-    if (PerlIO_read(fh, &buf, 4) == -1) {
+    if (PerlIO_read(infile, &buf, 4) == -1) {
       PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
-      PerlIO_close(fh);
       return -1;
     }
 
@@ -391,18 +384,16 @@ get_flac_metadata(char *file, HV *info, HV *tags)
       int c = 0;
 
       /* How big is the ID3 header? Skip the next two bytes */
-      if (PerlIO_read(fh, &buf, 2) == -1) {
+      if (PerlIO_read(infile, &buf, 2) == -1) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length! %s\n", strerror(errno));
-        PerlIO_close(fh);
         return -1;
       }
 
       /* The size of the ID3 tag is a 'synchsafe' 4-byte uint */
       for (c = 0; c < 4; c++) {
 
-        if (PerlIO_read(fh, &buf, 1) == -1 || buf[0] & 0x80) {
+        if (PerlIO_read(infile, &buf, 1) == -1 || buf[0] & 0x80) {
           PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length (syncsafe)! %s\n", strerror(errno));
-          PerlIO_close(fh);
           return -1;
         }
 
@@ -410,30 +401,26 @@ get_flac_metadata(char *file, HV *info, HV *tags)
         id3size |= (buf[0] & 0x7f);
       }
 
-      if (PerlIO_seek(fh, id3size, SEEK_CUR) < 0) {
+      if (PerlIO_seek(infile, id3size, SEEK_CUR) < 0) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't seek past ID3 header!\n");
-        PerlIO_close(fh);
         return -1;
       }
 
-      if (PerlIO_read(fh, &buf, 4) == -1) {
+      if (PerlIO_read(infile, &buf, 4) == -1) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
-        PerlIO_close(fh);
         return -1;
       }
     }
 
     if (memcmp(buf, FLACHEADERFLAG, 4)) {
       PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header - got gibberish instead!\n");
-      PerlIO_close(fh);
       return -1;
     }
 
     while (!is_last) {
 
-      if (PerlIO_read(fh, &buf, 4) == -1) {
+      if (PerlIO_read(infile, &buf, 4) == -1) {
         PerlIO_printf(PerlIO_stderr(), "Couldn't read 4 bytes of the metadata block!\n");
-        PerlIO_close(fh);
         return -1;
       }
 
@@ -441,11 +428,10 @@ get_flac_metadata(char *file, HV *info, HV *tags)
 
       len = (long)((buf[1] << 16) | (buf[2] << 8) | (buf[3]));
 
-      PerlIO_seek(fh, len, SEEK_CUR);
+      PerlIO_seek(infile, len, SEEK_CUR);
     }
 
-    len = PerlIO_tell(fh);
-    PerlIO_close(fh);
+    len = PerlIO_tell(infile);
 
     my_hv_store(info, "audio_offset", newSVnv(len));
 
