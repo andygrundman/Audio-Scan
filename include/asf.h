@@ -21,6 +21,8 @@
   
 #define IsEqualGUID(rguid1, rguid2) (!memcmp(rguid1, rguid2, sizeof(GUID)))
 
+#define GETLEN2b(bits) (((bits) == 0x03) ? 4 : bits)
+
 DEFINE_GUID(ASF_Header_Object, 0x75b22630, 0x668e, 0x11cf,
       0xa6, 0xd9, 0x00, 0xaa, 0x00, 0x62, 0xce, 0x6c);
 
@@ -176,3 +178,5 @@ void _parse_content_encryption(Buffer *buf, HV *info, HV *tags);
 void _parse_extended_content_encryption(Buffer *buf, HV *info, HV *tags);
 void _parse_script_command(Buffer *buf, HV *info, HV *tags);
 SV *_parse_picture(Buffer *buf);
+int asf_find_frame(PerlIO *infile, char *file, int offset);
+int _timestamp(PerlIO *infile, int offset, int *duration);

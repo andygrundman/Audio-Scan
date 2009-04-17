@@ -2,8 +2,7 @@ Revision history for Audio::Scan
 
 0.07
         - Added find_frame_fh( $type => $fh, $offset ) method.
-          Returns the byte offset to the next audio frame after
-          $offset. (Ogg only so far)
+          See docs for details.
         - Added $info->{lossless} for WMA Lossless.
 
 0.06    2009-04-15 23:15:00

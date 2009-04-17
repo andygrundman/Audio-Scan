@@ -46,7 +46,7 @@ static taghandler taghandlers[] = {
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0, 0 },
 #endif
-  { "asf", get_asf_metadata, 0, 0 },
+  { "asf", get_asf_metadata, 0, asf_find_frame },
   { NULL, 0, 0 }
 };
 

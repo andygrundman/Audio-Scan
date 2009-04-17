@@ -1124,8 +1124,7 @@ _parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buff
     }
     else if ( IsEqualGUID(&tmp, &ASF_Simple_Index) ) {
       DEBUG_TRACE("Skipping Simple_Index size %d\n", size);
-      // Simple Index contains packet number offsets, I can't
-      // see how these would be useful, so just skip them
+      // Simple Index is used for video files only
       buffer_consume(buf, size - 24);
     }
     else {
@@ -1143,6 +1142,7 @@ _parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buff
   return 1;
 }
 
+// XXX: These don't really seem that useful for seeking after all...
 void
 _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
 {
@@ -1187,9 +1187,10 @@ _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
     
     while ( entry_count-- ) {      
       for (i = 0; i < spec_count; i++) {
-        // These are byte offsets relative to start of data object,
-        // so we add audio_offset here
-        av_push( offsets[i], newSViv( audio_offset + buffer_get_int_le(buf) ) );
+        // These are byte offsets relative to start of the first data packet,
+        // so we add audio_offset here.  An additional 50 bytes are added
+        // to skip past the top-level Data Object
+        av_push( offsets[i], newSViv( audio_offset + 50 + buffer_get_int_le(buf) ) );
       }
     }
     
@@ -1353,4 +1354,128 @@ _parse_picture(Buffer *buf)
   buffer_consume(buf, image_len);
   
   return newRV_noinc( (SV *)picture );
+}
+
+// offset is in ms
+// Based on some code from Rockbox
+int
+asf_find_frame(PerlIO *infile, char *file, int offset)
+{
+  int frame_offset = -1;
+  uint32_t audio_offset, max_packet_size, max_bitrate;
+  uint64_t data_packets;
+  uint32_t packet_num;
+  uint8_t count = 0;
+  
+  // We need to read all tags first to get some data we need to calculate
+  HV *info = newHV();
+  HV *tags = newHV();
+  get_asf_metadata(infile, file, info, tags);
+  
+  audio_offset    = SvIV( *(my_hv_fetch( info, "audio_offset" )) );
+  data_packets    = SvIV( *(my_hv_fetch( info, "data_packets" )) );
+  max_packet_size = SvIV( *(my_hv_fetch( info, "max_packet_size" )) );
+  max_bitrate     = SvIV( *(my_hv_fetch( info, "max_bitrate" )) );
+  
+  packet_num = ( ( ((int64_t)offset) * (max_bitrate>>3) ) / max_packet_size / 1000 ) + 1;
+  
+  if (packet_num > data_packets) {
+    packet_num = data_packets;
+  }
+  
+  frame_offset = audio_offset + 50 + ( (packet_num - 1) * max_packet_size);
+  
+  // Double-check above packet, make sure we have the right one
+  // with a timestamp within our desired range
+  DEBUG_TRACE("Looking for packet with timestamp %d (total packets %d)\n", offset, data_packets);
+  
+  while ( count < 10 ) {
+    int time, duration;
+    
+    time = _timestamp(infile, frame_offset, &duration);
+    
+    DEBUG_TRACE("  Timestamp for packet %d at %d: %d, duration: %d\n", packet_num, frame_offset, time, duration);
+    
+    if (time < 0) {
+      DEBUG_TRACE("  Invalid timestamp, giving up\n");
+      break;
+    }
+    
+    if ( time + duration >= offset && time <= offset ) {
+      DEBUG_TRACE("  Found packet at offset %d\n", frame_offset);
+      break;
+    }
+    else {
+      int delta = offset - time;
+      DEBUG_TRACE("  Wrong packet, delta: %d\n", delta);
+      
+      // XXX: too simplistic, but the re-calc code from Rockbox is not correct either
+      if (delta > 0) {
+        packet_num++;
+      }
+      else {
+        packet_num--;
+      }
+      
+      if (packet_num < 1 || packet_num > data_packets) {
+        // Probably we were passed an offset out of bounds for this file
+        frame_offset = -1;
+        break;
+      }
+      
+      frame_offset = audio_offset + 50 + ( (packet_num - 1) * max_packet_size);
+      
+      count++;
+      
+      DEBUG_TRACE("  Try #%d packet %d at frame offset %d\n", count, packet_num, frame_offset);
+    }
+  }
+  
+  return frame_offset;
+}
+
+// Return the timestamp of the data packet at offset
+int
+_timestamp(PerlIO *infile, int offset, int *duration)
+{
+  Buffer asf_buf;
+  int timestamp = -1;
+  uint8_t tmp;
+  
+  PerlIO_seek(infile, offset, SEEK_SET);
+  
+  buffer_init(&asf_buf, 0);
+  
+  if ( !_check_buf(infile, &asf_buf, 64, 64) ) {
+    goto out;
+  }
+  
+  // Read Error Correction Flags
+  tmp = buffer_get_char(&asf_buf);
+  
+  if (tmp & 0x80) {
+    // Skip error correction data
+    buffer_consume(&asf_buf, tmp & 0x0f);
+    
+    // Read Length Type Flags
+    tmp = buffer_get_char(&asf_buf);
+  }
+  else {
+    // The byte we already read is Length Type Flags
+  }
+  
+  // Skip Property Flags, Packet Length, Sequence, Padding Length
+  buffer_consume( &asf_buf,
+    1 + GETLEN2b((tmp >> 1) & 0x03) +
+        GETLEN2b((tmp >> 3) & 0x03) +
+        GETLEN2b((tmp >> 5) & 0x03)
+  );
+  
+  timestamp = buffer_get_int_le(&asf_buf);
+  *duration = buffer_get_short_le(&asf_buf);
+  
+out:
+  buffer_free(&asf_buf);
+
+  return timestamp;
 }

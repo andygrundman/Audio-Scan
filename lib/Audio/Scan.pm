@@ -86,7 +86,26 @@ Note that FLAC does not support reading from a filehandle.
 =head2 find_frame( $path, $offset )
 
 Returns the byte offset to the first audio frame starting from $offset.
-Only supported for Ogg currently.
+
+The offset value is different depending on the file type:
+
+=over 4
+
+=item Ogg
+
+Offset is the byte offset to start searching from.  The byte offset to the first
+Ogg packet past this point will be returned.
+
+=item ASF
+
+Offset is a timestamp in milliseconds.  The byte offset to the ASF data packet
+containing this timestamp will be returned.
+
+=item MP3, FLAC
+
+Not yet supported by find_frame.
+
+=back
 
 =head2 find_frame_fh( $type => $fh, $offset )
 

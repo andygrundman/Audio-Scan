@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 131;
+use Test::More tests => 138;
 
 use Audio::Scan;
 use Encode;
@@ -88,8 +88,8 @@ use Encode;
     is( $info->{index_blocks}->[1], 0, 'Index block 2 ok' );
     is( $info->{index_entry_interval}, 1000, 'Index entry interval ok' );
     is( ref $info->{index_offsets}, 'ARRAY', 'Index offsets ok' );
-    is( $info->{index_offsets}->[0]->[4], 11811, 'Index offset stream 1 ok' );
-    is( $info->{index_offsets}->[1]->[3], 7811, 'Index offset stream 2 ok' );
+    is( $info->{index_offsets}->[0]->[4], 11861, 'Index offset stream 1 ok' );
+    is( $info->{index_offsets}->[1]->[3], 7861, 'Index offset stream 2 ok' );
     is( ref $info->{index_specifiers}, 'ARRAY', 'Index specifiers ok' );
     is( $info->{index_specifiers}->[0], 1, 'Index specifier stream 1 ok' );
     is( $info->{index_specifiers}->[1], 2, 'Index specifier stream 2 ok' );
@@ -264,6 +264,52 @@ use Encode;
     is( $tags->{Author}, 'Author String', 'Author tag ok via filehandle' );
     
     close $fh;
+}
+
+# Find frame MBR
+{
+    my $offset = Audio::Scan->find_frame( _f('wma92-mbr.wma'), 650 );
+    
+    is( $offset, 6261, 'Find frame MBR ok' );
+    
+    # Wrong first packet guess
+    $offset = Audio::Scan->find_frame( _f('wma92-mbr.wma'), 1300 );
+    
+    is( $offset, 7861, 'Find frame MBR with retry ok' );
+}
+
+{
+    open my $fh, '<', _f('wma92-mbr.wma');
+    my $offset = Audio::Scan->find_frame_fh( asf => $fh, 1025 );
+    close $fh;
+    
+    is( $offset, 7061, 'Find frame MBR via filehandle ok' );
+}
+
+# Find frame VBR
+{
+    my $offset = Audio::Scan->find_frame( _f('wma92-vbr.wma'), 2200 );
+    
+    is( $offset, -1, 'Find frame VBR out of bounds ok' );
+    
+    $offset = Audio::Scan->find_frame( _f('wma92-vbr.wma'), 800 );
+    
+    is( $offset, 7564, 'Find frame VBR ok' );
+}
+
+{
+    open my $fh, '<', _f('wma92-vbr.wma');
+    my $offset = Audio::Scan->find_frame_fh( asf => $fh, 1000 );
+    close $fh;
+    
+    is( $offset, 9825, 'Find frame VBR via filehandle ok' );
+}
+
+# Find frame CBR
+{
+    my $offset = Audio::Scan->find_frame( _f('wma92-32k.wma'), 1360 );
+    
+    is( $offset, 9715, 'Find frame CBR ok' );
 }
 
 sub _f {
