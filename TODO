@@ -14,6 +14,7 @@ Test RVA2 with peak value (nobody supports this)
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
 Support iTunNORM, translate into replay gain values
+Parse RVAD tag in v2.3-itunes81.mp3
 
 FLAC
 ----
@@ -34,7 +35,6 @@ Tests
   ID3 tags at start
   Multi-stream file
  MP3
-  weird/non-standard frames i.e. XSOP
   CRC
   mp3gain'ed file
   non-Xing VBR should set vbr flag to true

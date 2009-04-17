@@ -3,7 +3,7 @@ package Audio::Scan;
 use 5.008008;
 use strict;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -364,6 +364,10 @@ more features.
 
 The source to the original Netgear C scanner for SqueezeCenter is located
 at L<http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/contrib/scanner>
+
+=head1 SEE ALSO
+
+ASF Spec L<http://www.microsoft.com/windows/windowsmedia/forpros/format/asfspec.aspx>
 
 =head1 AUTHORS
 
