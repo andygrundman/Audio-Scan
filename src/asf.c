@@ -1431,6 +1431,10 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
     }
   }
   
+  // Don't leak
+  SvREFCNT_dec(info);
+  SvREFCNT_dec(tags);
+  
   return frame_offset;
 }
 
