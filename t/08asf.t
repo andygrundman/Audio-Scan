@@ -14,7 +14,7 @@ use Encode;
     my $info = $s->{info};
     my $tags = $s->{tags};
     
-    is( $info->{audio_offset}, 5111, 'Audio offset ok' );
+    is( $info->{audio_offset}, 5161, 'Audio offset ok' );
     is( $info->{broadcast}, 0, 'Broadcast not set ok' );
     is( ref $info->{codec_list}, 'ARRAY', 'Codec list ok' );
     is( $info->{codec_list}->[0]->{description}, ' 32 kbps, 22 kHz, stereo 2-pass CBR', 'Codec description ok' );
@@ -260,7 +260,7 @@ use Encode;
     my $info = $s->{info};
     my $tags = $s->{tags};
     
-    is( $info->{audio_offset}, 5111, 'Audio offset ok via filehandle' );
+    is( $info->{audio_offset}, 5161, 'Audio offset ok via filehandle' );
     is( $tags->{Author}, 'Author String', 'Author tag ok via filehandle' );
     
     close $fh;

@@ -185,8 +185,8 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     goto out;
   }
   
-  // Store offset to beginning of data
-  my_hv_store( info, "audio_offset", newSViv(hdr.size) );
+  // Store offset to beginning of data (50 goes past the top-level data packet)
+  my_hv_store( info, "audio_offset", newSVuv(hdr.size + 50) );
   
   data.size = buffer_get_int64_le(&asf_buf);
   
@@ -201,7 +201,7 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     
     buffer_clear(&asf_buf);
 
-    if ( !_parse_index_objects(infile, file_size - hdr.size - data.size, hdr.size, &asf_buf, info, tags) ) {
+    if ( !_parse_index_objects(infile, file_size - hdr.size - data.size, hdr.size + 50, &asf_buf, info, tags) ) {
       PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Index object)\n", file);
       err = -1;
       goto out;
@@ -1190,7 +1190,7 @@ _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
         // These are byte offsets relative to start of the first data packet,
         // so we add audio_offset here.  An additional 50 bytes are added
         // to skip past the top-level Data Object
-        av_push( offsets[i], newSViv( audio_offset + 50 + buffer_get_int_le(buf) ) );
+        av_push( offsets[i], newSViv( audio_offset + buffer_get_int_le(buf) ) );
       }
     }
     
@@ -1383,7 +1383,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
     packet_num = data_packets;
   }
   
-  frame_offset = audio_offset + 50 + ( (packet_num - 1) * max_packet_size);
+  frame_offset = audio_offset + ( (packet_num - 1) * max_packet_size);
   
   // Double-check above packet, make sure we have the right one
   // with a timestamp within our desired range
@@ -1423,7 +1423,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
         break;
       }
       
-      frame_offset = audio_offset + 50 + ( (packet_num - 1) * max_packet_size);
+      frame_offset = audio_offset + ( (packet_num - 1) * max_packet_size);
       
       count++;
       
