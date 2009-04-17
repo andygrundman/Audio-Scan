@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.07
+0.07    2009-04-17 12:35:00
         - Added find_frame_fh( $type => $fh, $offset ) method.
           See docs for details.
         - Added $info->{lossless} for WMA Lossless.
