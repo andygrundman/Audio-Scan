@@ -76,11 +76,11 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
     utf8_key = NULL;
     utf8_value = NULL;
 
-    //PerlIO_printf(PerlIO_stderr(), "%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
+    DEBUG_TRACE("%s (%d fields)\n", pid3frame->id, pid3frame->nfields);
 
     // Special handling for TXXX/WXXX frames
     if ( !strcmp(pid3frame->id, "TXXX") || !strcmp(pid3frame->id, "WXXX") ) {
-      //PerlIO_printf(PerlIO_stderr(), "  type %d / %d\n", pid3frame->fields[1].type, pid3frame->fields[2].type);
+      DEBUG_TRACE("  type %d / %d\n", pid3frame->fields[1].type, pid3frame->fields[2].type);
       
       key = id3_field_getstring(&pid3frame->fields[1]);
       if (key) {
@@ -158,37 +158,37 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 
     // All other frames
     else {
-      //PerlIO_printf(PerlIO_stderr(), "  type %d\n", pid3frame->fields[0].type);
+      DEBUG_TRACE("  type %d\n", pid3frame->fields[0].type);
       
-        // For some reason libid3tag marks some frames as obsolete, when
-        // they should at least be passed-through as unknown frames
-        if ( !strcmp(pid3frame->id, "ZOBS") ) {
-          char *frameid = pid3frame->fields[0].immediate.value;
-          
-          // Special case, TYE(R), TDA(T), TIM(E) are already converted to TDRC
-            if (
-                 !strcmp(frameid, "TYER") 
-              || !strcmp(frameid, "YTYE")
-              || !strcmp(frameid, "TDAT") 
-              || !strcmp(frameid, "YTDA")
-              || !strcmp(frameid, "TIME") 
-              || !strcmp(frameid, "YTIM")
-            ) {
-              index++;
-              continue;
-          }
-          
-          //PerlIO_printf(PerlIO_stderr(), "ZOBS frame %s\n", frameid);
-          
-          // Convert this frame into the real frame with 1 field of binary data
-          pid3frame->id[0] = frameid[0];
-          pid3frame->id[1] = frameid[1];
-          pid3frame->id[2] = frameid[2];
-          pid3frame->id[3] = frameid[3];
-          
-          pid3frame->nfields = 1;
-          pid3frame->fields[0] = pid3frame->fields[1];
+      // For some reason libid3tag marks some frames as obsolete, when
+      // they should at least be passed-through as unknown frames
+      if ( !strcmp(pid3frame->id, "ZOBS") ) {
+        char *frameid = pid3frame->fields[0].immediate.value;
+        
+        DEBUG_TRACE("  ZOBS frame %s\n", frameid);
+        
+        // Special case, TYE(R), TDA(T), TIM(E) are already converted to TDRC
+          if (
+               !strcmp(frameid, "TYER") 
+            || !strcmp(frameid, "YTYE")
+            || !strcmp(frameid, "TDAT") 
+            || !strcmp(frameid, "YTDA")
+            || !strcmp(frameid, "TIME") 
+            || !strcmp(frameid, "YTIM")
+          ) {
+            index++;
+            continue;
         }
+        
+        // Convert this frame into the real frame with 1 field of binary data
+        pid3frame->id[0] = frameid[0];
+        pid3frame->id[1] = frameid[1];
+        pid3frame->id[2] = frameid[2];
+        pid3frame->id[3] = frameid[3];
+        
+        pid3frame->nfields = 1;
+        pid3frame->fields[0] = pid3frame->fields[1];
+      }
       
       // 1- and 2-field frames where the first field is TEXTENCODING are mapped to plain hash entries
       // This covers the following frames:
@@ -271,6 +271,41 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
             if ( !strcmp(pid3frame->id, "XHD3" ) ) {
               // Ignore XHD3 frame from stupid new mp3HD format
             }
+            // Special handling for RVA(D)
+            else if ( !strcmp( pid3frame->id, "RVAD" ) || !strcmp( pid3frame->id, "YRVA" ) ) {
+              unsigned char *rva = (unsigned char*)pid3frame->fields[0].binary.data;
+              int8_t sign_r = rva[0] & 0x01 ? 1 : -1;
+              int8_t sign_l = rva[0] & 0x02 ? 1 : -1;
+              uint8_t bytes = rva[1] / 8;
+              float vol[2];
+              float peak[2];
+              uint8_t i;
+              AV *framedata = newAV();
+
+              rva += 2;
+
+              vol[0] = _varint( rva, bytes ) * sign_r / 256.;
+              vol[1] = _varint( rva + bytes, bytes ) * sign_l / 256.;
+
+              peak[0] = _varint( rva + (bytes * 2), bytes );
+              peak[1] = _varint( rva + (bytes * 3), bytes );
+
+              // iTunes uses a range of -255 to 255
+    					// to be -100% (silent) to 100% (+6dB)
+              for (i = 0; i < 2; i++) {
+                if ( vol[i] == -255 ) {
+                  vol[i] = -96.0;
+                }
+                else {
+                  vol[i] = 20.0 * log( ( vol[i] + 255 ) / 255 ) / log(10);
+                }
+
+                av_push( framedata, newSVpvf( "%f", vol[i] ) );
+                av_push( framedata, newSVpvf( "%f", peak[i] ) );
+              }
+
+              my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)framedata ) );
+            }
             else {
               char *data = (char*)pid3frame->fields[0].binary.data;
               unsigned int len = pid3frame->fields[0].binary.length;
@@ -307,7 +342,7 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
         AV *framedata = newAV();
         
         for ( i = 0; i < pid3frame->nfields; i++ ) { 
-          //PerlIO_printf(PerlIO_stderr(), "  frame %d, type %d\n", i, pid3frame->fields[i].type);
+          DEBUG_TRACE("  frame %d, type %d\n", i, pid3frame->fields[i].type);
           
           switch (pid3frame->fields[i].type) {
             case ID3_FIELD_TYPE_LATIN1:
@@ -364,8 +399,7 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
               break;
 
             case ID3_FIELD_TYPE_BINARYDATA:
-              // Special handling for RVA2 tag, expand to correct fields
-              // XXX: RVA(D) (iTunes writes these)
+              // Special handling for RVA2 tags, expand to correct fields
               if ( !strcmp( pid3frame->id, "RVA2" ) ) {
                 unsigned char *rva = (unsigned char*)pid3frame->fields[i].binary.data;
                 float adj = 0.0;

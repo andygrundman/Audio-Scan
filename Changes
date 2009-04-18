@@ -1,7 +1,7 @@
 Revision history for Audio::Scan
 
 0.08
-        
+        - MP3: Added support for RVA/RVAD frame.
 
 0.07    2009-04-17 12:35:00
         - Added find_frame_fh( $type => $fh, $offset ) method.
