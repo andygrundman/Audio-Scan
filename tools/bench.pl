@@ -48,16 +48,16 @@ elsif ( $file =~ /\.fla?c$/i ) {
   } );
 }
 elsif ( $file =~ /\.(wma|asf)$/i ) {
-	require Audio::WMA;
-	
-	cmpthese( -5, {
-		asf_pp => sub {
-			Audio::WMA->new($file);
-		},
-		asf_c  => sub {
-			Audio::Scan->scan($file);
-		},
-	} );
+    require Audio::WMA;
+    
+    cmpthese( -5, {
+        asf_pp => sub {
+            Audio::WMA->new($file);
+        },
+        asf_c  => sub {
+            Audio::Scan->scan($file);
+        },
+    } );
 }
 else {
   die "Unsupported file type: $file\n\n";
