@@ -151,6 +151,7 @@ const char *presets_old[] = {
 static int get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags);
 static int get_mp3fileinfo(PerlIO *infile, char *file, HV *info);
 static int _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi);
+static int mp3_find_frame(PerlIO *infile, char *file, int offset);
 
 // bitrate_tbl[layer_index][bitrate_index]
 static int bitrate_tbl[5][16] = {

@@ -41,7 +41,7 @@ struct _types audio_types[] = {
 
 static taghandler taghandlers[] = {
   { "aac", 0, 0, 0 },
-  { "mp3", get_mp3tags, get_mp3fileinfo, 0 },
+  { "mp3", get_mp3tags, get_mp3fileinfo, mp3_find_frame },
   { "ogg", get_ogg_metadata, 0, ogg_find_frame },
 #ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0, 0 },

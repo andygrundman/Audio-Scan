@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 207;
+use Test::More tests => 210;
 
 use Audio::Scan;
 use Encode;
@@ -616,6 +616,28 @@ my $pate = Encode::decode_utf8("pâté");
     is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 version ok via filehandle' );
     is( $tags->{TPE1}, 'Artist Name', 'ID3v2.4 artist ok via filehandle' );
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 title ok via filehandle' );
+    
+    close $fh;
+}
+
+# Find frame offset
+{
+    my $offset = Audio::Scan->find_frame( _f('no-tags-no-xing-vbr.mp3'), 17005 );
+    
+    is( $offset, 17151, 'Find frame ok' );
+    
+    # Find first frame past Xing tag
+    $offset = Audio::Scan->find_frame( _f('no-tags-mp1l3-vbr.mp3'), 1 );
+    
+    is( $offset, 576, 'Find frame past Xing tag ok' );
+}
+
+{
+    open my $fh, '<', _f('no-tags-no-xing-vbr.mp3');
+    
+    my $offset = Audio::Scan->find_frame_fh( mp3 => $fh, 42000 );
+    
+    is( $offset, 42641, 'Find frame via filehandle ok' );
     
     close $fh;
 }

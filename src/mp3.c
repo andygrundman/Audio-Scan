@@ -1081,3 +1081,47 @@ out:
 
   return 0;
 }
+
+static int
+mp3_find_frame(PerlIO *infile, char *file, int offset)
+{
+  Buffer mp3_buf;
+  unsigned char *bptr;
+  unsigned int buf_size;
+  struct mp3_frameinfo fi;
+  int frame_offset = -1;
+  
+  PerlIO_seek(infile, offset, SEEK_SET);
+  
+  buffer_init(&mp3_buf, BLOCK_SIZE);
+  
+  if ( !_check_buf(infile, &mp3_buf, BLOCK_SIZE, BLOCK_SIZE) ) {
+    goto out;
+  }
+  
+  bptr = (unsigned char *)buffer_ptr(&mp3_buf);
+  buf_size = buffer_len(&mp3_buf);
+  
+  // Find 0xFF sync and verify it's a valid mp3 frame header
+  while (1) {
+    if (
+      buf_size < 4
+      ||
+      ( bptr[0] == 0xFF && !_decode_mp3_frame( bptr, &fi ) )
+    ) {
+      break;
+    }
+    
+    bptr++;
+    buf_size--;
+  }
+  
+  if (buf_size >= 4) {
+    frame_offset = offset + BLOCK_SIZE - buf_size;
+  }
+
+out:
+  buffer_free(&mp3_buf);
+
+  return frame_offset;
+}
