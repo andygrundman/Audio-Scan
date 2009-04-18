@@ -300,7 +300,7 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
                   vol[i] = 20.0 * log( ( vol[i] + 255 ) / 255 ) / log(10);
                 }
 
-                av_push( framedata, newSVpvf( "%f", vol[i] ) );
+                av_push( framedata, newSVpvf( "%f dB", vol[i] ) );
                 av_push( framedata, newSVpvf( "%f", peak[i] ) );
               }
 
@@ -413,7 +413,7 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
                 adj_fp = *(signed char *)(rva) << 8;
                 adj_fp |= *(unsigned char *)(rva+1);
                 adj = adj_fp / 512.0;
-                av_push( framedata, newSVpvf( "%f", adj ) );
+                av_push( framedata, newSVpvf( "%f dB", adj ) );
                 rva += 2;
                 
                 // Ignore peak, nobody seems to support this

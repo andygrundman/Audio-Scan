@@ -270,9 +270,9 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{YTSP}, 'Artist Name Sort', 'iTunes 8.1 TSP ok' );
     is( $tags->{YTST}, 'Track Title Sort', 'iTunes 8.1 TST ok' );
     is( ref $tags->{YRVA}, 'ARRAY', 'iTunes 8.1 RVA ok' );
-    is( $tags->{YRVA}->[0], '-2.119539', 'iTunes 8.1 RVA right ok' );
+    is( $tags->{YRVA}->[0], '-2.119539 dB', 'iTunes 8.1 RVA right ok' );
     is( $tags->{YRVA}->[1], '0.000000', 'iTunes 8.1 RVA right peak ok' );
-    is( $tags->{YRVA}->[2], '-2.119539', 'iTunes 8.1 RVA left ok' );
+    is( $tags->{YRVA}->[2], '-2.119539 dB', 'iTunes 8.1 RVA left ok' );
     is( $tags->{YRVA}->[3], '0.000000', 'iTunes 8.1 RVA left peak ok' );
 }
 
@@ -381,9 +381,9 @@ my $pate = Encode::decode_utf8("pâté");
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 from iTunes ok' );
     is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.3 invalid iTunes frame ok' );
     is( ref $tags->{RVAD}, 'ARRAY', 'iTunes 8.1 RVAD ok' );
-    is( $tags->{RVAD}->[0], '-2.119539', 'iTunes 8.1 RVAD right ok' );
+    is( $tags->{RVAD}->[0], '-2.119539 dB', 'iTunes 8.1 RVAD right ok' );
     is( $tags->{RVAD}->[1], '0.000000', 'iTunes 8.1 RVAD right peak ok' );
-    is( $tags->{RVAD}->[2], '-2.119539', 'iTunes 8.1 RVAD left ok' );
+    is( $tags->{RVAD}->[2], '-2.119539 dB', 'iTunes 8.1 RVAD left ok' );
     is( $tags->{RVAD}->[3], '0.000000', 'iTunes 8.1 RVAD left peak ok' );
 }
 
@@ -417,7 +417,7 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{POPM}->[1]->[2], 7, 'ID3v2.4 POPM #2 ok' );
     is( $tags->{RVA2}->[0], 'normalize', 'ID3v2.4 RVA2 ok' );
     is( $tags->{RVA2}->[1], 1, 'ID3v2.4 RVA2 channel ok' );
-    is( $tags->{RVA2}->[2], 4.972656, 'ID3v2.4 RVA2 adjustment ok' );
+    is( $tags->{RVA2}->[2], '4.972656 dB', 'ID3v2.4 RVA2 adjustment ok' );
     is( $tags->{RVA2}->[3], 0, 'ID3v2.4 RVA2 peak ok' );
     is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
     is( $tags->{UFID}->[0], 'foo@foo.com', 'ID3v2.4 UFID owner id ok' );
@@ -434,7 +434,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $s = Audio::Scan->scan_tags( _f('v2.4-rva2-neg.mp3') );
     
     my $tags = $s->{tags};
-    is( $tags->{RVA2}->[2], -2.123047, 'ID3v2.4 negative RVA2 adjustment ok' );
+    is( $tags->{RVA2}->[2], '-2.123047 dB', 'ID3v2.4 negative RVA2 adjustment ok' );
 }
 
 # ID3v2.4 ISO-8859-1
