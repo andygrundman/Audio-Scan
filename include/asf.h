@@ -16,8 +16,10 @@
  
 #define ASF_BLOCK_SIZE 8192
 
+#undef DEFINE_GUID
+
 #define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-  GUID name = {l, {w1, w2}, {b1, b2, b3, b4, b5, b6, b7, b8}}
+  GUID name = {l, w1, w2, {b1, b2, b3, b4, b5, b6, b7, b8}}
   
 #define IsEqualGUID(rguid1, rguid2) (!memcmp(rguid1, rguid2, sizeof(GUID)))
 

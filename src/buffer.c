@@ -431,9 +431,9 @@ buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
 void
 buffer_get_guid(Buffer *buffer, GUID *g)
 {
-  g->l    = buffer_get_int_le(buffer);
-  g->w[0] = buffer_get_short_le(buffer);
-  g->w[1] = buffer_get_short_le(buffer);
+  g->Data1 = buffer_get_int_le(buffer);
+  g->Data2 = buffer_get_short_le(buffer);
+  g->Data3 = buffer_get_short_le(buffer);
   
-  buffer_get(buffer, g->b, 8);
+  buffer_get(buffer, g->Data4, 8);
 }

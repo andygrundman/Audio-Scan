@@ -46,9 +46,9 @@ print_guid(GUID guid)
 {
   PerlIO_printf(PerlIO_stderr(),
     "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x ",
-    guid.l, guid.w[0], guid.w[1],
-    guid.b[0], guid.b[1], guid.b[2], guid.b[3],
-    guid.b[4], guid.b[5], guid.b[6], guid.b[7]
+    guid.Data1, guid.Data2, guid.Data3,
+    guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
+    guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
   );
 }
 
@@ -187,7 +187,11 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   // Store offset to beginning of data (50 goes past the top-level data packet)
   my_hv_store( info, "audio_offset", newSVuv(hdr.size + 50) );
-  
+
+/*
+  XXX: Not worth the overhead of skipping the data and parsing
+       the index objects, and can't compile it on Windows, so leave it out for now...
+       
   data.size = buffer_get_int64_le(&asf_buf);
   
   if ( hdr.size + data.size < file_size ) {
@@ -200,13 +204,14 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     }
     
     buffer_clear(&asf_buf);
-
+    
     if ( !_parse_index_objects(infile, file_size - hdr.size - data.size, hdr.size + 50, &asf_buf, info, tags) ) {
       PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Index object)\n", file);
       err = -1;
       goto out;
     }
   }
+*/
   
 out:
   buffer_free(&asf_buf);
@@ -343,9 +348,9 @@ _parse_file_properties(Buffer *buf, HV *info, HV *tags)
   buffer_get_guid(buf, &file_id);
   my_hv_store( 
     info, "file_id", newSVpvf( "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-      file_id.l, file_id.w[0], file_id.w[1],
-      file_id.b[0], file_id.b[1], file_id.b[2], file_id.b[3],
-      file_id.b[4], file_id.b[5], file_id.b[6], file_id.b[7]
+      file_id.Data1, file_id.Data2, file_id.Data3,
+      file_id.Data4[0], file_id.Data4[1], file_id.Data4[2], file_id.Data4[3],
+      file_id.Data4[4], file_id.Data4[5], file_id.Data4[6], file_id.Data4[7]
     )
   );
   
@@ -951,9 +956,9 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
       buffer_get_guid(buf, &g);
       value = newSVpvf(
         "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-        g.l, g.w[0], g.w[1],
-        g.b[0], g.b[1], g.b[2], g.b[3],
-        g.b[4], g.b[5], g.b[6], g.b[7]
+        g.Data1, g.Data2, g.Data3,
+        g.Data4[0], g.Data4[1], g.Data4[2], g.Data4[3],
+        g.Data4[4], g.Data4[5], g.Data4[6], g.Data4[7]
       );
     }
     else {
@@ -1099,6 +1104,7 @@ _store_tag(HV *tags, SV *key, SV *value)
   SvREFCNT_dec(key);
 }
 
+/*
 int
 _parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buffer *buf, HV *info, HV *tags)
 {
@@ -1209,6 +1215,7 @@ _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
     }
   }
 }
+*/
 
 void
 _parse_content_encryption(Buffer *buf, HV *info, HV *tags)

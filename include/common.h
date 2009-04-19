@@ -29,11 +29,14 @@
 # define _PACKED
 #endif
 
- typedef struct _GUID {
-   uint32_t l;
-   uint16_t w[2];
-   uint8_t  b[8];
- } _PACKED GUID;
+#ifndef _MSC_VER
+typedef struct _GUID {
+  uint32_t Data1;
+  uint16_t Data2;
+  uint16_t Data3;
+  uint8_t  Data4[8];
+} GUID;
+#endif
 
 /* for PRIu64 */
 #ifdef _MSC_VER
