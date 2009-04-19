@@ -1,7 +1,9 @@
 Revision history for Audio::Scan
 
-0.09
-        
+0.09    2009-04-19 18:00:00
+        - ASF: Disabled index parsing.  This data isn't useful and just adds
+          overhead.  Also, it does not compile on Windows.
+        - Fixed Win32 compile issues.
 
 0.08    2009-04-18 16:35:00
         - MP3: Support for find_frame().
