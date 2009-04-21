@@ -1095,7 +1095,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   
   buffer_init(&mp3_buf, BLOCK_SIZE);
   
-  if ( !_check_buf(infile, &mp3_buf, BLOCK_SIZE, BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &mp3_buf, 512, BLOCK_SIZE) ) {
     goto out;
   }
   

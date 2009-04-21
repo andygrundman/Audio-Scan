@@ -23,18 +23,27 @@ _check_buf(PerlIO *infile, Buffer *buf, int size, int min_size)
  // Do we have enough data?
  if ( buffer_len(buf) < size ) {
    // Read more data
+   uint32_t read;
    int readlen = size > min_size ? size : min_size;
 
-   if ( PerlIO_read(infile, buffer_append_space(buf, readlen), readlen) == 0 ) {
+   if ( (read = PerlIO_read(infile, buffer_append_space(buf, readlen), readlen)) == 0 ) {
      if ( PerlIO_error(infile) ) {
        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
      }
      else {
-       PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
+       PerlIO_printf(PerlIO_stderr(), "Error: Unable to read from file.\n");
      }
-
+     
      return 0;
    }
+   
+   // Make sure we got enough
+   if ( buffer_len(buf) < size ) {
+     PerlIO_printf(PerlIO_stderr(), "Error: Unable to read at least %d bytes from file (only read %d).\n", size, read);
+     return 0;
+   }
+   
+   DEBUG_TRACE("Buffered %d bytes from file (min %d, readlen: %d)\n", read, size, readlen);
  }
 
  return 1;

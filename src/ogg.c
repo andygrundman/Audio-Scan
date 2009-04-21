@@ -58,7 +58,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
   
-  if ( !_check_buf(infile, &ogg_buf, OGG_BLOCK_SIZE, OGG_BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &ogg_buf, 10, OGG_BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
@@ -352,7 +352,7 @@ ogg_find_frame(PerlIO *infile, char *file, int offset)
   
   buffer_init(&ogg_buf, OGG_BLOCK_SIZE);
   
-  if ( !_check_buf(infile, &ogg_buf, OGG_BLOCK_SIZE, OGG_BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &ogg_buf, 512, OGG_BLOCK_SIZE) ) {
     goto out;
   }
   
