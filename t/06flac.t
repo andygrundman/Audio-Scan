@@ -12,7 +12,7 @@ SKIP:
         plan skip_all => 'FLAC support not available';
     }
     else {
-        plan tests => 17;
+        plan tests => 19;
     }
 }
 
@@ -95,6 +95,20 @@ SKIP:
         ok($picture, "Found picture ok");
         is($picture->{3}{mime_type}, 'image/jpeg', 'Found Cover JPEG ok');
     }
+}
+
+# Find frame offset
+{
+    my $offset = Audio::Scan->find_frame( _f('audio-data.flac'), 4602 );
+    is( $offset, 9768, 'Find frame VBR ok' );
+}
+
+{
+    open my $fh, '<', _f('audio-data.flac');
+    my $offset = Audio::Scan->find_frame_fh( flac => $fh, 1000 );
+    close $fh;
+
+    is( $offset, 4601, 'Find frame via filehandle ok' );
 }
 
 sub _f {
