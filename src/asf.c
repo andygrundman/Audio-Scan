@@ -70,7 +70,7 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   buffer_init(&asf_buf, 0);
   
-  if ( !_check_buf(infile, &asf_buf, ASF_BLOCK_SIZE, ASF_BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &asf_buf, 30, ASF_BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
@@ -915,6 +915,12 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     SV *value = NULL;
     Buffer utf8_buf;
     
+#ifdef DEBUG
+    uint16_t lang_index    = buffer_get_short_le(buf);
+#else
+    buffer_consume(buf, 2);
+#endif
+
     uint16_t stream_number = buffer_get_short_le(buf);
     uint16_t name_len      = buffer_get_short_le(buf);
     uint16_t data_type     = buffer_get_short_le(buf);
