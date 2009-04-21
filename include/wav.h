@@ -21,5 +21,3 @@ void _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV 
 void _parse_wav_fmt(Buffer *buf, uint32_t chunk_size, HV *info);
 void _parse_wav_list(Buffer *buf, uint32_t chunk_size, HV *tags);
 void _parse_wav_peak(Buffer *buf, uint32_t chunk_size, HV *info);
-
-void _parse_aiff(PerlIO *infile, Buffer *buf, char *file, HV *info, HV *tags);

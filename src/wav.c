@@ -59,13 +59,8 @@ get_wav_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     
     _parse_wav(infile, &buf, file, file_size, info, tags);
   }
-  else if ( !strncmp( (char *)buffer_ptr(&buf), "FORM", 4 ) ) {
-    // We've got an AIFF file
-      
-    // XXX
-  }
   else {
-    PerlIO_printf(PerlIO_stderr(), "Invalid WAV/AIFF file: missing RIFF/FORM header: %s\n", file);
+    PerlIO_printf(PerlIO_stderr(), "Invalid WAV file: missing RIFF header: %s\n", file);
     err = -1;
     goto out;
   }
