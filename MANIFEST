@@ -10,6 +10,7 @@ include/ogg.h
 include/pinttypes.h
 include/ppport.h
 include/pstdint.h
+include/wav.h
 lib/Audio/Scan.pm
 libid3tag/aclocal.m4
 libid3tag/CHANGES
@@ -97,6 +98,7 @@ src/common.c
 src/flac.c
 src/mp3.c
 src/ogg.c
+src/wav.c
 t/01use.t
 t/02pod.t
 t/03podcoverage.t
@@ -106,6 +108,7 @@ t/05mp3.t
 t/06flac.t
 t/07ogg.t
 t/08asf.t
+t/09wav.t
 t/asf/drm.wma
 t/asf/jfif.wma
 t/asf/wma-live.wma
@@ -118,6 +121,7 @@ t/asf/wma92-voice.wma
 t/asf/wmv92-with-audio.wmv
 t/asf/wmv92.wmv
 t/flac/appId.flac
+t/flac/audio-data.flac
 t/flac/CVE-2007-4619-1.flac
 t/flac/CVE-2007-4619-12.flac
 t/flac/CVE-2007-4619-2.flac
@@ -181,6 +185,9 @@ t/ogg/multiple.ogg
 t/ogg/old1.ogg
 t/ogg/old2.ogg
 t/ogg/test.ogg
+t/wav/8kmp38.wav
+t/wav/id3.wav
+t/wav/wav32.wav
 tools/bench.pl
 tools/leak.c
 tools/leak.pl

@@ -63,5 +63,8 @@ uint16_t buffer_get_short_le(Buffer *buffer);
 void buffer_put_char(Buffer *buffer, int value);
 void buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len);
 void buffer_get_guid(Buffer *buffer, GUID *g);
+int buffer_get_float32_le_ret(float *ret, Buffer *buffer);
+float buffer_get_float32_le(Buffer *buffer);
+float get_f32le(const void *vp);
 
 #endif

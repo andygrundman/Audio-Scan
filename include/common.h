@@ -30,6 +30,7 @@
 #endif
 
 #ifndef _MSC_VER
+// We use the built-in GUID type on Windows
 typedef struct _GUID {
   uint32_t Data1;
   uint16_t Data2;

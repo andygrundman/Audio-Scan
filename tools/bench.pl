@@ -59,6 +59,18 @@ elsif ( $file =~ /\.(wma|asf)$/i ) {
         },
     } );
 }
+elsif ( $file =~ /\.(wav|aiff?)$/i ) {
+    require Audio::Wav;
+    
+    cmpthese( -5, {
+        wav_pp => sub {
+            Audio::Wav->new->read($file);
+        },
+        wav_c  => sub {
+            Audio::Scan->scan($file);
+        },
+    } );
+}
 else {
   die "Unsupported file type: $file\n\n";
 }

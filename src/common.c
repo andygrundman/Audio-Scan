@@ -31,7 +31,7 @@ _check_buf(PerlIO *infile, Buffer *buf, int size, int min_size)
        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
      }
      else {
-       PerlIO_printf(PerlIO_stderr(), "Error: Unable to read from file.\n");
+       PerlIO_printf(PerlIO_stderr(), "Error: Unable to read %d bytes from file.\n", readlen);
      }
      
      return 0;

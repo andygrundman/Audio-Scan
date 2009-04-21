@@ -437,3 +437,60 @@ buffer_get_guid(Buffer *buffer, GUID *g)
   
   buffer_get(buffer, g->Data4, 8);
 }
+
+int
+buffer_get_float32_le_ret(float *ret, Buffer *buffer)
+{
+	u_char buf[4];
+
+	if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
+		return (-1);
+	*ret = get_f32le(buf);
+	return (0);
+}
+
+float
+buffer_get_float32_le(Buffer *buffer)
+{
+	float ret;
+
+	if (buffer_get_float32_le_ret(&ret, buffer) == -1)
+		croak("buffer_get_float32_le_ret: buffer error");
+
+	return (ret);
+}
+
+// From libsndfile
+float
+get_f32le(const void *vp)
+{
+	const u_char *p = (const u_char *)vp;
+	float v;
+	int exponent, mantissa, negative;
+	
+  negative = p[3] & 0x80;
+  exponent = ((p[3] & 0x7F) << 1) | ((p[2] & 0x80) ? 1 : 0);
+  mantissa = ((p[2] & 0x7F) << 16) | (p[1] << 8) | (p[0]);
+  
+  if ( !(exponent || mantissa) ) {
+    return 0.0;
+  }
+  
+  mantissa |= 0x800000;
+  exponent = exponent ? exponent - 127 : 0;
+  
+  v = mantissa ? ((float)mantissa) / ((float)0x800000) : 0.0;
+  
+  if (negative) {
+    v *= -1;
+  }
+  
+  if (exponent > 0) {
+    v *= pow(2.0, exponent);
+  }
+  else if (exponent < 0) {
+    v /= pow(2.0, abs(exponent));
+  }
+
+	return (v);
+}

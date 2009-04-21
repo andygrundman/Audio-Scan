@@ -26,9 +26,35 @@ ASF
 ---
 Refactor a bit
 
+WAV/AIFF
+--------
+ID3v2 parsing (iTunes writes these)
+
+Wavpack
+
+APE
+
+Musepack
+
 Tests
  WAV
   ID3 tags
+  File with wrong chunk size
+  AIFF with ID3
+  AIFC little-endian
+  CoolEdit 96 bug?
+  Chunks:
+    cue
+    wavl
+    slnt
+    plst
+    LIST
+      labl
+      note
+      ltxt
+    DISP
+    smpl
+    BWF chunks?
  Ogg
   ID3 tags at start
   Multi-stream file
