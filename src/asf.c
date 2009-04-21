@@ -915,7 +915,6 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     SV *value = NULL;
     Buffer utf8_buf;
     
-    uint16_t lang_index    = buffer_get_short_le(buf);
     uint16_t stream_number = buffer_get_short_le(buf);
     uint16_t name_len      = buffer_get_short_le(buf);
     uint16_t data_type     = buffer_get_short_le(buf);
