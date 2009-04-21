@@ -146,13 +146,8 @@ else {
     }
 }
 
-my $inc_files = join(' include/', qw(
-    include/buffer.h common.h mp3.h flac.h ogg.h asf.h
-));
-
-my $src_files = join(' src/', qw(
-    src/buffer.c common.c mp3.c flac.c ogg.c asf.c
-));
+my $inc_files = join(' ', glob 'include/*.h');
+my $src_files = join(' ', glob 'src/*.c');
 
 WriteMakefile(
     NAME              => 'Audio::Scan',
