@@ -17,7 +17,7 @@
 /*
  * This file is derived from Audio::FLAC::Header by Dan Sully.
  *
- * CRC code comes from libFLAC/crc.c
+ * CRC code comes from libFLAC/crc.c (included here because it's not a public API function)
  */
 
 #include "flac.h"
@@ -27,7 +27,7 @@
 #define FLAC_HEADER_LEN 16
 
 /* CRC-8, poly = x^8 + x^2 + x^1 + x^0, init = 0 */
-FLAC__byte const FLAC__crc8_table[256] = {
+FLAC__byte const my_FLAC__crc8_table[256] = {
 	0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15,
 	0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
 	0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65,
@@ -62,11 +62,11 @@ FLAC__byte const FLAC__crc8_table[256] = {
 	0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4, 0xF3
 };
 
-FLAC__uint8 FLAC__crc8(const FLAC__byte *data, unsigned len) {
+FLAC__uint8 my_FLAC__crc8(const FLAC__byte *data, unsigned len) {
   FLAC__uint8 crc = 0;
 
   while(len--)
-    crc = FLAC__crc8_table[crc ^ *data++];
+    crc = my_FLAC__crc8_table[crc ^ *data++];
 
   return crc;
 }
@@ -565,7 +565,7 @@ _is_flac_header(unsigned char *buf)
 
   FLAC__byte crc8 = buf[len];
 
-  if (FLAC__crc8(buf, len) != crc8) {
+  if (my_FLAC__crc8(buf, len) != crc8) {
     fprintf(stderr, "CRC FAILED\n");
     return false;
   }
