@@ -1,7 +1,7 @@
 Revision history for Audio::Scan
 
-0.11
-        - Renamed CRC function in flac.c to fix static build.
+0.11    2009-04-22 16:20:00
+        - Renamed FLAC CRC function to fix --with-flac-static build.
 
 0.10    2009-04-22 16:10:00
         - WAV support.
