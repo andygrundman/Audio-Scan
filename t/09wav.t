@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 33;
+use Test::More tests => 38;
 
 use Audio::Scan;
 use Encode;
@@ -64,6 +64,19 @@ use Encode;
     is( $info->{format}, 85, 'MP3 WAV format ok' );
     is( $info->{samplerate}, 8000, 'MP3 WAV samplerate ok' );
     is( $info->{song_length_ms}, 13811, 'MP3 WAV length ok' );
+}
+
+# Wav with INFO tags and wrong chunk size in header
+{
+    my $s = Audio::Scan->scan( _f('wav32-info-badchunk.wav') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{IART}, 'They Might Be Giants', 'IART ok' );
+    is( $tags->{ICRD}, 2005, 'ICRD ok' );
+    is( $tags->{IGNR}, 'Soundtrack', 'IGNR ok' );
+    is( $tags->{INAM}, 'Here Come The ABCs', 'INAM ok' );
+    is( $tags->{IPRD}, 'Here Come The Abcs With Tmbg - Original Songs About The Alphabet', 'IPRD ok' );
 }
 
 sub _f {

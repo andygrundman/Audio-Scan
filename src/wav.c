@@ -50,10 +50,6 @@ get_wav_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     }
     
     buffer_consume(&buf, 4);
-  
-    if ( chunk_size != file_size - 8 ) {
-      PerlIO_printf(PerlIO_stderr(), "Warning: WAV chunk size does not match file size: %s\n", file);
-    }
     
     my_hv_store( info, "file_size", newSVuv(file_size) );
     
