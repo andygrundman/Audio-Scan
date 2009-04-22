@@ -125,10 +125,21 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
       buffer_clear(buf);
     }
     else if ( !strcmp( chunk_id, "id3 " ) || !strcmp( chunk_id, "ID32" ) ) {
-      // Seek to start of ID3 and pass it off to libid3tag
-      PerlIO_seek(infile, offset, SEEK_SET);
+      // Read header to verify version
+      unsigned char *bptr = buffer_ptr(buf);
       
-      parse_id3(infile, file, info, tags, ID3_FILE_MODE_READONLY_NOSEEK);
+      if (
+        (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
+        bptr[3] < 0xff && bptr[4] < 0xff &&
+        bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
+      ) {
+        my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
+        
+        // Seek to start of ID3 and pass it off to libid3tag
+        PerlIO_seek(infile, offset, SEEK_SET);
+        
+        parse_id3(infile, file, info, tags, ID3_FILE_MODE_READONLY_NOSEEK);
+      }
       
       // Seek past ID3 and clear buffer
       PerlIO_seek(infile, offset + chunk_size, SEEK_SET);

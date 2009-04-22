@@ -1,6 +1,5 @@
 General
 -------
-Pass in an optional hash to use for tag mapping
 
 MP3
 ---
@@ -10,6 +9,9 @@ RIFF-MP3 support
 Free-format support (not reading Xing/LAME tag properly)
 TOC tables?
 Support VBRI mono file with wrong offset?
+
+ID3
+---
 Test RVA2 with peak value (nobody supports this)
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
@@ -26,10 +28,6 @@ ASF
 ---
 Refactor a bit
 
-WAV/AIFF
---------
-ID3v2 parsing (iTunes writes these)
-
 Wavpack
 
 APE
@@ -37,11 +35,11 @@ APE
 Musepack
 
 Tests
- WAV
-  ID3 tags
-  File with wrong chunk size
+ AIFF
   AIFF with ID3
   AIFC little-endian
+ WAV
+  File with wrong chunk size
   CoolEdit 96 bug?
   Chunks:
     cue

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 32;
+use Test::More tests => 33;
 
 use Audio::Scan;
 use Encode;
@@ -23,6 +23,7 @@ use Encode;
     is( $info->{format}, 1, 'Format ok' );
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{song_length_ms}, 10, 'Song length ok' );
+    is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 version ok' );
     
     is( ref $tags->{APIC}, 'ARRAY', 'APIC ok' );
     is( $tags->{APIC}->[1], 'image/jpg', 'APIC type ok' );
