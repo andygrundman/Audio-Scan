@@ -16,3 +16,6 @@ From http://sources.gentoo.org/viewcvs.py/gentoo-x86/media-libs/libid3tag/files/
 
 Patches only in this version:
 	allow-id-space.patch - Allow parsing of tags with spaces in the frame ID (iTunes).
+	read-no-seek.patch   - Adds read mode ID3_FILE_MODE_READONLY_NOSEEK which does not seek,
+                               useful for parsing ID3 tags in non-MP3 files where they are not
+                               located at the start of the file.

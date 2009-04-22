@@ -265,39 +265,41 @@ int search_tags(struct id3_file *file)
 {
   fpos_t save_position;
   signed long size;
+  
+  if ( !(file->mode & ID3_FILE_MODE_READONLY_NOSEEK) ) {
 
-  /*
-   * save the current seek position
-   *
-   * We also verify the stream is seekable by calling fsetpos(), since
-   * fgetpos() alone is not reliable enough for this purpose.
-   *
-   * [Apparently not even fsetpos() is sufficient under Win32.]
-   */
+    /*
+     * save the current seek position
+     *
+     * We also verify the stream is seekable by calling fsetpos(), since
+     * fgetpos() alone is not reliable enough for this purpose.
+     *
+     * [Apparently not even fsetpos() is sufficient under Win32.]
+     */
 
-  if (fgetpos(file->iofile, &save_position) == -1 ||
-      fsetpos(file->iofile, &save_position) == -1)
-    return -1;
+    if (fgetpos(file->iofile, &save_position) == -1 ||
+        fsetpos(file->iofile, &save_position) == -1)
+      return -1;
 
-  /* look for an ID3v1 tag */
+    /* look for an ID3v1 tag */
 
-  if (fseek(file->iofile, -128, SEEK_END) == 0) {
-    size = query_tag(file->iofile);
-    if (size > 0) {
-      struct id3_tag const *tag;
+    if (fseek(file->iofile, -128, SEEK_END) == 0) {
+      size = query_tag(file->iofile);
+      if (size > 0) {
+        struct id3_tag const *tag;
 
-      tag = add_tag(file, size);
+        tag = add_tag(file, size);
 
-      /* if this is indeed an ID3v1 tag, mark the file so */
+        /* if this is indeed an ID3v1 tag, mark the file so */
 
-      if (tag && (ID3_TAG_VERSION_MAJOR(id3_tag_version(tag)) == 1))
-	file->flags |= ID3_FILE_FLAG_ID3V1;
+        if (tag && (ID3_TAG_VERSION_MAJOR(id3_tag_version(tag)) == 1))
+  	file->flags |= ID3_FILE_FLAG_ID3V1;
+      }
     }
+
+    /* look for a tag at the beginning of the file */
+    rewind(file->iofile);
   }
-
-  /* look for a tag at the beginning of the file */
-
-  rewind(file->iofile);
 
   size = query_tag(file->iofile);
   if (size > 0) {
@@ -319,25 +321,27 @@ int search_tags(struct id3_file *file)
       tag  = (size > 0) ? add_tag(file, size) : 0;
     }
   }
+  
+  if ( !(file->mode & ID3_FILE_MODE_READONLY_NOSEEK) ) {
+    /* look for a tag at the end of the file (before any ID3v1 tag) */
 
-  /* look for a tag at the end of the file (before any ID3v1 tag) */
-
-  if (fseek(file->iofile, ((file->flags & ID3_FILE_FLAG_ID3V1) ? -128 : 0) +
-	    -10, SEEK_END) == 0) {
-    size = query_tag(file->iofile);
-    if (size < 0 && fseek(file->iofile, size, SEEK_CUR) == 0) {
+    if (fseek(file->iofile, ((file->flags & ID3_FILE_FLAG_ID3V1) ? -128 : 0) +
+  	    -10, SEEK_END) == 0) {
       size = query_tag(file->iofile);
-      if (size > 0)
-	add_tag(file, size);
+      if (size < 0 && fseek(file->iofile, size, SEEK_CUR) == 0) {
+        size = query_tag(file->iofile);
+        if (size > 0)
+  	add_tag(file, size);
+      }
     }
+
+    clearerr(file->iofile);
+
+    /* restore seek position */
+
+    if (fsetpos(file->iofile, &save_position) == -1)
+      return -1;
   }
-
-  clearerr(file->iofile);
-
-  /* restore seek position */
-
-  if (fsetpos(file->iofile, &save_position) == -1)
-    return -1;
 
   /* set primary tag options and target padded length for convenience */
 

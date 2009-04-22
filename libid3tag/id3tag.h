@@ -247,7 +247,8 @@ union id3_field {
 
 enum id3_file_mode {
   ID3_FILE_MODE_READONLY = 0,
-  ID3_FILE_MODE_READWRITE
+  ID3_FILE_MODE_READWRITE,
+  ID3_FILE_MODE_READONLY_NOSEEK
 };
 
 struct id3_file *id3_file_open(char const *, enum id3_file_mode);

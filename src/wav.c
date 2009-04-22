@@ -124,6 +124,16 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
       
       buffer_clear(buf);
     }
+    else if ( !strcmp( chunk_id, "id3 " ) || !strcmp( chunk_id, "ID32" ) ) {
+      // Seek to start of ID3 and pass it off to libid3tag
+      PerlIO_seek(infile, offset, SEEK_SET);
+      
+      parse_id3(infile, file, info, tags, ID3_FILE_MODE_READONLY_NOSEEK);
+      
+      // Seek past ID3 and clear buffer
+      PerlIO_seek(infile, offset + chunk_size, SEEK_SET);
+      buffer_clear(buf);
+    }
     else {
       // Make sure we have enough data
       if ( !_check_buf(infile, buf, chunk_size, WAV_BLOCK_SIZE) ) {

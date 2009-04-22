@@ -14,8 +14,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "libid3tag/id3tag.h"
-
 // Use Safefree for libid3tag free calls on Windows
 #ifdef _MSC_VER
 #define free(ptr) Safefree(ptr)

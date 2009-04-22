@@ -5,6 +5,7 @@
 #include "ppport.h"
 
 #include "common.c"
+#include "id3.c"
 #include "mp3.c"
 #include "ogg.c"
 #include "asf.c"

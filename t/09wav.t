@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 21;
+use Test::More tests => 32;
 
 use Audio::Scan;
 use Encode;
@@ -24,7 +24,17 @@ use Encode;
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{song_length_ms}, 10, 'Song length ok' );
     
-    # XXX: ID3 tags
+    is( ref $tags->{APIC}, 'ARRAY', 'APIC ok' );
+    is( $tags->{APIC}->[1], 'image/jpg', 'APIC type ok' );
+    is( length( $tags->{APIC}->[4] ), 2103, 'APIC size ok' );
+    is( ref $tags->{COMM}, 'ARRAY', 'COMM ok' );
+    is( $tags->{TALB}, 'WAV Album', 'TALB ok' );
+    is( $tags->{TCON}, 'Alternative', 'TCON ok' );
+    is( $tags->{TDRC}, 2009, 'TDRC ok' );
+    is( $tags->{TIT2}, 'WAV Title', 'TIT2 ok' );
+    is( $tags->{TPE1}, 'WAV Artist', 'TPE1 ok' );
+    is( $tags->{TPOS}, 1, 'TPOS ok' );
+    is( $tags->{TRCK}, 5, 'TRCK ok' );
 }
 
 # 32-bit WAV with PEAK info
