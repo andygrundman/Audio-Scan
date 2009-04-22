@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF
+Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV
 
 =head1 SYNOPSIS
 
@@ -51,7 +51,8 @@ Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF
 
 Audio::Scan is a C-based scanner for audio file metadata and tag information. It currently
 supports MP3 via an included version of libid3tag, Ogg Vorbis, FLAC (if libFLAC is
-installed), and ASF.  A future release will add support for AAC, WAV, and possibly others.
+installed), ASF, and WAV.  A future release will add support for AAC, APE, AIFF, and probably
+others.
 
 See below for specific details about each file format.
 
@@ -66,6 +67,7 @@ determined by the file's extension.  Supported extensions are:
     Ogg:  ogg, oga
     FLAC: flc, flac, fla
     ASF:  wma, wmv, asf
+    WAV: wav
 
 This method returns a hashref containing two other hashrefs: info and tags.  The
 contents of the info and tag hashes vary depending on file format, see below for details.
@@ -91,7 +93,7 @@ The offset value is different depending on the file type:
 
 =over 4
 
-=item MP3, Ogg
+=item MP3, Ogg, FLAC
 
 Offset is the byte offset to start searching from.  The byte offset to the first
 audio packet/frame past this point will be returned.
@@ -101,15 +103,15 @@ audio packet/frame past this point will be returned.
 Offset is a timestamp in milliseconds.  The byte offset to the ASF data packet
 containing this timestamp will be returned.
 
-=item FLAC
+=item WAV
 
-Not yet supported by find_frame.
+Not supported by find_frame.
 
 =back
 
 =head2 find_frame_fh( $type => $fh, $offset )
 
-Same as L<find_frame>, but with a filehandle.
+Same as C<find_frame>, but with a filehandle.
 
 =head2 has_flac()
 
@@ -354,7 +356,57 @@ Pictures are returned as a hash with the following keys:
     image_type (numeric type, same as ID3v2 APIC)
     mime_type
     description
-    image    
+    image
+
+=head1 WAV
+
+=head2 INFO
+
+The following metadata about a file is returned.
+
+    audio_offset
+    bitrate (in bps)
+    bits_per_sample
+    block_align
+    channels
+    file_size
+    format (WAV format code, 1 == PCM)
+    id3_version (if an ID3v2 tag is found)
+    samplerate (in kHz)
+    song_length_ms
+
+=head2 TAGS
+
+WAV files can contain several different types of tags.  "Native" WAV tags
+found in a LIST block may include these and others:
+
+    IARL - Archival Location
+    IART - Artist
+    ICMS - Commissioned
+    ICMT - Comment
+    ICOP - Copyright
+    ICRD - Creation Date
+    ICRP - Cropped
+    IENG - Engineer
+    IGNR - Genre
+    IKEY - Keywords
+    IMED - Medium
+    INAM - Name (Title)
+    IPRD - Product (Album)
+    ISBJ - Subject
+    ISFT - Software
+    ISRC - Source
+    ISRF - Source Form
+    TORG - Label
+    LOCA - Location
+    TVER - Version
+    TURL - URL
+    TLEN - Length
+    ITCH - Technician
+    TRCK - Track
+    ITRK - Track
+
+ID3v2 tags can also be embedded within WAV files.  These are returned exactly as for MP3 files.
 
 =head1 THANKS
 

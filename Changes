@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.10
+0.10    2009-04-22 16:10:00
         - WAV support.
         - FLAC: Support for find_frame().
 

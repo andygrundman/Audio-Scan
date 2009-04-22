@@ -190,6 +190,7 @@ t/ogg/old2.ogg
 t/ogg/test.ogg
 t/wav/8kmp38.wav
 t/wav/id3.wav
+t/wav/wav32-info-badchunk.wav
 t/wav/wav32.wav
 tools/bench.pl
 tools/leak.c
