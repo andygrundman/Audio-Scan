@@ -109,7 +109,7 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
       if ( !my_hv_fetch( info, "song_length_ms" ) ) {
         bitrate = my_hv_fetch( info, "bitrate" );
         if (bitrate != NULL) {
-          my_hv_store( info, "song_length_ms", newSVuv( (chunk_size * 1000) / (SvIV(*bitrate) / 8) ) );
+          my_hv_store( info, "song_length_ms", newSVuv( (chunk_size / (SvIV(*bitrate) / 8.)) * 1000 ) );
         }
       }
       
