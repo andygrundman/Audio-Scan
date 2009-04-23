@@ -16,23 +16,23 @@
 
 #include "buffer.h"
 
-#define	BUFFER_MAX_CHUNK	0x100000
-#define	BUFFER_MAX_LEN		0xa00000
-#define	BUFFER_ALLOCSZ		0x008000
+#define  BUFFER_MAX_CHUNK  0x100000
+#define  BUFFER_MAX_LEN    0xa00000
+#define  BUFFER_ALLOCSZ    0x008000
 
 /* Initializes the buffer structure. */
 
 void
 buffer_init(Buffer *buffer, uint32_t len)
 {
-	if (!len)
-	  len = 4096;
+  if (!len)
+    len = 4096;
 
-	buffer->alloc = 0;
-  Newx(buffer->buf, len, u_char);
-	buffer->alloc = len;
-	buffer->offset = 0;
-	buffer->end = 0;
+  buffer->alloc = 0;
+  Newx(buffer->buf, (int)len, u_char);
+  buffer->alloc = len;
+  buffer->offset = 0;
+  buffer->end = 0;
 }
 
 /* Frees any memory used for the buffer. */
@@ -40,11 +40,11 @@ buffer_init(Buffer *buffer, uint32_t len)
 void
 buffer_free(Buffer *buffer)
 {
-	if (buffer->alloc > 0) {
-		memset(buffer->buf, 0, buffer->alloc);
-		buffer->alloc = 0;
-		Safefree(buffer->buf);
-	}
+  if (buffer->alloc > 0) {
+    memset(buffer->buf, 0, buffer->alloc);
+    buffer->alloc = 0;
+    Safefree(buffer->buf);
+  }
 }
 
 /*
@@ -55,8 +55,8 @@ buffer_free(Buffer *buffer)
 void
 buffer_clear(Buffer *buffer)
 {
-	buffer->offset = 0;
-	buffer->end = 0;
+  buffer->offset = 0;
+  buffer->end = 0;
 }
 
 /* Appends data to the buffer, expanding it if necessary. */
@@ -64,26 +64,26 @@ buffer_clear(Buffer *buffer)
 void
 buffer_append(Buffer *buffer, const void *data, uint32_t len)
 {
-	void *p;
-	p = buffer_append_space(buffer, len);
-	Copy(data, p, len, u_char);
+  void *p;
+  p = buffer_append_space(buffer, len);
+  Copy(data, p, (int)len, u_char);
 }
 
 static int
 buffer_compact(Buffer *buffer)
 {
-	/*
-	 * If the buffer is quite empty, but all data is at the end, move the
-	 * data to the beginning.
-	 */
-	if (buffer->offset > MIN(buffer->alloc, BUFFER_MAX_CHUNK)) {
-		Move(buffer->buf + buffer->offset, buffer->buf,
-			buffer->end - buffer->offset, u_char);
-		buffer->end -= buffer->offset;
-		buffer->offset = 0;
-		return (1);
-	}
-	return (0);
+  /*
+   * If the buffer is quite empty, but all data is at the end, move the
+   * data to the beginning.
+   */
+  if (buffer->offset > MIN(buffer->alloc, BUFFER_MAX_CHUNK)) {
+    Move(buffer->buf + buffer->offset, buffer->buf, (int)(buffer->end - buffer->offset), u_char);
+    buffer->end -= buffer->offset;
+    buffer->offset = 0;
+    return (1);
+  }
+
+  return (0);
 }
 
 /*
@@ -95,38 +95,39 @@ buffer_compact(Buffer *buffer)
 void *
 buffer_append_space(Buffer *buffer, uint32_t len)
 {
-	uint32_t newlen;
-	void *p;
+  uint32_t newlen;
+  void *p;
 
-	if (len > BUFFER_MAX_CHUNK)
-		croak("buffer_append_space: len %u not supported", len);
+  if (len > BUFFER_MAX_CHUNK)
+    croak("buffer_append_space: len %u not supported", len);
 
-	/* If the buffer is empty, start using it from the beginning. */
-	if (buffer->offset == buffer->end) {
-		buffer->offset = 0;
-		buffer->end = 0;
-	}
+  /* If the buffer is empty, start using it from the beginning. */
+  if (buffer->offset == buffer->end) {
+    buffer->offset = 0;
+    buffer->end = 0;
+  }
+
 restart:
-	/* If there is enough space to store all data, store it now. */
-	if (buffer->end + len < buffer->alloc) {
-		p = buffer->buf + buffer->end;
-		buffer->end += len;
-		return p;
-	}
+  /* If there is enough space to store all data, store it now. */
+  if (buffer->end + len < buffer->alloc) {
+    p = buffer->buf + buffer->end;
+    buffer->end += len;
+    return p;
+  }
 
-	/* Compact data back to the start of the buffer if necessary */
-	if (buffer_compact(buffer))
-		goto restart;
+  /* Compact data back to the start of the buffer if necessary */
+  if (buffer_compact(buffer))
+    goto restart;
 
-	/* Increase the size of the buffer and retry. */
-	newlen = roundup(buffer->alloc + len, BUFFER_ALLOCSZ);
-	if (newlen > BUFFER_MAX_LEN)
-		croak("buffer_append_space: alloc %u not supported",
-		    newlen);
-	Renew(buffer->buf, newlen, u_char);
-	buffer->alloc = newlen;
-	goto restart;
-	/* NOTREACHED */
+  /* Increase the size of the buffer and retry. */
+  newlen = roundup(buffer->alloc + len, BUFFER_ALLOCSZ);
+  if (newlen > BUFFER_MAX_LEN)
+    croak("buffer_append_space: alloc %u not supported",
+        newlen);
+  Renew(buffer->buf, (int)newlen, u_char);
+  buffer->alloc = newlen;
+  goto restart;
+  /* NOTREACHED */
 }
 
 /*
@@ -136,18 +137,18 @@ restart:
 int
 buffer_check_alloc(Buffer *buffer, uint32_t len)
 {
-	if (buffer->offset == buffer->end) {
-		buffer->offset = 0;
-		buffer->end = 0;
-	}
+  if (buffer->offset == buffer->end) {
+    buffer->offset = 0;
+    buffer->end = 0;
+  }
  restart:
-	if (buffer->end + len < buffer->alloc)
-		return (1);
-	if (buffer_compact(buffer))
-		goto restart;
-	if (roundup(buffer->alloc + len, BUFFER_ALLOCSZ) <= BUFFER_MAX_LEN)
-		return (1);
-	return (0);
+  if (buffer->end + len < buffer->alloc)
+    return (1);
+  if (buffer_compact(buffer))
+    goto restart;
+  if (roundup(buffer->alloc + len, BUFFER_ALLOCSZ) <= BUFFER_MAX_LEN)
+    return (1);
+  return (0);
 }
 
 /* Returns the number of bytes of data in the buffer. */
@@ -155,7 +156,7 @@ buffer_check_alloc(Buffer *buffer, uint32_t len)
 uint32_t
 buffer_len(Buffer *buffer)
 {
-	return buffer->end - buffer->offset;
+  return buffer->end - buffer->offset;
 }
 
 /* Gets data from the beginning of the buffer. */
@@ -163,21 +164,21 @@ buffer_len(Buffer *buffer)
 int
 buffer_get_ret(Buffer *buffer, void *buf, uint32_t len)
 {
-	if (len > buffer->end - buffer->offset) {
-		warn("buffer_get_ret: trying to get more bytes %d than in buffer %d",
-		    len, buffer->end - buffer->offset);
-		return (-1);
-	}
-	Copy(buffer->buf + buffer->offset, buf, len, char);
-	buffer->offset += len;
-	return (0);
+  if (len > buffer->end - buffer->offset) {
+    warn("buffer_get_ret: trying to get more bytes %d than in buffer %d", len, buffer->end - buffer->offset);
+    return (-1);
+  }
+
+  Copy(buffer->buf + buffer->offset, buf, (int)len, char);
+  buffer->offset += len;
+  return (0);
 }
 
 void
 buffer_get(Buffer *buffer, void *buf, uint32_t len)
 {
-	if (buffer_get_ret(buffer, buf, len) == -1)
-		croak("buffer_get: buffer error");
+  if (buffer_get_ret(buffer, buf, len) == -1)
+    croak("buffer_get: buffer error");
 }
 
 /* Consumes the given number of bytes from the beginning of the buffer. */
@@ -185,19 +186,20 @@ buffer_get(Buffer *buffer, void *buf, uint32_t len)
 int
 buffer_consume_ret(Buffer *buffer, uint32_t bytes)
 {
-	if (bytes > buffer->end - buffer->offset) {
-		warn("buffer_consume_ret: trying to get more bytes than in buffer");
-		return (-1);
-	}
-	buffer->offset += bytes;
-	return (0);
+  if (bytes > buffer->end - buffer->offset) {
+    warn("buffer_consume_ret: trying to get more bytes than in buffer");
+    return (-1);
+  }
+
+  buffer->offset += bytes;
+  return (0);
 }
 
 void
 buffer_consume(Buffer *buffer, uint32_t bytes)
 {
-	if (buffer_consume_ret(buffer, bytes) == -1)
-		croak("buffer_consume: buffer error");
+  if (buffer_consume_ret(buffer, bytes) == -1)
+    croak("buffer_consume: buffer error");
 }
 
 /* Consumes the given number of bytes from the end of the buffer. */
@@ -205,17 +207,18 @@ buffer_consume(Buffer *buffer, uint32_t bytes)
 int
 buffer_consume_end_ret(Buffer *buffer, uint32_t bytes)
 {
-	if (bytes > buffer->end - buffer->offset)
-		return (-1);
-	buffer->end -= bytes;
-	return (0);
+  if (bytes > buffer->end - buffer->offset)
+    return (-1);
+
+  buffer->end -= bytes;
+  return (0);
 }
 
 void
 buffer_consume_end(Buffer *buffer, uint32_t bytes)
 {
-	if (buffer_consume_end_ret(buffer, bytes) == -1)
-		croak("buffer_consume_end: trying to get more bytes than in buffer");
+  if (buffer_consume_end_ret(buffer, bytes) == -1)
+    croak("buffer_consume_end: trying to get more bytes than in buffer");
 }
 
 /* Returns a pointer to the first used byte in the buffer. */
@@ -223,7 +226,7 @@ buffer_consume_end(Buffer *buffer, uint32_t bytes)
 void *
 buffer_ptr(Buffer *buffer)
 {
-	return buffer->buf + buffer->offset;
+  return buffer->buf + buffer->offset;
 }
 
 /* Dumps the contents of the buffer to stderr. */
@@ -231,19 +234,21 @@ buffer_ptr(Buffer *buffer)
 void
 buffer_dump(Buffer *buffer, uint32_t len)
 {
-	uint32_t i;
-	u_char *ucp = buffer->buf;
-	
-	if (!len) {
+  uint32_t i;
+  u_char *ucp = buffer->buf;
+  
+  if (!len) {
     len = buffer->end - buffer->offset;
   }
 
-	for (i = buffer->offset; i < buffer->offset + len; i++) {
-		fprintf(stderr, "%02x ", ucp[i]);
-		if ((i-buffer->offset)%16==15)
-			fprintf(stderr, "\r\n");
-	}
-	fprintf(stderr, "\r\n");
+  for (i = buffer->offset; i < buffer->offset + len; i++) {
+    fprintf(stderr, "%02x ", ucp[i]);
+
+    if ((i-buffer->offset) % 16 == 15)
+      fprintf(stderr, "\r\n");
+  }
+
+  fprintf(stderr, "\r\n");
 }
 
 // Useful functions from bufaux.c
@@ -254,21 +259,22 @@ buffer_dump(Buffer *buffer, uint32_t len)
 int
 buffer_get_char_ret(char *ret, Buffer *buffer)
 {
-	if (buffer_get_ret(buffer, ret, 1) == -1) {
-		warn("buffer_get_char_ret: buffer_get_ret failed");
-		return (-1);
-	}
-	return (0);
+  if (buffer_get_ret(buffer, ret, 1) == -1) {
+    warn("buffer_get_char_ret: buffer_get_ret failed");
+    return (-1);
+  }
+
+  return (0);
 }
 
 int
 buffer_get_char(Buffer *buffer)
 {
-	char ch;
+  char ch;
 
-	if (buffer_get_char_ret(&ch, buffer) == -1)
-		croak("buffer_get_char: buffer error");
-	return (u_char) ch;
+  if (buffer_get_char_ret(&ch, buffer) == -1)
+    croak("buffer_get_char: buffer error");
+  return (u_char) ch;
 }
 
 uint32_t
@@ -288,97 +294,97 @@ get_u32le(const void *vp)
 int
 buffer_get_int_le_ret(uint32_t *ret, Buffer *buffer)
 {
-	u_char buf[4];
+  u_char buf[4];
 
-	if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
-		return (-1);
-	*ret = get_u32le(buf);
-	return (0);
+  if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
+    return (-1);
+  *ret = get_u32le(buf);
+  return (0);
 }
 
 uint32_t
 buffer_get_int_le(Buffer *buffer)
 {
-	uint32_t ret;
+  uint32_t ret;
 
-	if (buffer_get_int_le_ret(&ret, buffer) == -1)
-		croak("buffer_get_int: buffer error");
+  if (buffer_get_int_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_int: buffer error");
 
-	return (ret);
+  return (ret);
 }
 
 uint64_t
 get_u64le(const void *vp)
 {
-	const u_char *p = (const u_char *)vp;
-	uint64_t v;
+  const u_char *p = (const u_char *)vp;
+  uint64_t v;
 
-	v  = (uint64_t)p[7] << 56;
-	v |= (uint64_t)p[6] << 48;
-	v |= (uint64_t)p[5] << 40;
-	v |= (uint64_t)p[4] << 32;
-	v |= (uint64_t)p[3] << 24;
-	v |= (uint64_t)p[2] << 16;
-	v |= (uint64_t)p[1] << 8;
-	v |= (uint64_t)p[0];
+  v  = (uint64_t)p[7] << 56;
+  v |= (uint64_t)p[6] << 48;
+  v |= (uint64_t)p[5] << 40;
+  v |= (uint64_t)p[4] << 32;
+  v |= (uint64_t)p[3] << 24;
+  v |= (uint64_t)p[2] << 16;
+  v |= (uint64_t)p[1] << 8;
+  v |= (uint64_t)p[0];
 
-	return (v);
+  return (v);
 }
 
 int
 buffer_get_int64_le_ret(uint64_t *ret, Buffer *buffer)
 {
-	u_char buf[8];
+  u_char buf[8];
 
-	if (buffer_get_ret(buffer, (char *) buf, 8) == -1)
-		return (-1);
-	*ret = get_u64le(buf);
-	return (0);
+  if (buffer_get_ret(buffer, (char *) buf, 8) == -1)
+    return (-1);
+  *ret = get_u64le(buf);
+  return (0);
 }
 
 uint64_t
 buffer_get_int64_le(Buffer *buffer)
 {
-	uint64_t ret;
+  uint64_t ret;
 
-	if (buffer_get_int64_le_ret(&ret, buffer) == -1)
-		croak("buffer_get_int64_le: buffer error");
+  if (buffer_get_int64_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_int64_le: buffer error");
 
-	return (ret);
+  return (ret);
 }
 
 uint16_t
 get_u16le(const void *vp)
 {
-	const u_char *p = (const u_char *)vp;
-	uint16_t v;
+  const u_char *p = (const u_char *)vp;
+  uint16_t v;
 
-	v  = (uint16_t)p[1] << 8;
-	v |= (uint16_t)p[0];
+  v  = (uint16_t)p[1] << 8;
+  v |= (uint16_t)p[0];
 
-	return (v);
+  return (v);
 }
 
 int
 buffer_get_short_le_ret(uint16_t *ret, Buffer *buffer)
 {
-	u_char buf[2];
+  u_char buf[2];
 
-	if (buffer_get_ret(buffer, (char *) buf, 2) == -1)
-		return (-1);
-	*ret = get_u16le(buf);
-	return (0);
+  if (buffer_get_ret(buffer, (char *) buf, 2) == -1)
+    return (-1);
+  *ret = get_u16le(buf);
+  return (0);
 }
 
 uint16_t
 buffer_get_short_le(Buffer *buffer)
 {
-	uint16_t ret;
+  uint16_t ret;
 
-	if (buffer_get_short_le_ret(&ret, buffer) == -1)
-		croak("buffer_get_short_le: buffer error");
+  if (buffer_get_short_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_short_le: buffer error");
 
-	return (ret);
+  return (ret);
 }
 
 /*
@@ -387,9 +393,9 @@ buffer_get_short_le(Buffer *buffer)
 void
 buffer_put_char(Buffer *buffer, int value)
 {
-	char ch = value;
+  char ch = value;
 
-	buffer_append(buffer, &ch, 1);
+  buffer_append(buffer, &ch, 1);
 }
 
 // XXX supports U+0000 ~ U+FFFF only.
@@ -441,33 +447,33 @@ buffer_get_guid(Buffer *buffer, GUID *g)
 int
 buffer_get_float32_le_ret(float *ret, Buffer *buffer)
 {
-	u_char buf[4];
+  u_char buf[4];
 
-	if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
-		return (-1);
-	*ret = get_f32le(buf);
-	return (0);
+  if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
+    return (-1);
+  *ret = get_f32le(buf);
+  return (0);
 }
 
 float
 buffer_get_float32_le(Buffer *buffer)
 {
-	float ret;
+  float ret;
 
-	if (buffer_get_float32_le_ret(&ret, buffer) == -1)
-		croak("buffer_get_float32_le_ret: buffer error");
+  if (buffer_get_float32_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_float32_le_ret: buffer error");
 
-	return (ret);
+  return (ret);
 }
 
 // From libsndfile
 float
 get_f32le(const void *vp)
 {
-	const u_char *p = (const u_char *)vp;
-	float v;
-	int exponent, mantissa, negative;
-	
+  const u_char *p = (const u_char *)vp;
+  float v;
+  int exponent, mantissa, negative;
+  
   negative = p[3] & 0x80;
   exponent = ((p[3] & 0x7F) << 1) | ((p[2] & 0x80) ? 1 : 0);
   mantissa = ((p[2] & 0x7F) << 16) | (p[1] << 8) | (p[0]);
@@ -492,5 +498,5 @@ get_f32le(const void *vp)
     v /= pow(2.0, abs(exponent));
   }
 
-	return (v);
+  return (v);
 }

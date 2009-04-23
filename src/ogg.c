@@ -330,7 +330,7 @@ _parse_comments(Buffer *vorbis_buf, HV *tags)
   while (num_comments--) {
     len = buffer_get_int_le(vorbis_buf);
     
-    Newx(tmp, len + 1, char);
+    Newx(tmp, (int)len + 1, char);
     buffer_get(vorbis_buf, tmp, len);
     tmp[len] = '\0';
     
