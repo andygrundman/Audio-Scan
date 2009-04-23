@@ -53,11 +53,8 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
   if (seek) {
     mode = ID3_FILE_MODE_READONLY_NOSEEK;
   }
-  
-  // Convert PerlIO to FILE * for libid3tag
-  FILE *f = PerlIO_exportFILE(infile, "rb");
 
-  pid3file = id3_file_fdopen( fileno(f), mode, seek );
+  pid3file = id3_file_fdopen( PerlIO_fileno(infile), mode, seek );
   if (!pid3file) {
     PerlIO_printf(PerlIO_stderr(), "libid3tag cannot open %s\n", file);
     err = -1;
@@ -483,8 +480,5 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
   id3_file_close(pid3file);
 
 out:
-  // We're done with the FILE *
-  PerlIO_releaseFILE(infile, f);
-  
   return err;
 }
