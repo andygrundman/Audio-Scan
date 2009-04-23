@@ -72,6 +72,7 @@ libid3tag/patches/libid3tag-0.15.1b-tag.patch
 libid3tag/patches/libid3tag-0.15.1b-unknown-encoding.patch
 libid3tag/patches/libid3tag-0.15.1b-utf16.patch
 libid3tag/patches/read-no-seek.patch
+libid3tag/patches/seek-after-fdopen.patch
 libid3tag/README
 libid3tag/README.patches
 libid3tag/render.c
