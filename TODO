@@ -20,6 +20,7 @@ Support iTunNORM, translate into replay gain values
 FLAC
 ----
 Infinite loop on CVE-2007-4619-1.flac
+CUESHEET tag will conflict with cuesheet block?
 
 Ogg
 ---
