@@ -34,12 +34,13 @@ _varint(unsigned char *buf, int length)
 }
 
 static int
-parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, enum id3_file_mode mode)
+parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
 {
   struct id3_file *pid3file;
   struct id3_tag *pid3tag;
   struct id3_frame *pid3frame;
-  int err;
+  enum id3_file_mode mode = ID3_FILE_MODE_READONLY;
+  int err = 0;
   int index;
   unsigned int nstrings;
   unsigned char trck_found = 0; // whether we found a track tag, used to determine ID3v1 from ID3v1.1
@@ -48,11 +49,19 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, enum id3_file_mode mod
   id3_ucs4_t const *value;
   char *utf8_key;
   char *utf8_value;
+  
+  if (seek) {
+    mode = ID3_FILE_MODE_READONLY_NOSEEK;
+  }
+  
+  // Convert PerlIO to FILE * for libid3tag
+  FILE *f = PerlIO_exportFILE(infile, "rb");
 
-  pid3file = id3_file_fdopen( PerlIO_fileno(infile), mode );
+  pid3file = id3_file_fdopen( fileno(f), mode, seek );
   if (!pid3file) {
     PerlIO_printf(PerlIO_stderr(), "libid3tag cannot open %s\n", file);
-    return -1;
+    err = -1;
+    goto out;
   }
 
   pid3tag = id3_file_tag(pid3file);
@@ -62,7 +71,7 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, enum id3_file_mode mod
     id3_file_close(pid3file);
     errno = err;
     PerlIO_printf(PerlIO_stderr(), "libid3tag cannot get ID3 tag for %s\n", file);
-    return -1;
+    goto out;
   }
 
   index = 0;
@@ -472,5 +481,10 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, enum id3_file_mode mod
   }
 
   id3_file_close(pid3file);
-  return 0;
+
+out:
+  // We're done with the FILE *
+  PerlIO_releaseFILE(infile, f);
+  
+  return err;
 }

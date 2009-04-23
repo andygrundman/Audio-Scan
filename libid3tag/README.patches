@@ -19,3 +19,5 @@ Patches only in this version:
 	read-no-seek.patch   - Adds read mode ID3_FILE_MODE_READONLY_NOSEEK which does not seek,
                                useful for parsing ID3 tags in non-MP3 files where they are not
                                located at the start of the file.
+	seek-after-fdopen.patch - PerlIO buffering can cause the file pointer to be wrong after an fdopen,
+                                  this patch calls seek after fdopen.

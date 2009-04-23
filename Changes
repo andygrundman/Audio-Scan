@@ -2,6 +2,7 @@ Revision history for Audio::Scan
 
 0.12
         - Fixed bug in WAV duration calculation.
+        - Fixed seek-related bug caused by passing a PerlIO to libid3tag.
 
 0.11    2009-04-22 16:20:00
         - Renamed FLAC CRC function to fix --with-flac-static build.

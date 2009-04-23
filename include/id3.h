@@ -17,4 +17,4 @@
 #include "libid3tag/id3tag.h"
 
 static int _varint(unsigned char *buf, int length);
-static int parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, enum id3_file_mode mode);
+static int parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek);

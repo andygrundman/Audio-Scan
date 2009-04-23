@@ -252,7 +252,7 @@ enum id3_file_mode {
 };
 
 struct id3_file *id3_file_open(char const *, enum id3_file_mode);
-struct id3_file *id3_file_fdopen(int, enum id3_file_mode);
+struct id3_file *id3_file_fdopen(int, enum id3_file_mode, uint32_t seek);
 int id3_file_close(struct id3_file *);
 
 struct id3_tag *id3_file_tag(struct id3_file const *);

@@ -23,7 +23,7 @@
 static int
 get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  return parse_id3(infile, file, info, tags, ID3_FILE_MODE_READONLY);
+  return parse_id3(infile, file, info, tags, 0);
 }
 
 // _decode_mp3_frame
