@@ -365,7 +365,7 @@ Pictures are returned as a hash with the following keys:
 
 =head2 INFO
 
-The following metadata about a file is returned.
+The following metadata about a file may be returned.
 
     audio_offset
     bitrate (in bps)
@@ -410,6 +410,67 @@ found in a LIST block may include these and others:
     ITRK - Track
 
 ID3v2 tags can also be embedded within WAV files.  These are returned exactly as for MP3 files.
+
+=head1 AIFF
+
+=head2 INFO
+
+The following metadata about a file may be returned.
+
+    audio_offset
+    bitrate (in bps)
+    bits_per_sample
+    block_align
+    channels
+    compression_name (if AIFC)
+    compression_type (if AIFC)
+    file_size
+    id3_version (if an ID3v2 tag is found)
+    samplerate (in kHz)
+    song_length_ms
+
+=head2 TAGS
+
+ID3v2 tags can be embedded within AIFF files.  These are returned exactly as for MP3 files.
+
+=head1 MONKEY'S AUDIO (APE)
+
+=head2 INFO
+
+The following metadata about a file may be returned.
+
+    bitrate (in bps)
+    channels
+    compression
+    file_size
+    samplerate (in kHz)
+    song_length_ms
+    version
+
+=head2 TAGS
+
+APEv2 tags are returned as a hash of key/value pairs.
+
+=head1 MUSEPACK
+
+=head2 INFO
+
+The following metadata about a file may be returned.
+
+    audio_offset
+    bitrate (in bps)
+    channels
+    encoder
+    file_size
+    profile
+    samplerate (in kHz)
+    song_length_ms
+
+=head2 TAGS
+
+Musepack uses APEv2 tags.  They are returned as a hash of key/value pairs.
+
+=head1 
 
 =head1 THANKS
 
