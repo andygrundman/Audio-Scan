@@ -238,13 +238,15 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
   }
 
   if (ret == 0) {
-    double total_seconds = (double)(si->pcm_samples / si->sample_freq);
+    double total_seconds = (double)( (si->pcm_samples * 1.0) / si->sample_freq);
 
     my_hv_store(info, "samplerate", newSViv(si->sample_freq));
     my_hv_store(info, "channels", newSViv(si->channels));
-    my_hv_store(info, "song_length_ms", newSVnv(total_seconds * 1000));
-    my_hv_store(info, "bitrate", newSVnv(8 * (double)(si->total_file_length - si->tag_offset) / total_seconds));
-
+    my_hv_store(info, "song_length_ms", newSVuv(total_seconds * 1000));
+    my_hv_store(info, "bitrate", newSVuv(8 * (double)(si->total_file_length - si->tag_offset) / total_seconds));
+    
+    my_hv_store(info, "audio_offset", newSVuv(si->tag_offset));
+    my_hv_store(info, "file_size", newSVuv(si->total_file_length));
     my_hv_store(info, "encoder", newSVpv(si->encoder, 0));
     my_hv_store(info, "profile", newSVpv(si->profile_name, 0));
   }
