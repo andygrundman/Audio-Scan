@@ -9,7 +9,6 @@ include/flac.h
 include/id3.h
 include/mac.h
 include/mp3.h
-include/mpc.c
 include/mpc.h
 include/ogg.h
 include/pinttypes.h
