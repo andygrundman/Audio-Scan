@@ -117,6 +117,7 @@ t/06flac.t
 t/07ogg.t
 t/08asf.t
 t/09wav.t
+t/10musepack.t
 t/asf/drm.wma
 t/asf/jfif.wma
 t/asf/wma-live.wma
@@ -182,6 +183,7 @@ t/mp3/v2.4-utf16be.mp3
 t/mp3/v2.4-utf16le.mp3
 t/mp3/v2.4-utf8.mp3
 t/mp3/v2.4.mp3
+t/musepack/apev2.mpc
 t/ogg/bug1155-1.ogg
 t/ogg/bug1155-2.ogg
 t/ogg/bug803.ogg
