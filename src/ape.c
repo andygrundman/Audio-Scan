@@ -237,7 +237,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
    *
    * <value_size:4 bytes>
    * <flags:4 bytes>
-   * <key:N bytes, 2 to 255 chars, ASSCI range. 0x00 terminated>
+   * <key:N bytes, 2 to 255 chars, ASCII range. 0x00 terminated>
    * <value:value_size bytes>
    */
   uint32_t data_size = tag->size - APE_MINIMUM_TAG_SIZE;
@@ -273,6 +273,8 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
   }
   
   my_hv_store(tag->tags, upcase(SvPVX(key)), value);
+  
+  SvREFCNT_dec(key);
 
   tag->num_fields++;
 
