@@ -71,6 +71,18 @@ elsif ( $file =~ /\.(wav|aiff?)$/i ) {
         },
     } );
 }
+elsif ( $file =~ /\.(mpc|mp\+|mpp)$/i ) {
+    require Audio::Musepack;
+	
+	cmpthese( -5, {
+        mpc_pp => sub {
+            Audio::Musepack->new($file);
+        },
+        mpc_c  => sub {
+            Audio::Scan->scan($file);
+        },
+    } );
+}
 else {
   die "Unsupported file type: $file\n\n";
 }
