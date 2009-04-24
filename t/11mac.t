@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use Audio::Scan;
 use Encode;
@@ -14,6 +14,7 @@ use Encode;
     my $info = $s->{info};
     my $tags = $s->{tags};
     
+    is( $info->{bitrate}, 7741, 'Bitrate ok' );
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{song_length_ms}, 100800, 'Song length ok' );
     is( $info->{channels}, 2, 'Channels version ok' );
