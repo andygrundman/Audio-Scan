@@ -4,7 +4,6 @@ General
 MP3
 ---
 Lyrics3 support
-APEv2 support
 RIFF-MP3 support
 Free-format support (not reading Xing/LAME tag properly)
 TOC tables?
@@ -29,13 +28,28 @@ ASF
 ---
 Refactor a bit
 
-Wavpack
+AAC/ALAC/MP4/M4A/MOV
+---
+ Need implementation for stream info.
+ Need implementation for tag reading.
 
-APE
+Wavpack
+---
+ Need implementation for stream info.
+ Uses APE tags.
+
+APE (Tagging used by many codecs)
+---
+
+Monkey's Audio Codec
+---
 
 Musepack
+---
+ SV8 support. Need test files.
 
 Tests
+---
  AIFF
   AIFF with ID3
   AIFC little-endian
@@ -61,4 +75,6 @@ Tests
   CRC
   mp3gain'ed file
   non-Xing VBR should set vbr flag to true
-    
+  Additional ID3 variations + APE
+ MAC
+  Code paths that include APETAGEX tags skipping.  
