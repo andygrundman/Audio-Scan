@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, Musepack, MAC
+Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack, Monkey's Audio
 
 =head1 SYNOPSIS
 
@@ -51,8 +51,8 @@ Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, Musepack, MAC
 
 Audio::Scan is a C-based scanner for audio file metadata and tag information. It currently
 supports MP3 via an included version of libid3tag, Ogg Vorbis, FLAC (if libFLAC is
-installed), ASF, and WAV. A future release will add support for AAC, APE, AIFF, and probably
-others.
+installed), ASF, WAV, AIFF, Musepack, and Monkey's Audio. A future release will add support
+for AAC.
 
 See below for specific details about each file format.
 
@@ -68,8 +68,9 @@ determined by the file's extension.  Supported extensions are:
     FLAC: flc, flac, fla
     ASF:  wma, wmv, asf
     Musepack:  mpc, mpp, mp+
-    MAC:  ape, apl
+    Monkey's Audio:  ape, apl
     WAV: wav
+    AIFF: aiff, aif
 
 This method returns a hashref containing two other hashrefs: info and tags.  The
 contents of the info and tag hashes vary depending on file format, see below for details.
@@ -105,11 +106,7 @@ audio packet/frame past this point will be returned.
 Offset is a timestamp in milliseconds.  The byte offset to the ASF data packet
 containing this timestamp will be returned.
 
-=item WAV
-
-Not supported by find_frame.
-
-=item Musepack
+=item WAV, AIFF, Musepack, Monkey's Audio
 
 Not supported by find_frame.
 

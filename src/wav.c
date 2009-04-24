@@ -24,7 +24,6 @@ get_wav_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   int err = 0;
   uint32_t chunk_size;
   
-  
   PerlIO_seek(infile, 0, SEEK_END);
   file_size = PerlIO_tell(infile);
   PerlIO_seek(infile, 0, SEEK_SET);
@@ -54,6 +53,29 @@ get_wav_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     my_hv_store( info, "file_size", newSVuv(file_size) );
     
     _parse_wav(infile, &buf, file, file_size, info, tags);
+  }
+  else if ( !strncmp( (char *)buffer_ptr(&buf), "FORM", 4 ) ) {
+    // We've got an AIFF file
+    char *bptr;
+    
+    buffer_consume(&buf, 4);
+    
+    chunk_size = buffer_get_int(&buf);
+    
+    // Check format
+    bptr = buffer_ptr(&buf);
+    if ( bptr[0] == 'A' && bptr[1] == 'I' && bptr[2] == 'F' && (bptr[3] == 'F' || bptr[3] == 'C') ) {
+      buffer_consume(&buf, 4);
+
+      my_hv_store( info, "file_size", newSVuv(file_size) );
+
+      _parse_aiff(infile, &buf, file, file_size, info, tags);
+    }
+    else {
+      PerlIO_printf(PerlIO_stderr(), "Invalid AIFF file: missing AIFF header: %s\n", file);
+      err = -1;
+      goto out;
+    }
   }
   else {
     PerlIO_printf(PerlIO_stderr(), "Invalid WAV file: missing RIFF header: %s\n", file);
@@ -152,7 +174,7 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
         _parse_wav_list(buf, chunk_size, tags);
       }
       else if ( !strcmp( chunk_id, "PEAK" ) ) {
-        _parse_wav_peak(buf, chunk_size, info);
+        _parse_wav_peak(buf, chunk_size, info, 0);
       }
       else if ( !strcmp( chunk_id, "fact" ) ) {
         // A 4-byte fact chunk in a non-PCM wav is the number of samples
@@ -251,7 +273,7 @@ _parse_wav_list(Buffer *buf, uint32_t chunk_size, HV *tags)
 }
 
 void
-_parse_wav_peak(Buffer *buf, uint32_t chunk_size, HV *info)
+_parse_wav_peak(Buffer *buf, uint32_t chunk_size, HV *info, uint8_t big_endian)
 {
   uint16_t channels  = 0;
   AV *peaklist = newAV();
@@ -267,11 +289,119 @@ _parse_wav_peak(Buffer *buf, uint32_t chunk_size, HV *info)
   while ( channels-- ) {
     HV *peak = newHV();
     
-    my_hv_store( peak, "value", newSVnv( buffer_get_float32_le(buf) ) );
-    my_hv_store( peak, "position", newSVuv( buffer_get_int_le(buf) ) );
+    my_hv_store( peak, "value", newSVnv( big_endian ? buffer_get_float32(buf) : buffer_get_float32_le(buf) ) );
+    my_hv_store( peak, "position", newSVuv( big_endian ? buffer_get_int(buf) : buffer_get_int_le(buf) ) );
     
     av_push( peaklist, newRV_noinc( (SV *)peak) );
   }
   
   my_hv_store( info, "peak", newRV_noinc( (SV *)peaklist ) );
+}
+
+void
+_parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info, HV *tags)
+{
+  uint32_t offset = 12;
+  
+  while ( offset < file_size - 8 ) {
+    char chunk_id[5];
+    uint32_t chunk_size;
+    
+    // Verify we have at least 8 bytes
+    if ( !_check_buf(infile, buf, 8, WAV_BLOCK_SIZE) ) {
+      return;
+    }
+    
+    strncpy( chunk_id, (char *)buffer_ptr(buf), 4 );
+    chunk_id[4] = '\0';
+    buffer_consume(buf, 4);
+    
+    chunk_size = buffer_get_int(buf);
+    
+    // Adjust for padding
+    if ( chunk_size % 2 ) {
+      chunk_size++;
+    }
+    
+    offset += 8;
+    
+    DEBUG_TRACE("%s size %d\n", chunk_id, chunk_size);
+    
+    // Seek past SSND, everything else we parse
+    // XXX: Are there other large chunks we should ignore?
+    if ( !strcmp( chunk_id, "SSND" ) ) {
+      my_hv_store( info, "audio_offset", newSVuv(offset) );
+
+      // Seek past data if there are more chunks after it
+      if ( file_size > offset + chunk_size ) {
+        PerlIO_seek(infile, offset + chunk_size, SEEK_SET);
+      }
+      
+      buffer_clear(buf);
+    }
+    else if ( !strcmp( chunk_id, "ID3 " ) || !strcmp( chunk_id, "ID32" ) ) {
+      // Read header to verify version
+      unsigned char *bptr = buffer_ptr(buf);
+      
+      if (
+        (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
+        bptr[3] < 0xff && bptr[4] < 0xff &&
+        bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
+      ) {
+        my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
+        
+        // Start parsing ID3 from offset
+        parse_id3(infile, file, info, tags, offset);
+      }
+      
+      // Seek past ID3 and clear buffer
+      PerlIO_seek(infile, offset + chunk_size, SEEK_SET);
+      buffer_clear(buf);
+    }
+    else {
+      // Make sure we have enough data
+      if ( !_check_buf(infile, buf, chunk_size, WAV_BLOCK_SIZE) ) {
+        return;
+      }
+      
+      if ( !strcmp( chunk_id, "COMM" ) ) {
+        _parse_aiff_comm(buf, chunk_size, info);
+      }
+      else if ( !strcmp( chunk_id, "PEAK" ) ) {
+        _parse_wav_peak(buf, chunk_size, info, 1);
+      }
+      else {
+        PerlIO_printf(PerlIO_stderr(), "Unhandled AIFF chunk %s size %d (skipped)\n", chunk_id, chunk_size);
+        buffer_consume(buf, chunk_size);
+      }
+    }
+    
+    offset += chunk_size;
+  }
+}
+
+void
+_parse_aiff_comm(Buffer *buf, uint32_t chunk_size, HV *info)
+{
+  uint16_t channels = buffer_get_short(buf);
+  uint32_t frames = buffer_get_int(buf);
+  uint16_t bits_per_sample = buffer_get_short(buf);
+  double samplerate = buffer_get_ieee_float(buf);
+  
+  my_hv_store( info, "channels", newSVuv(channels) );
+  my_hv_store( info, "bits_per_sample", newSVuv(bits_per_sample) );
+  my_hv_store( info, "samplerate", newSVuv(samplerate) );
+  
+  my_hv_store( info, "bitrate", newSVuv( samplerate * channels * bits_per_sample ) );
+  my_hv_store( info, "song_length_ms", newSVuv( ((frames * 1.0) / samplerate) * 1000 ) );
+  my_hv_store( info, "block_align", newSVuv( channels * bits_per_sample / 8 ) );
+  
+  if (chunk_size > 18) {
+    // AIFC extra data
+    my_hv_store( info, "compression_type", newSVpvn( buffer_ptr(buf), 4 ) );
+    buffer_consume(buf, 4);
+    
+    my_hv_store( info, "compression_name", newSVpvn( buffer_ptr(buf), chunk_size - 22 ) );
+    buffer_consume(buf, chunk_size - 22);
+  }
 }

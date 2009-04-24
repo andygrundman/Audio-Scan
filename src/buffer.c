@@ -20,6 +20,8 @@
 #define  BUFFER_MAX_LEN    0xa00000
 #define  BUFFER_ALLOCSZ    0x008000
 
+#define UnsignedToFloat(u) (((double)((long)(u - 2147483647L - 1))) + 2147483648.0)
+
 /* Initializes the buffer structure. */
 
 void
@@ -308,6 +310,42 @@ buffer_get_int_le(Buffer *buffer)
   uint32_t ret;
 
   if (buffer_get_int_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_int_le: buffer error");
+
+  return (ret);
+}
+
+uint32_t
+get_u32(const void *vp)
+{
+  const u_char *p = (const u_char *)vp;
+  uint32_t v;
+
+  v  = (uint32_t)p[0] << 24;
+  v |= (uint32_t)p[1] << 16;
+  v |= (uint32_t)p[2] << 8;
+  v |= (uint32_t)p[3];
+
+  return (v);
+}
+
+int
+buffer_get_int_ret(uint32_t *ret, Buffer *buffer)
+{
+  u_char buf[4];
+
+  if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
+    return (-1);
+  *ret = get_u32(buf);
+  return (0);
+}
+
+uint32_t
+buffer_get_int(Buffer *buffer)
+{
+  uint32_t ret;
+
+  if (buffer_get_int_ret(&ret, buffer) == -1)
     croak("buffer_get_int: buffer error");
 
   return (ret);
@@ -383,6 +421,40 @@ buffer_get_short_le(Buffer *buffer)
 
   if (buffer_get_short_le_ret(&ret, buffer) == -1)
     croak("buffer_get_short_le: buffer error");
+
+  return (ret);
+}
+
+uint16_t
+get_u16(const void *vp)
+{
+  const u_char *p = (const u_char *)vp;
+  uint16_t v;
+
+  v  = (uint16_t)p[0] << 8;
+  v |= (uint16_t)p[1];
+
+  return (v);
+}
+
+int
+buffer_get_short_ret(uint16_t *ret, Buffer *buffer)
+{
+  u_char buf[2];
+
+  if (buffer_get_ret(buffer, (char *) buf, 2) == -1)
+    return (-1);
+  *ret = get_u16(buf);
+  return (0);
+}
+
+uint16_t
+buffer_get_short(Buffer *buffer)
+{
+  uint16_t ret;
+
+  if (buffer_get_short_ret(&ret, buffer) == -1)
+    croak("buffer_get_short: buffer error");
 
   return (ret);
 }
@@ -499,4 +571,104 @@ get_f32le(const void *vp)
   }
 
   return (v);
+}
+
+int
+buffer_get_float32_ret(float *ret, Buffer *buffer)
+{
+  u_char buf[4];
+
+  if (buffer_get_ret(buffer, (char *) buf, 4) == -1)
+    return (-1);
+  *ret = get_f32(buf);
+  return (0);
+}
+
+float
+buffer_get_float32(Buffer *buffer)
+{
+  float ret;
+
+  if (buffer_get_float32_ret(&ret, buffer) == -1)
+    croak("buffer_get_float32_ret: buffer error");
+
+  return (ret);
+}
+
+// From libsndfile
+float
+get_f32(const void *vp)
+{
+  const u_char *p = (const u_char *)vp;
+  float v;
+  int exponent, mantissa, negative;
+  
+  negative = p[0] & 0x80;
+  exponent = ((p[0] & 0x7F) << 1) | ((p[1] & 0x80) ? 1 : 0);
+  mantissa = ((p[1] & 0x7F) << 16) | (p[2] << 8) | (p[3]);
+  
+  if ( !(exponent || mantissa) ) {
+    return 0.0;
+  }
+  
+  mantissa |= 0x800000;
+  exponent = exponent ? exponent - 127 : 0;
+  
+  v = mantissa ? ((float)mantissa) / ((float)0x800000) : 0.0;
+  
+  if (negative) {
+    v *= -1;
+  }
+  
+  if (exponent > 0) {
+    v *= pow(2.0, exponent);
+  }
+  else if (exponent < 0) {
+    v /= pow(2.0, abs(exponent));
+  }
+
+  return (v);
+}
+
+// http://www.onicos.com/staff/iz/formats/aiff.html
+// http://www.onicos.com/staff/iz/formats/ieee.c
+double
+buffer_get_ieee_float(Buffer *buffer)
+{
+  double f;
+  int expon;
+  unsigned long hiMant, loMant;
+  
+  unsigned char *bptr = buffer_ptr(buffer);
+  
+  expon  = ((bptr[0] & 0x7F) << 8) | (bptr[1] & 0xFF);
+  hiMant = ((unsigned long)(bptr[2] & 0xFF) << 24)
+      |    ((unsigned long)(bptr[3] & 0xFF) << 16)
+      |    ((unsigned long)(bptr[4] & 0xFF) << 8)
+      |    ((unsigned long)(bptr[5] & 0xFF));
+  loMant = ((unsigned long)(bptr[6] & 0xFF) << 24)
+      |    ((unsigned long)(bptr[7] & 0xFF) << 16)
+      |    ((unsigned long)(bptr[8] & 0xFF) << 8)
+      |    ((unsigned long)(bptr[9] & 0xFF));
+
+  if (expon == 0 && hiMant == 0 && loMant == 0) {
+    f = 0;
+  }
+  else {
+    if (expon == 0x7FFF) {    /* Infinity or NaN */
+      f = HUGE_VAL;
+    }
+    else {
+      expon -= 16383;
+      f  = ldexp(UnsignedToFloat(hiMant), expon-=31);
+      f += ldexp(UnsignedToFloat(loMant), expon-=32);
+    }
+  }
+  
+  buffer_consume(buffer, 10);
+
+  if (bptr[0] & 0x80)
+    return -f;
+  else
+    return f;
 }

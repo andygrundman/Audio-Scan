@@ -5,7 +5,6 @@ use FindBin ();
 use Test::More tests => 38;
 
 use Audio::Scan;
-use Encode;
 
 # WAV file with ID3 tags
 {

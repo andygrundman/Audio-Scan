@@ -44,7 +44,7 @@ struct _types audio_types[] = {
   {"flc", {"flc", "flac", "fla", 0}},
 #endif
   {"asf", {"wma", "asf", "wmv", 0}},
-  {"wav", {"wav", 0}},
+  {"wav", {"wav", "aif", "aiff", 0}},
   {0, {0, 0}}
 };
 
@@ -59,7 +59,7 @@ static taghandler taghandlers[] = {
 #endif
   { "asf", get_asf_metadata, 0, asf_find_frame },
   { "wav", get_wav_metadata, 0, 0 },
-  { NULL, 0, 0 }
+  { NULL, 0, 0, 0 }
 };
 
 static taghandler *

@@ -54,17 +54,27 @@ int buffer_get_char(Buffer *buffer);
 uint32_t get_u32le(const void *vp);
 int buffer_get_int_le_ret(uint32_t *ret, Buffer *buffer);
 uint32_t buffer_get_int_le(Buffer *buffer);
+uint32_t get_u32(const void *vp);
+int buffer_get_int_ret(uint32_t *ret, Buffer *buffer);
+uint32_t buffer_get_int(Buffer *buffer);
 uint64_t get_u64le(const void *vp);
 int buffer_get_int64_le_ret(uint64_t *ret, Buffer *buffer);
 uint64_t buffer_get_int64_le(Buffer *buffer);
 uint16_t get_u16le(const void *vp);
 int buffer_get_short_le_ret(uint16_t *ret, Buffer *buffer);
 uint16_t buffer_get_short_le(Buffer *buffer);
+uint16_t get_u16(const void *vp);
+int buffer_get_short_ret(uint16_t *ret, Buffer *buffer);
+uint16_t buffer_get_short(Buffer *buffer);
 void buffer_put_char(Buffer *buffer, int value);
 void buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len);
 void buffer_get_guid(Buffer *buffer, GUID *g);
 int buffer_get_float32_le_ret(float *ret, Buffer *buffer);
 float buffer_get_float32_le(Buffer *buffer);
 float get_f32le(const void *vp);
+int buffer_get_float32_ret(float *ret, Buffer *buffer);
+float buffer_get_float32(Buffer *buffer);
+float get_f32(const void *vp);
+double buffer_get_ieee_float(Buffer *buffer);
 
 #endif

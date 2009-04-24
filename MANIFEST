@@ -10,6 +10,7 @@ include/id3.h
 include/mac.h
 include/mp3.h
 include/mpc.c
+include/mpc.h
 include/ogg.h
 include/pinttypes.h
 include/ppport.h
@@ -98,8 +99,8 @@ MANIFEST			This list of files
 README
 README.win32
 Scan.xs
-src/asf.c
 src/ape.c
+src/asf.c
 src/buffer.c
 src/common.c
 src/flac.c
@@ -121,6 +122,9 @@ t/08asf.t
 t/09wav.t
 t/10musepack.t
 t/11mac.t
+t/12aiff.t
+t/aiff/aiff-id3.aif
+t/aiff/aiff32.aiff
 t/asf/drm.wma
 t/asf/jfif.wma
 t/asf/wma-live.wma
@@ -142,6 +146,7 @@ t/flac/id3tagged.flac
 t/flac/md5.flac
 t/flac/picture.flac
 t/flac/test.flac
+t/mac/apev2.ape
 t/mp3/bug5686/latin/good.mp3
 t/mp3/bug5686/utf/invalid.mp3
 t/mp3/gentoo-bug-210564.mp3
