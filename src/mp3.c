@@ -23,13 +23,51 @@
 static int
 get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  /* Not sure why this isn't working. Tests don't pass */
-  int ret = -1; // get_ape_metadata(infile, file, info, tags);
-
-  if (ret == -1) {
-    ret = parse_id3(infile, file, info, tags, 0);
+  int ret;
+  
+  // See if this file has an APE tag as fast as possible
+  // This is still a big performance hit :(
+  if ( _has_ape(infile) ) {
+    get_ape_metadata(infile, file, info, tags);
   }
+  
+  ret = parse_id3(infile, file, info, tags, 0);
 
+  return ret;
+}
+
+static int
+_has_ape(PerlIO *infile)
+{
+  Buffer buf;
+  uint8_t ret = 0;
+  char *bptr;
+  
+  buffer_init(&buf, 8);
+  
+  if ( (PerlIO_seek(infile, -160, SEEK_END)) == -1 ) {
+    goto out;
+  }
+  
+  DEBUG_TRACE("Seeked to %d looking for APE tag\n", PerlIO_tell(infile));
+  
+  if ( !_check_buf(infile, &buf, 8, 8) ) {
+    goto out;
+  }
+  
+  bptr = buffer_ptr(&buf);
+  
+  if ( bptr[0] == 'A' && bptr[1] == 'P' && bptr[2] == 'E'
+    && bptr[3] == 'T' && bptr[4] == 'A' && bptr[5] == 'G'
+    && bptr[6] == 'E' && bptr[7] == 'X'
+  ) {
+    DEBUG_TRACE("APE tag found\n");
+    ret = 1;
+  }
+  
+out:
+  buffer_free(&buf);
+  
   return ret;
 }
 

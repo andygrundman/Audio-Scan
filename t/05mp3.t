@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 210;
+use Test::More tests => 212;
 
 use Audio::Scan;
 use Encode;
@@ -602,6 +602,16 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TIPL}->[1], 'Steve Albini', 'ID3v2.4 TIPL string 2 ok' );
     is( $tags->{TIPL}->[2], 'engineer', 'ID3v2.4 TIPL string 3 ok' );
     is( $tags->{TIPL}->[3], 'Steve Albini', 'ID3v2.4 TIPL string 4 ok' );
+}
+
+# ID3v2.4 + APEv2 tags
+{
+    my $s = Audio::Scan->scan( _f('v2.4-ape.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 with APEv2 tag ok' );
+    is( $tags->{APE_TAGS_SUCK}, 1, 'APEv2 tag ok' );
 }
 
 # Scan via a filehandle
