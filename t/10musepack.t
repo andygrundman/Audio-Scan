@@ -15,7 +15,7 @@ use Encode;
     my $tags = $s->{tags};
     
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
-    is( $info->{seconds}, 598, 'Song length ok' );
+    is( $info->{song_length_ms}, 598000, 'Song length ok' );
     is( $info->{channels}, '2', 'Channels version ok' );
 
     is( $tags->{ALBUM}, 'Special Cases', 'Album ok' );
