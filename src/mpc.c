@@ -34,7 +34,7 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "musepack.h"
+#include "mpc.h"
 
 #define MPC_HEADER_SIZE 32
 

@@ -8,7 +8,7 @@ include/common.h
 include/flac.h
 include/id3.h
 include/mp3.h
-include/musepack.c
+include/mpc.c
 include/ogg.h
 include/pinttypes.h
 include/ppport.h
@@ -104,7 +104,7 @@ src/common.c
 src/flac.c
 src/id3.c
 src/mp3.c
-src/musepack.c
+src/mpc.c
 src/ogg.c
 src/wav.c
 t/01use.t

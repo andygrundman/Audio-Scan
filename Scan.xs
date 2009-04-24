@@ -10,7 +10,7 @@
 
 #include "asf.c"
 #include "mp3.c"
-#include "musepack.c"
+#include "mpc.c"
 #include "ogg.c"
 #include "wav.c"
 
