@@ -304,14 +304,24 @@ int _ape_check_validity(ApeTag* tag, uint32_t flags, char* key, char* value) {
   }
 
   if (key_length == 3) {
+#ifdef _MSC_VER
+    if (strnicmp(key, "id3", 3) == 0 || 
+        strnicmp(key, "tag", 3) == 0 || 
+        strnicmp(key, "mp+", 3) == 0) {
+#else
     if (strncasecmp(key, "id3", 3) == 0 || 
         strncasecmp(key, "tag", 3) == 0 || 
         strncasecmp(key, "mp+", 3) == 0) {
+#endif
       return _ape_error(tag, "Invalid item key 'id3, tag or mp+'", -3);
     }
   }
 
+#ifdef _MSC_VER
+  if (key_length == 4 && strnicmp(key, "oggs", 4) == 0) {
+#else
   if (key_length == 4 && strncasecmp(key, "oggs", 4) == 0) {
+#endif
     return _ape_error(tag, "Invalid item key 'oggs'", -3);
   }
 
