@@ -113,3 +113,41 @@ void _split_vorbis_comment(char* comment, HV* tags) {
 
   Safefree(key);
 }
+
+int32_t
+skip_id3v2(PerlIO* infile) {
+  unsigned char buf[10];
+  uint32_t has_footer;
+  int32_t  size;
+
+  // seek to first byte of mpc data
+  if (PerlIO_seek(infile, 0, SEEK_SET) < 0)
+    return 0;
+
+  PerlIO_read(infile, &buf, sizeof(buf));
+
+  // check id3-tag
+  if (memcmp(buf, "ID3", 3) != 0)
+    return 0;
+
+  // read flags
+  has_footer = buf[5] & 0x10;
+
+  if (buf[5] & 0x0F)
+    return -1;
+
+  if ((buf[6] | buf[7] | buf[8] | buf[9]) & 0x80)
+    return -1;
+
+  // read header size (syncsave: 4 * $0xxxxxxx = 28 significant bits)
+  size  = buf[6] << 21;
+  size += buf[7] << 14;
+  size += buf[8] <<  7;
+  size += buf[9]      ;
+  size += 10;
+
+  if (has_footer)
+    size += 10;
+
+  return size;
+}

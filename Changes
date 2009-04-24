@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.13
+        - Add basic Musepack support.
+        - Add basic APE Tag support.
+
 0.12    2009-04-23 12:10:00
         - Fixed bug in WAV duration calculation.
         - Fixed seek-related bug caused by passing a PerlIO to libid3tag.

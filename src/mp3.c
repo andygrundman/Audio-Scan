@@ -23,7 +23,14 @@
 static int
 get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  return parse_id3(infile, file, info, tags, 0);
+  /* Not sure why this isn't working. Tests don't pass */
+  int ret = -1; // get_ape_metadata(infile, file, info, tags);
+
+  if (ret == -1) {
+    ret = parse_id3(infile, file, info, tags, 0);
+  }
+
+  return ret;
 }
 
 // _decode_mp3_frame

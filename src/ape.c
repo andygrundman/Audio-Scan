@@ -272,7 +272,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
     sv_utf8_decode(value);
   }
   
-  my_hv_store(tag->tags, SvPVX(key), value);
+  my_hv_store(tag->tags, upcase(SvPVX(key)), value);
 
   tag->num_fields++;
 
