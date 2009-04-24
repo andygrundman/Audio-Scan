@@ -7,6 +7,7 @@ include/buffer.h
 include/common.h
 include/flac.h
 include/id3.h
+include/mac.h
 include/mp3.h
 include/mpc.c
 include/ogg.h
@@ -103,6 +104,7 @@ src/buffer.c
 src/common.c
 src/flac.c
 src/id3.c
+src/mac.c
 src/mp3.c
 src/mpc.c
 src/ogg.c
@@ -118,6 +120,7 @@ t/07ogg.t
 t/08asf.t
 t/09wav.t
 t/10musepack.t
+t/11mac.t
 t/asf/drm.wma
 t/asf/jfif.wma
 t/asf/wma-live.wma

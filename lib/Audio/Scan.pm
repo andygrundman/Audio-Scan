@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, Musepack
+Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, Musepack, MAC
 
 =head1 SYNOPSIS
 
@@ -68,6 +68,7 @@ determined by the file's extension.  Supported extensions are:
     FLAC: flc, flac, fla
     ASF:  wma, wmv, asf
     Musepack:  mpc, mpp, mp+
+    MAC:  ape, apl
     WAV: wav
 
 This method returns a hashref containing two other hashrefs: info and tags.  The

@@ -95,6 +95,8 @@ print "   MP3 support:     yes\n";
 print "  FLAC support:     " . ( $FLAC ? "yes ($flac_inc)" : "no, install libFLAC 1.1.3+" ) . "\n";
 print "   OGG support:     yes\n";
 print "   ASF support:     yes\n";
+print "   MPC support:     yes\n";
+print "   MAC support:     yes\n";
 print "\n";
 
 my $DEFINES = '-Wall';

@@ -2,6 +2,7 @@ Revision history for Audio::Scan
 
 0.13
         - Add basic Musepack support.
+        - Add Monkey's Audio Codec (MAC) support.
         - Add basic APE Tag support.
 
 0.12    2009-04-23 12:10:00
