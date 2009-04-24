@@ -914,6 +914,8 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     SV *key = NULL;
     SV *value = NULL;
     Buffer utf8_buf;
+    uint16_t stream_number, name_len, data_type;
+    uint32_t data_len;
     
 #ifdef DEBUG
     uint16_t lang_index    = buffer_get_short_le(buf);
@@ -921,10 +923,10 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     buffer_consume(buf, 2);
 #endif
 
-    uint16_t stream_number = buffer_get_short_le(buf);
-    uint16_t name_len      = buffer_get_short_le(buf);
-    uint16_t data_type     = buffer_get_short_le(buf);
-    uint32_t data_len      = buffer_get_int_le(buf);
+    stream_number = buffer_get_short_le(buf);
+    name_len      = buffer_get_short_le(buf);
+    data_type     = buffer_get_short_le(buf);
+    data_len      = buffer_get_int_le(buf);
     
     buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
     key = newSVpv( buffer_ptr(&utf8_buf), 0 );
