@@ -509,6 +509,8 @@ bool
 _is_flac_header(unsigned char *buf)
 {
   FLAC__uint32 sync1, sync2, block_size, sample_rate, channel, sample_size, padding;
+  size_t len = 4;
+  FLAC__byte crc8;
 
   sync1       = buf[0];
   sync2       = buf[1] >> 2;
@@ -527,8 +529,6 @@ _is_flac_header(unsigned char *buf)
     block_size, sample_rate, channel, sample_size, padding
   );
   */
-
-  size_t len = 4;
 
   if (!(buf[4] & 0x80)) {
     len += 1;
@@ -563,7 +563,7 @@ _is_flac_header(unsigned char *buf)
     len += 2;
   }
 
-  FLAC__byte crc8 = buf[len];
+  crc8 = buf[len];
 
   if (my_FLAC__crc8(buf, len) != crc8) {
     fprintf(stderr, "CRC FAILED\n");
