@@ -139,7 +139,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
     my_hv_store(info, "samplerate", newSViv(si->sample_rate));
     my_hv_store(info, "channels", newSViv(si->channels));
     my_hv_store(info, "song_length_ms", newSVuv(total_seconds * 1000));
-    my_hv_store(info, "bitrate", newSVnv((double)(8 * ((si->file_size - si->audio_start_offset) / total_seconds))));
+    my_hv_store(info, "bitrate", newSVuv((double)(8 * ((si->file_size - si->audio_start_offset) / total_seconds))));
 
     my_hv_store(info, "file_size", newSVnv(si->file_size));
     my_hv_store(info, "compression", newSVpv(si->compression, 0));
