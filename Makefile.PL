@@ -101,7 +101,7 @@ print "   WAV support:     yes\n";
 print "   AIFF support:    yes\n";
 print "\n";
 
-my $DEFINES = '-Wall';
+my $DEFINES = '-Wall -Wno-unused-value';
 $DEFINES .= ' -DHAVE_FLAC' if $FLAC;
 
 push @INC, ' -I. -I.. -Isrc -Iinclude';
