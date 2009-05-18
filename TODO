@@ -77,4 +77,5 @@ Tests
   non-Xing VBR should set vbr flag to true
   Additional ID3 variations + APE
  MAC
-  Code paths that include APETAGEX tags skipping.  
+  Code paths that include APETAGEX tags skipping.
+  Header <= 3.97

@@ -7,7 +7,6 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
   char *bptr;
   int32_t ret = 0;
   uint32_t header_end;
-  uint32_t compression_id;
 
   mac_streaminfo *si;
   Newxz(si, sizeof(mac_streaminfo), mac_streaminfo);
@@ -71,27 +70,31 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
     goto out;
   }
 
-  buffer_consume(&header, 2);
-  compression_id = buffer_get_short_le(&header);
-
-  si->version    = buffer_get_int_le(&header);
+  buffer_consume(&header, 4);
+  si->version = buffer_get_short_le(&header);
 
   if (si->version < 3980) {
-
-    si->compression = mac_profile_names[ compression_id / 1000 ];
+    uint16_t compression_id = buffer_get_short_le(&header);
+    if (compression_id % 1000) {
+      si->compression = "";
+    }
+    else {
+      si->compression = mac_profile_names[ compression_id / 1000 ];
+    }
 
     if (!_check_buf(infile, &header, MAC_397_HEADER_LEN, MAC_397_HEADER_LEN)) {
       PerlIO_printf(PerlIO_stderr(), "MAC: [Couldn't read < 3.98 stream header]: %s\n", file);
       goto out;
     }
+    
+    buffer_consume(&header, 2); // flags
 
     si->channels = buffer_get_short_le(&header);
-    buffer_get_short_le(&header); // flags
     
     si->sample_rate = buffer_get_int_le(&header);
 
-    buffer_get_int_le(&header); // header size
-    buffer_get_int_le(&header); // terminating data bytes
+    buffer_consume(&header, 4); // header size
+    buffer_consume(&header, 4); // terminating data bytes
     
     si->total_frames      = buffer_get_int_le(&header);
     si->final_frame       = buffer_get_int_le(&header);
@@ -99,6 +102,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
 
   } else {
     unsigned char md5[16];
+    uint16_t profile;
 
     if (!_check_buf(infile, &header, MAC_398_HEADER_LEN, MAC_398_HEADER_LEN)) {
       PerlIO_printf(PerlIO_stderr(), "MAC: [Couldn't read > 3.98 stream header]: %s\n", file);
@@ -116,7 +120,13 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
     buffer_get(&header, &md5, sizeof(md5));
 
     // Header block
-    si->compression = mac_profile_names[ buffer_get_short_le(&header) / 1000 ];
+    profile = buffer_get_short_le(&header);
+    if (profile % 1000) {
+      si->compression = "";
+    }
+    else {
+      si->compression = mac_profile_names[ profile / 1000 ];
+    }
 
     buffer_get_short_le(&header); // flags
 

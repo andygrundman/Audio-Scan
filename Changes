@@ -1,9 +1,13 @@
 Revision history for Audio::Scan
 
+0.14
+        - Bug 12082: Fixed reading of APE files with header version <= 3.97.
+        - Fixed test failure on some Linux platforms due to rounding error.
+
 0.13    2009-04-24 16:00:00
-        - Added basic Musepack support.
-        - Added Monkey's Audio Codec (MAC) support.
-        - Added AIFF support.
+        - Musepack support.
+        - Monkey's Audio Codec (APE) support.
+        - AIFF support.
 
 0.12    2009-04-23 12:10:00
         - Fixed bug in WAV duration calculation.
