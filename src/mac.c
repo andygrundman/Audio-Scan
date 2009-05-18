@@ -108,7 +108,9 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
       PerlIO_printf(PerlIO_stderr(), "MAC: [Couldn't read > 3.98 stream header]: %s\n", file);
       goto out;
     }
-
+    
+    buffer_consume(&header, 2);
+    
     // unused.
     buffer_get_int_le(&header); // desc bytes
     buffer_get_int_le(&header); // header bytes
