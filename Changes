@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.14
+        - MPEG-4 support.
         - Bug 12082: Fixed reading of APE files with header version <= 3.97.
         - Fixed test failure on some Linux platforms due to rounding error.
 

@@ -92,6 +92,7 @@ for my $incdir ( $flac_inc, @check ) {
 print "\n";
 print "Audio::Scan will be built with:\n\n";
 print "   MP3 support:     yes\n";
+print "   MP4 support:     yes\n";
 print "  FLAC support:     " . ( $FLAC ? "yes ($flac_inc)" : "no, install libFLAC 1.1.3+" ) . "\n";
 print "   OGG support:     yes\n";
 print "   ASF support:     yes\n";

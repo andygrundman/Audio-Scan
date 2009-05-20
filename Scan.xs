@@ -11,6 +11,7 @@
 #include "asf.c"
 #include "mac.c"
 #include "mp3.c"
+#include "mp4.c"
 #include "mpc.c"
 #include "ogg.c"
 #include "wav.c"
@@ -24,7 +25,7 @@
 
 struct _types {
   char *type;
-  char *suffix[7];
+  char *suffix[15];
 };
 
 typedef struct {
@@ -35,7 +36,7 @@ typedef struct {
 } taghandler;
 
 struct _types audio_types[] = {
-  {"aac", {"mp4", "mp4", "m4a", "m4p", 0}},
+  {"mp4", {"mp4", "m4a", "m4b", "m4p", "m4v", "m4r", "k3g", "skm", "3gp", "3g2", "aac", "mov", 0}},
   {"mp3", {"mp3", "mp2", 0}},
   {"ogg", {"ogg", "oga", 0}},
   {"mpc", {"mpc", "mp+", "mpp", 0}},
@@ -49,7 +50,7 @@ struct _types audio_types[] = {
 };
 
 static taghandler taghandlers[] = {
-  { "aac", 0, 0, 0 },
+  { "mp4", get_mp4tags, 0, 0 },
   { "mp3", get_mp3tags, get_mp3fileinfo, mp3_find_frame },
   { "ogg", get_ogg_metadata, 0, ogg_find_frame },
   { "mpc", get_ape_metadata, get_mpcfileinfo, 0 },
@@ -82,7 +83,7 @@ _get_taghandler(char *suffix)
     }
   }
     
-  if (typeindex > 0) {
+  if (typeindex > -1) {
     for (hdl = taghandlers; hdl->type; ++hdl)
       if (!strcmp(hdl->type, audio_types[typeindex].type))
         break;
@@ -178,7 +179,7 @@ CODE:
   suffix++;
   
   if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
+    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading: %s\n", SvPVX(path), strerror(errno));
     XSRETURN_UNDEF;
   }
   

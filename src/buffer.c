@@ -189,7 +189,7 @@ int
 buffer_consume_ret(Buffer *buffer, uint32_t bytes)
 {
   if (bytes > buffer->end - buffer->offset) {
-    warn("buffer_consume_ret: trying to get more bytes than in buffer");
+    warn("buffer_consume_ret: trying to get more bytes %d than in buffer %d", bytes, buffer->end - buffer->offset);
     return (-1);
   }
 
@@ -220,7 +220,7 @@ void
 buffer_consume_end(Buffer *buffer, uint32_t bytes)
 {
   if (buffer_consume_end_ret(buffer, bytes) == -1)
-    croak("buffer_consume_end: trying to get more bytes than in buffer");
+    croak("buffer_consume_end: trying to get more bytes %d than in buffer %d", bytes, buffer->end - buffer->offset);
 }
 
 /* Returns a pointer to the first used byte in the buffer. */
@@ -386,6 +386,46 @@ buffer_get_int64_le(Buffer *buffer)
   uint64_t ret;
 
   if (buffer_get_int64_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_int64_le: buffer error");
+
+  return (ret);
+}
+
+uint64_t
+get_u64(const void *vp)
+{
+  const u_char *p = (const u_char *)vp;
+  uint64_t v;
+
+  v  = (uint64_t)p[0] << 56;
+  v |= (uint64_t)p[1] << 48;
+  v |= (uint64_t)p[2] << 40;
+  v |= (uint64_t)p[3] << 32;
+  v |= (uint64_t)p[4] << 24;
+  v |= (uint64_t)p[5] << 16;
+  v |= (uint64_t)p[6] << 8;
+  v |= (uint64_t)p[7];
+
+  return (v);
+}
+
+int
+buffer_get_int64_ret(uint64_t *ret, Buffer *buffer)
+{
+  u_char buf[8];
+
+  if (buffer_get_ret(buffer, (char *) buf, 8) == -1)
+    return (-1);
+  *ret = get_u64(buf);
+  return (0);
+}
+
+uint64_t
+buffer_get_int64(Buffer *buffer)
+{
+  uint64_t ret;
+
+  if (buffer_get_int64_ret(&ret, buffer) == -1)
     croak("buffer_get_int64_le: buffer error");
 
   return (ret);

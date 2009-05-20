@@ -83,6 +83,18 @@ elsif ( $file =~ /\.(mpc|mp\+|mpp)$/i ) {
         },
     } );
 }
+elsif ( $file =~ /\.(m4a)$/i ) {
+    require MP4::Info;
+	
+	cmpthese( -5, {
+        mp4_pp => sub {
+            MP4::Info->new($file);
+        },
+        mp4_c  => sub {
+            Audio::Scan->scan($file);
+        },
+    } );
+}
 else {
   die "Unsupported file type: $file\n\n";
 }
