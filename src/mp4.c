@@ -69,7 +69,17 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
   
   // XXX: if no ftyp was found, assume it is brand 'mp41'
   
-  // XXX: if no bitrate was found (i.e. ALAC), calculate based on file_size/song_length_ms
+  // if no bitrate was found (i.e. ALAC), calculate based on file_size/song_length_ms
+  if (mp4->need_calc_bitrate) {
+    HV *trackinfo = _mp4_get_current_trackinfo(mp4);
+    SV **entry = my_hv_fetch(info, "song_length_ms");
+    if (entry) {
+      uint32_t song_length_ms = SvIV(*entry);
+      uint32_t bitrate = ((file_size - audio_offset * 1.0) / song_length_ms) * 1000;
+      
+      my_hv_store( trackinfo, "avg_bitrate", newSVuv(bitrate) );
+    }
+  }
   
 //out:
   buffer_free(mp4->buf);
@@ -86,6 +96,7 @@ _mp4_read_box(mp4info *mp4)
 {
   uint64_t size;  // total size of box
   char type[5];
+  uint8_t skip = 0;
   
   mp4->rsize = 0; // remaining size in box
   
@@ -175,6 +186,27 @@ _mp4_read_box(mp4info *mp4)
     // mp4a is a special real box + container, count only the real bytes (28)
     size = 28 + mp4->hsize;
   }
+  else if ( FOURCC_EQ(type, "alac") ) {
+    // Mark encoding
+    HV *trackinfo = _mp4_get_current_trackinfo(mp4);
+    
+    my_hv_store( trackinfo, "encoding", newSVpvn("alac", 4) );
+    
+    // Flag that we'll have to calculate bitrate later
+    mp4->need_calc_bitrate = 1;
+        
+    // Skip rest
+    skip = 1;
+  }
+  else if ( FOURCC_EQ(type, "drms") ) {
+    // Mark encoding
+    HV *trackinfo = _mp4_get_current_trackinfo(mp4);
+    
+    my_hv_store( trackinfo, "encoding", newSVpvn("drms", 4) );
+    
+    // Skip rest
+    skip = 1;
+  }
   else if ( FOURCC_EQ(type, "esds") ) {
     if ( !_mp4_parse_esds(mp4) ) {
       PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad esds box): %s\n", mp4->file);
@@ -227,6 +259,10 @@ _mp4_read_box(mp4info *mp4)
   }
   else {
     DEBUG_TRACE("  Unhandled box, skipping\n");
+    skip = 1;
+  }
+  
+  if (skip) {
     if ( buffer_len(mp4->buf) >= mp4->rsize ) {
       //buffer_dump(mp4->buf, mp4->rsize);
       buffer_consume(mp4->buf, mp4->rsize);
@@ -446,6 +482,8 @@ _mp4_parse_mp4a(mp4info *mp4)
   if ( !_check_buf(mp4->infile, mp4->buf, 28, MP4_BLOCK_SIZE) ) {
     return 0;
   }
+  
+  my_hv_store( trackinfo, "encoding", newSVpvn("mp4a", 4) );
   
   // Skip reserved
   buffer_consume(mp4->buf, 16);
