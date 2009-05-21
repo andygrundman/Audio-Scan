@@ -69,6 +69,8 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
   
   // XXX: if no ftyp was found, assume it is brand 'mp41'
   
+  // XXX: if no bitrate was found (i.e. ALAC), calculate based on file_size/song_length_ms
+  
 //out:
   buffer_free(mp4->buf);
   Safefree(mp4->buf);
@@ -745,23 +747,19 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
   if ( !flags || flags == 21 ) {
     if ( FOURCC_EQ( SvPVX(key), "TRKN" ) || FOURCC_EQ( SvPVX(key), "DISK" ) ) {
       // Special case trkn, disk (pair of 16-bit ints)
-      uint16_t num;
-      uint16_t total = 0;
+      uint16_t num, total;
     
       buffer_consume(mp4->buf, 2); // padding
     
-      num = buffer_get_short(mp4->buf);
+      num   = buffer_get_short(mp4->buf);
+      total = buffer_get_short(mp4->buf);
     
-      if (size - 8 > 6) {
-        total = buffer_get_short(mp4->buf);
-      }
-    
-      buffer_consume(mp4->buf, 2); // padding
+      buffer_consume(mp4->buf, size - 14); // optional padding
     
       if (total) {
         my_hv_store_ent( mp4->tags, key, newSVpvf( "%d/%d", num, total ) );
       }
-      else {
+      else if (num) {
         my_hv_store_ent( mp4->tags, key, newSVuv(num) );
       }
     }
