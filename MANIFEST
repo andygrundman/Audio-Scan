@@ -9,6 +9,7 @@ include/flac.h
 include/id3.h
 include/mac.h
 include/mp3.h
+include/mp4.h
 include/mpc.h
 include/ogg.h
 include/pinttypes.h
@@ -106,6 +107,7 @@ src/flac.c
 src/id3.c
 src/mac.c
 src/mp3.c
+src/mp4.c
 src/mpc.c
 src/ogg.c
 src/wav.c
@@ -122,6 +124,7 @@ t/09wav.t
 t/10musepack.t
 t/11mac.t
 t/12aiff.t
+t/13mp4.t
 t/aiff/aiff-id3.aif
 t/aiff/aiff32.aiff
 t/asf/drm.wma
@@ -191,6 +194,8 @@ t/mp3/v2.4-utf16be.mp3
 t/mp3/v2.4-utf16le.mp3
 t/mp3/v2.4-utf8.mp3
 t/mp3/v2.4.mp3
+t/mp4/alac.m4a
+t/mp4/itunes811.m4a
 t/musepack/apev2.mpc
 t/ogg/bug1155-1.ogg
 t/ogg/bug1155-2.ogg
