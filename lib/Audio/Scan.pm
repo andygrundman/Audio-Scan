@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack, Monkey's Audio
+Audio::Scan - Fast C parser for MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack, Monkey's Audio
 
 =head1 SYNOPSIS
 
@@ -50,9 +50,8 @@ Audio::Scan - Fast C parser for MP3, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack,
 =head1 DESCRIPTION
 
 Audio::Scan is a C-based scanner for audio file metadata and tag information. It currently
-supports MP3 via an included version of libid3tag, Ogg Vorbis, FLAC (if libFLAC is
-installed), ASF, WAV, AIFF, Musepack, and Monkey's Audio. A future release will add support
-for AAC.
+supports MP3 via an included version of libid3tag, MP4, Ogg Vorbis, FLAC (if libFLAC is
+installed), ASF, WAV, AIFF, Musepack, and Monkey's Audio.
 
 See below for specific details about each file format.
 
@@ -64,6 +63,7 @@ Scans $path for both metadata and tag information.  The type of scan performed i
 determined by the file's extension.  Supported extensions are:
 
     MP3:  mp3, mp2
+    MP4:  mp4, m4a, m4b, m4p, m4v, m4r, k3g, skm, 3gp, 3g2, mov
     Ogg:  ogg, oga
     FLAC: flc, flac, fla
     ASF:  wma, wmv, asf
@@ -203,6 +203,74 @@ converted to upper-case.  Sample tag data:
                 "http://musicbrainz.org",
                 "1084278a-2254-4613-a03c-9fed7a8937ca",
           ],
+    },
+
+
+=head1 MP4
+
+=head2 INFO
+
+The following metadata about a file may be returned:
+
+    audio_offset (byte offset to start of mdat)
+    compatible_brands
+    file_size
+    major_brand
+    minor_version
+    song_length_ms
+    timescale
+    tracks (array of tracks in the file)
+        Each track may contain:
+        
+        audio_type
+        avg_bitrate
+        bits_per_sample
+        channels
+        duration
+        encoding
+        handler_name
+        handler_type
+        id
+        max_bitrate
+        samplerate
+        
+=head2 TAGS
+
+Tags are returned in a hash with all keys converted to upper-case.  Keys starting with
+0xA9 (copyright symbol) will have this character stripped out.  Sample tag data:
+
+    tags => {
+       AART              => "Album Artist",
+       ALB               => "Album",
+       ART               => "Artist",
+       CMT               => "Comments",
+       COVR              => <binary data snipped>,
+       CPIL              => 1,
+       DAY               => 2009,
+       DESC              => "Video Description",
+       DISK              => "1/2",
+       "ENCODING PARAMS" => "vers\0\0\0\1acbf\0\0\0\2brat\0\1w\0cdcv\0\1\6\5",
+       GNRE              => "Jazz",
+       GRP               => "Grouping",
+       ITUNNORM          => " 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000",
+       ITUNSMPB          => " 00000000 00000840 000001E4 00000000000001DC 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000",
+       LYR               => "Lyrics",
+       NAM               => "Name",
+       PGAP              => 1,
+       SOAA              => "Sort Album Artist",
+       SOAL              => "Sort Album",
+       SOAR              => "Sort Artist",
+       SOCO              => "Sort Composer",
+       SONM              => "Sort Name",
+       SOSN              => "Sort Show",
+       TMPO              => 120,
+       TOO               => "iTunes 8.1.1, QuickTime 7.6",
+       TRKN              => "1/10",
+       TVEN              => "Episode ID",
+       TVES              => 12,
+       TVSH              => "Show",
+       TVSN              => 12,
+       WRT               => "Composer",
     },
 
 =head1 OGG VORBIS
@@ -484,6 +552,10 @@ at L<http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/contrib/
 =head1 SEE ALSO
 
 ASF Spec L<http://www.microsoft.com/windows/windowsmedia/forpros/format/asfspec.aspx>
+
+MP4 Info:
+L<http://standards.iso.org/ittf/PubliclyAvailableStandards/c051533_ISO_IEC_14496-12_2008.zip>
+L<http://www.geocities.com/xhelmboyx/quicktime/formats/mp4-layout.txt>
 
 =head1 AUTHORS
 

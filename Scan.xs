@@ -36,7 +36,7 @@ typedef struct {
 } taghandler;
 
 struct _types audio_types[] = {
-  {"mp4", {"mp4", "m4a", "m4b", "m4p", "m4v", "m4r", "k3g", "skm", "3gp", "3g2", "aac", "mov", 0}},
+  {"mp4", {"mp4", "m4a", "m4b", "m4p", "m4v", "m4r", "k3g", "skm", "3gp", "3g2", "mov", 0}},
   {"mp3", {"mp3", "mp2", 0}},
   {"ogg", {"ogg", "oga", 0}},
   {"mpc", {"mpc", "mp+", "mpp", 0}},

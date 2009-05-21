@@ -929,7 +929,6 @@ _mp4_get_current_trackinfo(mp4info *mp4)
       tid = my_hv_fetch( trackinfo, "id" );
       if (tid != NULL) {
         if ( SvIV(*tid) == mp4->current_track ) {
-          // XXX: leak?
           return trackinfo;
         }
       }
