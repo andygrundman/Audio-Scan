@@ -214,27 +214,47 @@ _mp4_read_box(mp4info *mp4)
     }
   }
   else if ( FOURCC_EQ(type, "stts") ) {
-    if ( !_mp4_parse_stts(mp4) ) {
-      PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stts box): %s\n", mp4->file);
-      return 0;
+    if ( mp4->seeking ) {
+      if ( !_mp4_parse_stts(mp4) ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stts box): %s\n", mp4->file);
+        return 0;
+      }
+    }
+    else {
+      skip = 1;
     }
   }
   else if ( FOURCC_EQ(type, "stsc") ) {
-    if ( !_mp4_parse_stsc(mp4) ) {
-      PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stsc box): %s\n", mp4->file);
-      return 0;
+    if ( mp4->seeking ) {
+      if ( !_mp4_parse_stsc(mp4) ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stsc box): %s\n", mp4->file);
+        return 0;
+      }
+    }
+    else {
+      skip = 1;
     }
   }
   else if ( FOURCC_EQ(type, "stsz") ) {
-    if ( !_mp4_parse_stsz(mp4) ) {
-      PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stsz box): %s\n", mp4->file);
-      return 0;
+    if ( mp4->seeking ) {
+      if ( !_mp4_parse_stsz(mp4) ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stsz box): %s\n", mp4->file);
+        return 0;
+      }
+    }
+    else {
+      skip = 1;
     }
   }
   else if ( FOURCC_EQ(type, "stco") ) {
-    if ( !_mp4_parse_stco(mp4) ) {
-      PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stco box): %s\n", mp4->file);
-      return 0;
+    if ( mp4->seeking ) {
+      if ( !_mp4_parse_stco(mp4) ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad stco box): %s\n", mp4->file);
+        return 0;
+      }
+    }
+    else {
+      skip = 1;
     }
   }
   else if ( FOURCC_EQ(type, "meta") ) {
@@ -460,7 +480,6 @@ uint8_t
 _mp4_parse_stsd(mp4info *mp4)
 {
   uint32_t entry_count;
-  int i;
   
   if ( !_check_buf(mp4->infile, mp4->buf, 8, MP4_BLOCK_SIZE) ) {
     return 0;
@@ -593,9 +612,11 @@ _mp4_parse_stts(mp4info *mp4)
   
   for (i = 0; i < entry_count; i++) {
     // XXX store in internal data structure
+    /*
     uint32_t sample_count = buffer_get_int(mp4->buf);
     uint32_t sample_delta = buffer_get_int(mp4->buf);
     //DEBUG_TRACE("  XXX sample_count %d sample_delta %d\n", sample_count, sample_delta);
+    */
   }
   
   return 1;
@@ -619,11 +640,13 @@ _mp4_parse_stsc(mp4info *mp4)
   
   for (i = 0; i < entry_count; i++) {
     // XXX store in internal data structure
+    /*
     uint32_t first_chunk       = buffer_get_int(mp4->buf);
     uint32_t samples_per_chunk = buffer_get_int(mp4->buf);
     uint32_t sample_desc_index = buffer_get_int(mp4->buf);
     //DEBUG_TRACE("  XXX first_chunk %d samples_per_chunk %d sample_desc_index %d\n",
     //  first_chunk, samples_per_chunk, sample_desc_index);
+    */
   }
   
   return 1;
@@ -649,8 +672,10 @@ _mp4_parse_stsz(mp4info *mp4)
   if (sample_size == 0) {
     DEBUG_TRACE("  XXX sample_count %d\n", sample_count);
     for (i = 0; i < sample_count; i++) {
+      /*
       uint32_t entry_size = buffer_get_int(mp4->buf);
       //DEBUG_TRACE("  XXX entry_size %d\n", entry_size);
+      */
     }
   }
   else {
@@ -677,8 +702,10 @@ _mp4_parse_stco(mp4info *mp4)
   DEBUG_TRACE("  XXX entry_count %d\n", entry_count);
   
   for (i = 0; i < entry_count; i++) {
+    /*
     uint32_t chunk_offset = buffer_get_int(mp4->buf);
     //DEBUG_TRACE("  XXX chunk_offset %d\n", chunk_offset);
+    */
   }
   
   return 1;

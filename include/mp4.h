@@ -29,6 +29,7 @@ typedef struct mp4info {
   HV *tags;
   uint32_t current_track;
   uint8_t need_calc_bitrate;
+  uint8_t seeking; // used to parse extra boxes during find_frame
 } mp4info;
 
 static int get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags);
