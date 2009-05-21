@@ -764,8 +764,6 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
       else {
         my_hv_store_ent( mp4->tags, key, newSVuv(num) );
       }
-      
-      SvREFCNT_dec(key);
     }
     else if ( FOURCC_EQ( SvPVX(key), "GNRE" ) ) {
       // Special case genre, 16-bit int as id3 genre code
@@ -776,7 +774,6 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
         genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num - 1) );
         my_hv_store_ent( mp4->tags, key, newSVpv( genre_string, 0 ) );
         free(genre_string);
-        SvREFCNT_dec(key);
       }
     }
     else {
@@ -802,7 +799,6 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
       }
       
       my_hv_store_ent( mp4->tags, key, data );
-      SvREFCNT_dec(key);
     }
   }
   else { // text data
@@ -815,10 +811,11 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
     }
     else {
       my_hv_store_ent( mp4->tags, key, value );
-      SvREFCNT_dec(key);
     }
     buffer_consume(mp4->buf, size - 8);
   }
+  
+  SvREFCNT_dec(key);
   
   return 1;
 } 
