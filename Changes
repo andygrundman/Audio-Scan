@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.15
+        - Bug 12212, Fixed infinite loop during MP3 bitrate calculation if tag size
+          is very large compared to the audio size.
+
 0.14    2009-05-21 14:45:00
         - MPEG-4 support.
         - Bug 12082: Fixed reading of APE files with header version <= 3.97.

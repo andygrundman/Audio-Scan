@@ -189,7 +189,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 
 // _mp3_get_average_bitrate
 // average bitrate from a large chunk of the middle of the file
-static short _mp3_get_average_bitrate(PerlIO *infile)
+static short _mp3_get_average_bitrate(PerlIO *infile, uint32_t offset)
 {
   struct mp3_frameinfo fi;
   int frame_count   = 0;
@@ -203,9 +203,9 @@ static short _mp3_get_average_bitrate(PerlIO *infile)
   Newxz(buf, WANTED_FOR_AVG, unsigned char);
   buf_ptr = buf;
 
-  // Seek to middle of file
+  // Seek to offset or middle of file
   PerlIO_seek(infile, 0, SEEK_END);
-  PerlIO_seek(infile, PerlIO_tell(infile) >> 1, SEEK_SET);
+  PerlIO_seek(infile, offset, SEEK_SET);
 
   if ((buf_size = PerlIO_read(infile, buf, WANTED_FOR_AVG)) == 0) {
     if (PerlIO_error(infile)) {
@@ -469,6 +469,8 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
     }
     
     my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", buf[3], buf[4] ) );
+    
+    DEBUG_TRACE("Found ID3v2.%d.%d tag, size %d\n", buf[3], buf[4], id3_size);
 
     // Always seek past the ID3 tags
     PerlIO_seek(infile, id3_size, SEEK_SET);
@@ -553,16 +555,22 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = ( fi.vbri_bytes / fi.vbri_frames * mfs );
   }
+  
+  DEBUG_TRACE("bitrate: %d\n", bitrate);
 
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
   if ( !bitrate ) {
     if (audio_size >= WANTED_FOR_AVG) {
-      bitrate = _mp3_get_average_bitrate(infile);
+      uint32_t offset = audio_offset + ( audio_size / 2 );
+      
+      DEBUG_TRACE("Calculating average bitrate starting from %d...\n", offset);
+      bitrate = _mp3_get_average_bitrate(infile, offset);
     }
 
     if (bitrate <= 0) {
       // Couldn't determine bitrate, just use
       // the bitrate from the last frame we parsed
+      DEBUG_TRACE("Unable to determine bitrate, using bitrate of most recent frame (%d)\n", fi.bitrate);
       bitrate = fi.bitrate;
     }
   }
