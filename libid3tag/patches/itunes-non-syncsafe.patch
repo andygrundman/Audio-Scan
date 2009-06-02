@@ -1,0 +1,19 @@
+=== frame.c
+==================================================================
+--- frame.c	(revision 55075)
++++ frame.c	(local)
+@@ -380,6 +380,14 @@
+     *ptr += 4;
+     size  = id3_parse_syncsafe(ptr, 4);
+     flags = id3_parse_uint(ptr, 2);
++    
++    // iTunes writes non-syncsafe length integers, check for this here
++    *ptr -= 6;
++    if ( id3_parse_uint(ptr, 4) & 0x80 ) {
++      *ptr -= 4;
++      size = id3_parse_uint(ptr, 4);
++    }
++    *ptr += 2;
+ 
+     if (size > end - *ptr)
+       goto fail;

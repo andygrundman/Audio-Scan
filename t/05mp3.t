@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 212;
+use Test::More tests => 215;
 
 use Audio::Scan;
 use Encode;
@@ -612,6 +612,17 @@ my $pate = Encode::decode_utf8("pâté");
     
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 with APEv2 tag ok' );
     is( $tags->{APE_TAGS_SUCK}, 1, 'APEv2 tag ok' );
+}
+
+# iTunes-tagged file with invalid length frames
+{
+	my $s = Audio::Scan->scan_tags( _f('v2.4-itunes-broken-syncsafe.mp3') );
+	
+	my $tags = $s->{tags};
+	
+	is( scalar( keys %{$tags} ), 10, 'iTunes broken syncsafe read all tags ok' );
+	is( scalar( @{ $tags->{COMM} } ), 4, 'iTunes broken syncsafe read all COMM frames ok' );
+	is( length( $tags->{APIC}->[4] ), 29614, 'iTunes broken syncsafe read APIC ok' );
 }
 
 # Scan via a filehandle

@@ -70,6 +70,8 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
     PerlIO_printf(PerlIO_stderr(), "libid3tag cannot get ID3 tag for %s\n", file);
     goto out;
   }
+  
+  DEBUG_TRACE("Found %d ID3 frames\n", pid3tag->nframes);
 
   index = 0;
   while ((pid3frame = id3_tag_findframe(pid3tag, "", index))) {

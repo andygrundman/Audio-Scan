@@ -21,3 +21,5 @@ Patches only in this version:
                                located at the start of the file.
 	seek-after-fdopen.patch - PerlIO buffering can cause the file pointer to be wrong after an fdopen,
                                   this patch calls seek after fdopen.
+	itunes-non-syncsafe.patch - If we read an invalid v2.4 frame length, assume it was written by iTunes
+                                    and treat it as a non-syncsafe integer.

@@ -1,6 +1,8 @@
 Revision history for Audio::Scan
 
 0.15
+        - Bug 12224, (libid3tag) Support broken iTunes v2.4 lengths that are not
+          sync-safe.
         - Bug 12212, Fixed infinite loop during MP3 bitrate calculation if tag size
           is very large compared to the audio size.
 
