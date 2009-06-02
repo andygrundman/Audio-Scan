@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker qw(WriteMakefile);
 use File::Spec::Functions;
 use Getopt::Long;
 
-require 5.8.8;
+require 5.8.1;
 
 my (@INC, @LIBPATH, @LIBS);
 my ($FLAC, $MYEXTLIB);
