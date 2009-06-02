@@ -68,6 +68,7 @@ libid3tag/msvc++/Makefile.in
 libid3tag/parse.c
 libid3tag/parse.h
 libid3tag/patches/allow-id-space.patch
+libid3tag/patches/itunes-non-syncsafe.patch
 libid3tag/patches/libid3tag-0.15.1b-64bit-long.patch
 libid3tag/patches/libid3tag-0.15.1b-a_capella.patch
 libid3tag/patches/libid3tag-0.15.1b-file-write.patch
@@ -187,6 +188,7 @@ t/mp3/v2.4-apic-png.mp3
 t/mp3/v2.4-geob-multiple.mp3
 t/mp3/v2.4-geob.mp3
 t/mp3/v2.4-iso-8859-1.mp3
+t/mp3/v2.4-itunes-broken-syncsafe.mp3
 t/mp3/v2.4-itunes81.mp3
 t/mp3/v2.4-rva2-neg.mp3
 t/mp3/v2.4-tipl.mp3
