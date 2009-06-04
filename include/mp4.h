@@ -25,6 +25,7 @@ typedef struct mp4info {
   uint64_t size;  // total size
   uint8_t  hsize; // header size
   uint64_t rsize; // remaining size
+  uint64_t audio_offset;
   HV *info;
   HV *tags;
   uint32_t current_track;

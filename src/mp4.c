@@ -32,7 +32,6 @@ static int
 get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
   off_t file_size;           // total file size
-  off_t audio_offset = 0;    // offset to audio
   uint32_t box_size = 0;
   
   int err = 0;
@@ -41,6 +40,7 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
   Newxz(mp4, sizeof(mp4info), mp4info);
   Newxz(mp4->buf, sizeof(Buffer), Buffer);
   
+  mp4->audio_offset  = 0;
   mp4->infile        = infile;
   mp4->file          = file;
   mp4->info          = info;
@@ -59,13 +59,12 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
   my_hv_store( info, "tracks", newRV_noinc( (SV *)newAV() ) );
   
   while ( (box_size = _mp4_read_box(mp4)) > 0 ) {
-    audio_offset += box_size;
-    DEBUG_TRACE("read box of size %d / audio_offset %d\n", box_size, audio_offset);
+    mp4->audio_offset += box_size;
+    DEBUG_TRACE("read box of size %d / audio_offset %d\n", box_size, mp4->audio_offset);
+    
+    if (mp4->audio_offset >= file_size)
+      break;
   }
-  
-  my_hv_store( info, "audio_offset", newSVuv(audio_offset) );
-  
-  DEBUG_TRACE("audio_offset: %d\n", audio_offset);
   
   // XXX: if no ftyp was found, assume it is brand 'mp41'
   
@@ -74,10 +73,13 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
     HV *trackinfo = _mp4_get_current_trackinfo(mp4);
     SV **entry = my_hv_fetch(info, "song_length_ms");
     if (entry) {
-      uint32_t song_length_ms = SvIV(*entry);
-      uint32_t bitrate = ((file_size - audio_offset * 1.0) / song_length_ms) * 1000;
+      SV **audio_offset = my_hv_fetch(info, "audio_offset");
+      if (audio_offset) {
+        uint32_t song_length_ms = SvIV(*entry);
+        uint32_t bitrate = ((file_size - SvIV(*audio_offset) * 1.0) / song_length_ms) * 1000;
       
-      my_hv_store( trackinfo, "avg_bitrate", newSVuv(bitrate) );
+        my_hv_store( trackinfo, "avg_bitrate", newSVuv(bitrate) );
+      }
     }
   }
   
@@ -274,8 +276,11 @@ _mp4_read_box(mp4info *mp4)
     }
   }
   else if ( FOURCC_EQ(type, "mdat") ) {
-    // Audio data here
-    return 0;
+    // Audio data here, there may be boxes after mdat, so we have to skip it
+    skip = 1;
+    
+    // Record audio offset
+    my_hv_store( mp4->info, "audio_offset", newSVuv(mp4->audio_offset) );
   }
   else {
     DEBUG_TRACE("  Unhandled box, skipping\n");

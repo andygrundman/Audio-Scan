@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 58;
+use Test::More tests => 64;
 
 use Audio::Scan;
 
@@ -86,6 +86,24 @@ use Audio::Scan;
     is( $tags->{CPIL}, 0, 'ALAC CPIL ok' );
     is( $tags->{DISK}, '1/2', 'ALAC DISK ok' );
     is( $tags->{TOO}, 'iTunes 8.1.1', 'ALAC TOO ok' );
+}
+
+# File with mdat before the rest of the boxes
+{
+    my $s = Audio::Scan->scan( _f('leading-mdat.m4a') );
+    
+    my $info  = $s->{info};
+    my $tags  = $s->{tags};
+    my $track = $info->{tracks}->[0];
+    
+    is( $info->{audio_offset}, 20, 'Leading MDAT offset ok' );
+    is( $info->{song_length_ms}, 69845, 'Leading MDAT length ok' );
+    
+    is( $track->{avg_bitrate}, 128000, 'Leading MDAT bitrate ok' );
+    is( $track->{samplerate}, 44100, 'Leading MDAT samplerate ok' );
+    
+    is( $tags->{DAY}, '-001', 'Leading MDAT DAY ok' );
+    is( $tags->{TOO}, 'avc2.0.11.1110', 'Leading MDAT TOO ok' );
 }
 
 sub _f {
