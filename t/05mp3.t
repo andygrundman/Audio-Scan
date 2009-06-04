@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 215;
+use Test::More tests => 221;
 
 use Audio::Scan;
 use Encode;
@@ -624,6 +624,20 @@ my $pate = Encode::decode_utf8("pâté");
 	is( scalar( @{ $tags->{COMM} } ), 4, 'iTunes broken syncsafe read all COMM frames ok' );
 	is( length( $tags->{APIC}->[4] ), 29614, 'iTunes broken syncsafe read APIC ok' );
 }
+
+# v2.2 PIC frame
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.2-pic.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( scalar( @{ $tags->{APIC} } ), 5, 'v2.2 PIC fields ok' );
+    is( $tags->{APIC}->[1], 'PNG', 'v2.2 PIC image format field ok' );
+    is( $tags->{APIC}->[2], 0, 'v2.2 PIC picture type ok' );
+    is( $tags->{APIC}->[3], '', 'v2.2 PIC description ok' );
+    is( length( $tags->{APIC}->[4] ), 61007, 'v2.2 PIC data length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), '89504e47', 'v2.2 PIC PNG picture data ok ');
+} 
 
 # Scan via a filehandle
 {
