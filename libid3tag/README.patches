@@ -23,3 +23,5 @@ Patches only in this version:
                                   this patch calls seek after fdopen.
 	itunes-non-syncsafe.patch - If we read an invalid v2.4 frame length, assume it was written by iTunes
                                     and treat it as a non-syncsafe integer.
+	translate-pic.patch  - v2.2 PIC frame has a 3-byte field that isn't compatible with APIC, causing parsing
+                               to fail.

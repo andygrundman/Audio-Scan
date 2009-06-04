@@ -45,6 +45,7 @@
 # define TX(id)    #id, translate_##id
 
 static id3_compat_func_t translate_TCON;
+static id3_compat_func_t translate_APIC;
 %}
 struct id3_compat;
 %%
@@ -72,7 +73,7 @@ IPLS, EQ(TIPL)  /* Involved people list */
 LNK,  EQ(LINK)  /* Linked information */
 MCI,  EQ(MCDI)  /* Music CD identifier */
 MLL,  EQ(MLLT)  /* MPEG location lookup table */
-PIC,  EQ(APIC)  /* Attached picture */
+PIC,  TX(APIC)  /* Attached picture */
 POP,  EQ(POPM)  /* Popularimeter */
 REV,  EQ(RVRB)  /* Reverb */
 RVA,  OBSOLETE  /* Relative volume adjustment [obsolete] */
@@ -187,6 +188,37 @@ int translate_TCON(struct id3_frame *frame, char const *oldid,
     free(string);
 
   return result;
+}
+
+static
+int translate_APIC(struct id3_frame *frame, char const *oldid,
+		   id3_byte_t const *data, id3_length_t length)
+{
+  id3_byte_t const *end;
+  enum id3_field_textencoding encoding;
+  int i;
+  
+  /* v2.2 PIC has a 3-byte image format field that is incompatible
+     with an APIC latin1 null-terminated string
+  */
+  
+  assert(frame->nfields == 5);
+  
+  encoding = ID3_FIELD_TEXTENCODING_ISO_8859_1;
+
+  end = data + length;
+
+  for (i = 0; i < frame->nfields; ++i) {
+    if (i == 1) {
+      // Parse Image Format as 3-byte string
+      frame->fields[i].type = ID3_FIELD_TYPE_LANGUAGE;
+    }
+
+    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding) == -1)
+      return -1;
+  }
+  
+  return 0;
 }
 
 /*
