@@ -8,6 +8,7 @@ RIFF-MP3 support
 Free-format support (not reading Xing/LAME tag properly)
 TOC tables?
 Support VBRI mono file with wrong offset?
+Refactor to use buffer API.
 
 ID3
 ---
@@ -28,10 +29,9 @@ ASF
 ---
 Refactor a bit
 
-AAC/ALAC/MP4/M4A/MOV
+MP4
 ---
- Need implementation for stream info.
- Need implementation for tag reading.
+Support ADTS (.aac) format
 
 Wavpack
 ---
