@@ -1,6 +1,8 @@
 Revision history for Audio::Scan
 
 0.16
+        - Bug 12250, Added handling for invalid field lengths in WAV LIST INFO
+          chunks.
         - Bug 12242, (libid3tag) Fixed broken parsing of ID3v2.2 PIC frames.
 
 0.15    2009-06-02 16:30:00

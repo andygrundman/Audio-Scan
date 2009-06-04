@@ -249,7 +249,15 @@ _parse_wav_list(Buffer *buf, uint32_t chunk_size, HV *tags)
       buffer_consume(buf, 4);
       pos += 4;
       
-      len = buffer_get_int_le(buf);      
+      len = buffer_get_int_le(buf);
+      
+      // Bug 12250, apparently some WAV files don't use the padding byte
+      // so we can't read them.
+      if ( len > chunk_size - pos ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid data in WAV LIST INFO chunk\n");
+        break;
+      }
+          
       value = newSVpvn( buffer_ptr(buf), len );
       buffer_consume(buf, len);
       pos += 4 + len;
