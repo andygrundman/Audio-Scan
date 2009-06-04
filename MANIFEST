@@ -78,6 +78,7 @@ libid3tag/patches/libid3tag-0.15.1b-unknown-encoding.patch
 libid3tag/patches/libid3tag-0.15.1b-utf16.patch
 libid3tag/patches/read-no-seek.patch
 libid3tag/patches/seek-after-fdopen.patch
+libid3tag/patches/translate-pic.patch
 libid3tag/README
 libid3tag/README.patches
 libid3tag/render.c
@@ -171,6 +172,7 @@ t/mp3/v1.1.mp3
 t/mp3/v1.mp3
 t/mp3/v2.2-itunes81.mp3
 t/mp3/v2.2-multiple-comm.mp3
+t/mp3/v2.2-pic.mp3
 t/mp3/v2.2.mp3
 t/mp3/v2.3-empty-tcon.mp3
 t/mp3/v2.3-empty-wxxx.mp3
@@ -198,6 +200,7 @@ t/mp3/v2.4-utf8.mp3
 t/mp3/v2.4.mp3
 t/mp4/alac.m4a
 t/mp4/itunes811.m4a
+t/mp4/leading-mdat.m4a
 t/musepack/apev2.mpc
 t/ogg/bug1155-1.ogg
 t/ogg/bug1155-2.ogg
