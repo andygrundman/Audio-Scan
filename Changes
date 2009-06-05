@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.17
+        - Fixed Makefile.PL to set local include dirs before FLAC include dirs. (Philippe Kehl)
+
 0.16    2009-06-04 15:45:00
         - Fixed parsing of MPEG-4 files where mdat occurs before moov.
         - Bug 12250, Added handling for invalid field lengths in WAV LIST INFO

@@ -106,7 +106,10 @@ my $DEFINES = '-Wall';
 $DEFINES .= ' -Wno-unused-value' unless $^O =~ /Win32/;
 $DEFINES .= ' -DHAVE_FLAC' if $FLAC;
 
-push @INC, ' -I. -I.. -Isrc -Iinclude';
+# we want to put the local include dirs in front since the flac include dir possibly added above
+# might also contain incompatible versions of the local header files, which then would be chosen instead
+# of the correct local ones (e.g. include/id3.h)
+unshift @INC, '-I. -I.. -Isrc -Iinclude';
 
 # Support for building libid3tag
 sub MY::postamble {
