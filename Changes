@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.18    2009-06-05 11:45:00
+        - Added support for reading ID3v2 tags from ADTS files.
+
 0.17    2009-06-05 09:45:00
         - MPEG-4 ADTS support.
         - Fixed Makefile.PL to set local include dirs before FLAC include dirs. (Philippe Kehl)

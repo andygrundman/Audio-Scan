@@ -23,6 +23,8 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
   Buffer buf;
   unsigned char *bptr;
   int err = 0;
+  unsigned int id3_size = 0;
+  unsigned int audio_offset = 0;
   
   buffer_init(&buf, AAC_BLOCK_SIZE);
   
@@ -32,12 +34,45 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
   
   my_hv_store( info, "file_size", newSVuv(file_size) );
   
-  if ( !_check_buf(infile, &buf, 4, AAC_BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &buf, 10, AAC_BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
   
   bptr = buffer_ptr(&buf);
+  
+  // Check for ID3 tag
+  if (
+    (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
+    bptr[3] < 0xff && bptr[4] < 0xff &&
+    bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
+  ) {
+    /* found an ID3 header... */
+    id3_size = 10 + (bptr[6]<<21) + (bptr[7]<<14) + (bptr[8]<<7) + bptr[9];
+
+    if (bptr[5] & 0x10) {
+      // footer present
+      id3_size += 10;
+    }
+    
+    audio_offset += id3_size;
+    
+    my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
+    
+    DEBUG_TRACE("Found ID3 tag of size %d\n", id3_size);
+    
+    // Seek past ID3 and clear buffer
+    buffer_clear(&buf);
+    PerlIO_seek(infile, id3_size, SEEK_SET);
+      
+    // Read start of AAC data
+    if ( !_check_buf(infile, &buf, 10, AAC_BLOCK_SIZE) ) {
+      err = -1;
+      goto out;
+    }
+    
+    bptr = buffer_ptr(&buf);
+  }
   
   if ( (bptr[0] == 0xFF) && ((bptr[1] & 0xF6) == 0xF0) ) {
     aac_parse_adts(infile, file, file_size, &buf, info);
@@ -52,6 +87,14 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
     PerlIO_printf(PerlIO_stderr(), "Not a valid ADTS file: %s\n", file);
     err = -1;
     goto out;
+  }
+  
+  my_hv_store( info, "audio_offset", newSVuv(audio_offset) );
+  
+  // Parse ID3 at end, since we somehow can't use the filehandle anymore
+  // after libid3tag uses it
+  if (id3_size) {
+    parse_id3(infile, file, info, tags, 0);
   }
   
 out:
@@ -120,7 +163,6 @@ aac_parse_adts(PerlIO *infile, char *file, off_t file_size, Buffer *buf, HV *inf
   else
     length = 1;
   
-  my_hv_store( info, "audio_offset", newSVuv(0) );
   my_hv_store( info, "bitrate", newSVuv(bitrate * 1000) );
   my_hv_store( info, "song_length_ms", newSVuv(length * 1000) );
   my_hv_store( info, "samplerate", newSVuv(samplerate) );

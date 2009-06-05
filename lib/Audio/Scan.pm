@@ -3,7 +3,7 @@ package Audio::Scan;
 use 5.008008;
 use strict;
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -280,7 +280,7 @@ Tags are returned in a hash with all keys converted to upper-case.  Keys startin
 
 The following metadata about a file is returned:
 
-    audio_offset (always 0)
+    audio_offset
     bitrate (in bps)
     channels
     file_size

@@ -232,7 +232,7 @@ AAC (ADTS)
   INFO
     The following metadata about a file is returned:
 
-        audio_offset (always 0)
+        audio_offset
         bitrate (in bps)
         channels
         file_size
