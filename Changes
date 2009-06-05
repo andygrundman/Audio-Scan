@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.17
+0.17    2009-06-05 09:45:00
         - MPEG-4 ADTS support.
         - Fixed Makefile.PL to set local include dirs before FLAC include dirs. (Philippe Kehl)
 
