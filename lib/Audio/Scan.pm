@@ -3,7 +3,7 @@ package Audio::Scan;
 use 5.008008;
 use strict;
 
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -28,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C parser for MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack, Monkey's Audio
+Audio::Scan - XS parser for MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack, Monkey's Audio
 
 =head1 SYNOPSIS
 
@@ -64,6 +64,7 @@ determined by the file's extension.  Supported extensions are:
 
     MP3:  mp3, mp2
     MP4:  mp4, m4a, m4b, m4p, m4v, m4r, k3g, skm, 3gp, 3g2, mov
+    AAC (ADTS): aac
     Ogg:  ogg, oga
     FLAC: flc, flac, fla
     ASF:  wma, wmv, asf
@@ -272,6 +273,20 @@ Tags are returned in a hash with all keys converted to upper-case.  Keys startin
        TVSN              => 12,
        WRT               => "Composer",
     },
+
+=head1 AAC (ADTS)
+
+=head2 INFO
+
+The following metadata about a file is returned:
+
+    audio_offset (always 0)
+    bitrate (in bps)
+    channels
+    file_size
+    profile (Main, LC, or SSR)
+    samplerate (in kHz)
+    song_length_ms (duration in milliseconds)
 
 =head1 OGG VORBIS
 

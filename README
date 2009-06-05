@@ -1,6 +1,6 @@
 NAME
-    Audio::Scan - Fast C parser for MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV,
-    AIFF, Musepack, Monkey's Audio
+    Audio::Scan - XS parser for MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF,
+    Musepack, Monkey's Audio
 
 SYNOPSIS
         use Audio::Scan;
@@ -34,6 +34,7 @@ METHODS
 
         MP3:  mp3, mp2
         MP4:  mp4, m4a, m4b, m4p, m4v, m4r, k3g, skm, 3gp, 3g2, mov
+        AAC (ADTS): aac
         Ogg:  ogg, oga
         FLAC: flc, flac, fla
         ASF:  wma, wmv, asf
@@ -226,6 +227,18 @@ MP4
            TVSN              => 12,
            WRT               => "Composer",
         },
+
+AAC (ADTS)
+  INFO
+    The following metadata about a file is returned:
+
+        audio_offset (always 0)
+        bitrate (in bps)
+        channels
+        file_size
+        profile (Main, LC, or SSR)
+        samplerate (in kHz)
+        song_length_ms (duration in milliseconds)
 
 OGG VORBIS
   INFO

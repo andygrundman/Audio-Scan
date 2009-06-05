@@ -1,6 +1,7 @@
 Changes
 COPYING
 hints/darwin.pl
+include/aac.h
 include/ape.h
 include/asf.h
 include/buffer.h
@@ -101,6 +102,7 @@ MANIFEST			This list of files
 README
 README.win32
 Scan.xs
+src/aac.c
 src/ape.c
 src/asf.c
 src/buffer.c
@@ -127,6 +129,9 @@ t/10musepack.t
 t/11mac.t
 t/12aiff.t
 t/13mp4.t
+t/14aac.t
+t/aac/mono.aac
+t/aac/stereo.aac
 t/aiff/aiff-id3.aif
 t/aiff/aiff32.aiff
 t/asf/drm.wma

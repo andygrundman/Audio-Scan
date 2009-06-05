@@ -8,6 +8,7 @@
 #include "ape.c"
 #include "id3.c"
 
+#include "aac.c"
 #include "asf.c"
 #include "mac.c"
 #include "mp3.c"
@@ -37,6 +38,7 @@ typedef struct {
 
 struct _types audio_types[] = {
   {"mp4", {"mp4", "m4a", "m4b", "m4p", "m4v", "m4r", "k3g", "skm", "3gp", "3g2", "mov", 0}},
+  {"aac", {"aac", 0}},
   {"mp3", {"mp3", "mp2", 0}},
   {"ogg", {"ogg", "oga", 0}},
   {"mpc", {"mpc", "mp+", "mpp", 0}},
@@ -51,6 +53,7 @@ struct _types audio_types[] = {
 
 static taghandler taghandlers[] = {
   { "mp4", get_mp4tags, 0, 0 },
+  { "aac", get_aacinfo, 0, 0 },
   { "mp3", get_mp3tags, get_mp3fileinfo, mp3_find_frame },
   { "ogg", get_ogg_metadata, 0, ogg_find_frame },
   { "mpc", get_ape_metadata, get_mpcfileinfo, 0 },
