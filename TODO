@@ -31,7 +31,7 @@ Refactor a bit
 
 MP4
 ---
-Support ADTS (.aac) format
+Print warning if file has mdat before moov.
 
 Wavpack
 ---
