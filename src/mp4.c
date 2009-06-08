@@ -997,15 +997,23 @@ _mp4_parse_ilst(mp4info *mp4)
       // Verify data box
       uint32_t bsize = buffer_get_int(mp4->buf);
       
-      char *bptr = buffer_ptr(mp4->buf);
-      if ( !FOURCC_EQ(bptr, "data") ) {
-        return 0;
+      // Sanity check for bad data size
+      if ( bsize == size - 8 ) {
+        char *bptr = buffer_ptr(mp4->buf);
+        if ( !FOURCC_EQ(bptr, "data") ) {
+          return 0;
+        }
+      
+        buffer_consume(mp4->buf, 4);
+      
+        if ( !_mp4_parse_ilst_data(mp4, bsize - 8, newSVpv(key, 0)) ) {
+          return 0;
+        }
       }
-      
-      buffer_consume(mp4->buf, 4);
-      
-      if ( !_mp4_parse_ilst_data(mp4, bsize - 8, newSVpv(key, 0)) ) {
-        return 0;
+      else {
+        DEBUG_TRACE("    invalid data size %d, skipping value\n", bsize);
+        
+        buffer_consume(mp4->buf, size - 12);
       }
     }
     
