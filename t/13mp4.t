@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 64;
+use Test::More tests => 67;
 
 use Audio::Scan;
 
@@ -18,6 +18,7 @@ use Audio::Scan;
     is( $info->{compatible_brands}->[0], 'M4A ', 'Compatible brand 1 ok' );
     is( $info->{compatible_brands}->[1], 'mp42', 'Compatible brand 2 ok' );
     is( $info->{compatible_brands}->[2], 'isom', 'Compatible brand 3 ok' );
+    is( $info->{leading_mdat}, undef, 'Leading MDAT flag is blank' );
     is( $info->{major_brand}, 'M4A ', 'Major brand ok' );
     is( $info->{minor_version}, 0, 'Minor version ok' );
     is( $info->{song_length_ms}, 69, 'Song length ok' );
@@ -97,6 +98,7 @@ use Audio::Scan;
     my $track = $info->{tracks}->[0];
     
     is( $info->{audio_offset}, 20, 'Leading MDAT offset ok' );
+    is( $info->{leading_mdat}, 1, 'Leading MDAT flag ok' );
     is( $info->{song_length_ms}, 69845, 'Leading MDAT length ok' );
     
     is( $track->{avg_bitrate}, 128000, 'Leading MDAT bitrate ok' );
@@ -104,6 +106,13 @@ use Audio::Scan;
     
     is( $tags->{DAY}, '-001', 'Leading MDAT DAY ok' );
     is( $tags->{TOO}, 'avc2.0.11.1110', 'Leading MDAT TOO ok' );
+}
+
+# Find frame
+{
+    my $offset = Audio::Scan->find_frame( _f('itunes811.m4a'), 30 );
+    
+    is( $offset, 6177, 'Find frame ok' );
 }
 
 sub _f {

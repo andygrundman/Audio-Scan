@@ -52,7 +52,7 @@ struct _types audio_types[] = {
 };
 
 static taghandler taghandlers[] = {
-  { "mp4", get_mp4tags, 0, 0 },
+  { "mp4", get_mp4tags, 0, mp4_find_frame },
   { "aac", get_aacinfo, 0, 0 },
   { "mp3", get_mp3tags, get_mp3fileinfo, mp3_find_frame },
   { "ogg", get_ogg_metadata, 0, ogg_find_frame },

@@ -26,15 +26,45 @@ typedef struct mp4info {
   uint8_t  hsize; // header size
   uint64_t rsize; // remaining size
   uint64_t audio_offset;
+  uint64_t audio_size;
   HV *info;
   HV *tags;
   uint32_t current_track;
   uint8_t need_calc_bitrate;
-  uint8_t seeking; // used to parse extra boxes during find_frame
+  uint8_t seen_moov;
+  
+  // Data structures used to support seeking
+  // Based on code from Rockbox
+  
+  uint8_t seeking; // flag if we're seeking
+  
+  // stsc
+  uint32_t num_sample_to_chunks;
+  struct {
+      uint32_t first_chunk;
+      uint32_t num_samples;
+  } *sample_to_chunk;
+  
+  // stco
+  uint32_t *chunk_offset;
+  uint32_t num_chunk_offsets;
+  
+  // stts
+  struct {
+      uint32_t sample_count;
+      uint32_t sample_duration;
+  } *time_to_sample;
+  uint32_t num_time_to_samples;
+  
+  // stsz
+  uint16_t *sample_byte_size;
+  uint32_t num_sample_byte_sizes;
 } mp4info;
 
 static int get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags);
+int mp4_find_frame(PerlIO *infile, char *file, int offset);
 
+mp4info * _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
 int _mp4_read_box(mp4info *mp4);
 uint8_t _mp4_parse_ftyp(mp4info *mp4);
 uint8_t _mp4_parse_mvhd(mp4info *mp4);

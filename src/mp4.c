@@ -13,28 +13,186 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
- 
-/*
- TODO:
- 
- find_frame:
-   Requires parsing of: elst, stts, stss, stsc, stsz, stco
-   See section A.7 page 101
-
- Only parse boxes needed for seeking during find_frame, store
- in internal data structure, not Perl.
-   
-*/
 
 #include "mp4.h"
 
 static int
 get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  off_t file_size;           // total file size
-  uint32_t box_size = 0;
+  mp4info *mp4 = _mp4_parse(infile, file, info, tags, 0);
   
-  int err = 0;
+  Safefree(mp4);
+
+  return 0;
+}  
+
+// offset is in ms
+// This is based on code from Rockbox
+int
+mp4_find_frame(PerlIO *infile, char *file, int offset)
+{
+  uint16_t samplerate;
+  uint32_t sound_sample_loc;
+  uint32_t i = 0;
+  uint32_t j = 0;
+  uint32_t new_sample = 0;
+  uint32_t new_sound_sample = 0;
+  
+  uint32_t chunk = 1;
+  uint32_t range_samples = 0;
+  uint32_t total_samples = 0;
+  uint32_t chunk_sample;
+  uint32_t prev_chunk;
+  uint32_t prev_chunk_samples;
+  uint32_t file_offset;
+  
+  // We need to read all info first to get some data we need to calculate
+  HV *info = newHV();
+  HV *tags = newHV();
+  mp4info *mp4 = _mp4_parse(infile, file, info, tags, 1);
+  
+  // Pull out the samplerate, assumes single-track file
+  SV **tracks = my_hv_fetch( info, "tracks" );
+  if (tracks) {
+    SV **track = av_fetch( (AV *)SvRV(*tracks), 0, 0 );
+    if (track) {
+      SV **sr = my_hv_fetch( (HV *)SvRV(*track), "samplerate" );
+      if (sr) {
+        samplerate = SvIV(*sr);
+        DEBUG_TRACE("samplerate: %d\n", samplerate);
+      }
+    }
+  }
+  
+  if ( !samplerate ) {
+    PerlIO_printf(PerlIO_stderr(), "find_frame: unknown sample rate\n");
+    return -1;
+  }
+  
+  // convert offset to sound_sample_loc
+  sound_sample_loc = ((offset - 1) / 10) * (samplerate / 100);
+  
+  // Make sure we have the necessary metadata
+  if ( 
+       !mp4->num_time_to_samples 
+    || !mp4->num_sample_byte_sizes
+    || !mp4->num_sample_to_chunks
+    || !mp4->num_chunk_offsets
+  ) {
+    PerlIO_printf(PerlIO_stderr(), "find_frame: File does not contain seek metadata: %s\n", file);
+    return -1;
+  }
+  
+  // Find the destination block from time_to_sample array
+  while ( (i < mp4->num_time_to_samples) &&
+      (new_sound_sample < sound_sample_loc)
+  ) {
+      j = (sound_sample_loc - new_sound_sample) / mp4->time_to_sample[i].sample_duration;
+      
+      DEBUG_TRACE("i = %d / j = %d\n", i, j);
+  
+      if (j <= mp4->time_to_sample[i].sample_count) {
+          new_sample += j;
+          new_sound_sample += j * mp4->time_to_sample[i].sample_duration;
+          break;
+      } 
+      else {
+          new_sound_sample += (mp4->time_to_sample[i].sample_duration
+              * mp4->time_to_sample[i].sample_count);
+          new_sample += mp4->time_to_sample[i].sample_count;
+          i++;
+      }
+  }
+  
+  if ( new_sample >= mp4->num_sample_byte_sizes ) {
+    PerlIO_printf(PerlIO_stderr(), "find_frame: Offset out of range (%d >= %d)\n", new_sample, mp4->num_sample_byte_sizes);
+    return -1;
+  }
+  
+  DEBUG_TRACE("new_sample: %d, new_sound_sample: %d\n", new_sample, new_sound_sample);
+  
+  // We know the new block, now calculate the file position
+  
+  /* Locate the chunk containing the sample */
+
+  prev_chunk         = mp4->sample_to_chunk[0].first_chunk;
+  prev_chunk_samples = mp4->sample_to_chunk[0].num_samples;
+  
+  for (i = 1; i < mp4->num_sample_to_chunks; i++) {
+    chunk = mp4->sample_to_chunk[i].first_chunk;
+    range_samples = (chunk - prev_chunk) * prev_chunk_samples;
+
+    if (new_sample < total_samples + range_samples)
+      break;
+
+    total_samples += range_samples;
+    prev_chunk = mp4->sample_to_chunk[i].first_chunk;
+    prev_chunk_samples = mp4->sample_to_chunk[i].num_samples;
+  }
+  
+  DEBUG_TRACE("prev_chunk: %d, prev_chunk_samples: %d, total_samples: %d\n", prev_chunk, prev_chunk_samples, total_samples);
+  
+  if (new_sample >= mp4->sample_to_chunk[0].num_samples) {
+    chunk = prev_chunk + (new_sample - total_samples) / prev_chunk_samples;
+  }
+  else {
+    chunk = 1;
+  }
+  
+  DEBUG_TRACE("chunk: %d\n", chunk);
+  
+  /* Get sample of the first sample in the chunk */
+  
+  chunk_sample = total_samples + (chunk - prev_chunk) * prev_chunk_samples;
+  
+  DEBUG_TRACE("chunk_sample: %d\n", chunk_sample);
+  
+  /* Get offset in file */
+
+  if (chunk > mp4->num_chunk_offsets) {
+    file_offset = mp4->chunk_offset[mp4->num_chunk_offsets - 1];
+  }
+  else {
+    file_offset = mp4->chunk_offset[chunk - 1];
+  }
+  
+  DEBUG_TRACE("file_offset: %d\n", file_offset);
+
+  if (chunk_sample > new_sample) {
+    PerlIO_printf(PerlIO_stderr(), "find_frame: sample out of range (%d > %d)\n", chunk_sample, new_sample);
+    return -1;
+  }
+  
+  for (i = chunk_sample; i < new_sample; i++) {
+    file_offset += mp4->sample_byte_size[i];
+    DEBUG_TRACE("  file_offset: %d\n", file_offset);
+  }
+  
+  if (file_offset > mp4->audio_offset + mp4->audio_size) {
+    PerlIO_printf(PerlIO_stderr(), "find_frame: file offset out of range (%d > %d)\n", file_offset, mp4->audio_offset + mp4->audio_size);
+    return -1;
+  }
+  
+  // Don't leak
+  SvREFCNT_dec(info);
+  SvREFCNT_dec(tags);
+  
+  // free seek structs
+  Safefree(mp4->time_to_sample);
+  Safefree(mp4->sample_to_chunk);
+  Safefree(mp4->sample_byte_size);
+  Safefree(mp4->chunk_offset);
+  
+  Safefree(mp4);
+  
+  return file_offset;
+}
+
+mp4info *
+_mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
+{
+  off_t file_size;
+  uint32_t box_size = 0;
   
   mp4info *mp4;
   Newxz(mp4, sizeof(mp4info), mp4info);
@@ -46,6 +204,8 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
   mp4->info          = info;
   mp4->tags          = tags;
   mp4->current_track = 0;
+  mp4->seen_moov     = 0;
+  mp4->seeking       = seeking ? 1 : 0;
   
   buffer_init(mp4->buf, MP4_BLOCK_SIZE);
   
@@ -83,14 +243,10 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
     }
   }
   
-//out:
   buffer_free(mp4->buf);
   Safefree(mp4->buf);
-  Safefree(mp4);
-
-  if (err) return err;
-
-  return 0;
+  
+  return mp4;
 }
 
 int
@@ -153,6 +309,8 @@ _mp4_read_box(mp4info *mp4)
     size = mp4->hsize;
   }
   else if ( FOURCC_EQ(type, "mvhd") ) {
+    mp4->seen_moov = 1;
+    
     if ( !_mp4_parse_mvhd(mp4) ) {
       PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad mvhd box): %s\n", mp4->file);
       return 0;
@@ -279,8 +437,15 @@ _mp4_read_box(mp4info *mp4)
     // Audio data here, there may be boxes after mdat, so we have to skip it
     skip = 1;
     
-    // Record audio offset
+    // If we haven't seen moov yet, set a flag so we can print a warning
+    // or handle it some other way
+    if ( !mp4->seen_moov ) {
+      my_hv_store( mp4->info, "leading_mdat", newSVuv(1) );
+    }
+    
+    // Record audio offset and length
     my_hv_store( mp4->info, "audio_offset", newSVuv(mp4->audio_offset) );
+    mp4->audio_size = size;
   }
   else {
     DEBUG_TRACE("  Unhandled box, skipping\n");
@@ -602,7 +767,6 @@ _mp4_parse_esds(mp4info *mp4)
 uint8_t
 _mp4_parse_stts(mp4info *mp4)
 {
-  uint32_t entry_count;
   int i;
   
   if ( !_check_buf(mp4->infile, mp4->buf, mp4->rsize, MP4_BLOCK_SIZE) ) {
@@ -612,16 +776,29 @@ _mp4_parse_stts(mp4info *mp4)
   // Skip version/flags
   buffer_consume(mp4->buf, 4);
   
-  entry_count = buffer_get_int(mp4->buf);
-  DEBUG_TRACE("  XXX entry_count %d\n", entry_count);
+  mp4->num_time_to_samples = buffer_get_int(mp4->buf);
+  DEBUG_TRACE("  num_time_to_samples %d\n", mp4->num_time_to_samples);
   
-  for (i = 0; i < entry_count; i++) {
-    // XXX store in internal data structure
-    /*
-    uint32_t sample_count = buffer_get_int(mp4->buf);
-    uint32_t sample_delta = buffer_get_int(mp4->buf);
-    //DEBUG_TRACE("  XXX sample_count %d sample_delta %d\n", sample_count, sample_delta);
-    */
+  Newx(
+    mp4->time_to_sample,
+    mp4->num_time_to_samples * sizeof(*mp4->time_to_sample),
+    struct time_to_sample *
+  );
+  
+  if ( !mp4->time_to_sample ) {
+    PerlIO_printf(PerlIO_stderr(), "Unable to parse stts: too large\n");
+    return 0;
+  }
+  
+  for (i = 0; i < mp4->num_time_to_samples; i++) {
+    mp4->time_to_sample[i].sample_count    = buffer_get_int(mp4->buf);
+    mp4->time_to_sample[i].sample_duration = buffer_get_int(mp4->buf);
+    
+    DEBUG_TRACE(
+      "  sample_count %d sample_duration %d\n",
+      mp4->time_to_sample[i].sample_count,
+      mp4->time_to_sample[i].sample_duration
+    );
   }
   
   return 1;
@@ -630,7 +807,6 @@ _mp4_parse_stts(mp4info *mp4)
 uint8_t
 _mp4_parse_stsc(mp4info *mp4)
 {
-  uint32_t entry_count;
   int i;
   
   if ( !_check_buf(mp4->infile, mp4->buf, mp4->rsize, MP4_BLOCK_SIZE) ) {
@@ -640,18 +816,31 @@ _mp4_parse_stsc(mp4info *mp4)
   // Skip version/flags
   buffer_consume(mp4->buf, 4);
   
-  entry_count = buffer_get_int(mp4->buf);
-  DEBUG_TRACE("  XXX entry_count %d\n", entry_count);
+  mp4->num_sample_to_chunks = buffer_get_int(mp4->buf);
+  DEBUG_TRACE("  num_sample_to_chunks %d\n", mp4->num_sample_to_chunks);
   
-  for (i = 0; i < entry_count; i++) {
-    // XXX store in internal data structure
-    /*
-    uint32_t first_chunk       = buffer_get_int(mp4->buf);
-    uint32_t samples_per_chunk = buffer_get_int(mp4->buf);
-    uint32_t sample_desc_index = buffer_get_int(mp4->buf);
-    //DEBUG_TRACE("  XXX first_chunk %d samples_per_chunk %d sample_desc_index %d\n",
-    //  first_chunk, samples_per_chunk, sample_desc_index);
-    */
+  Newx(
+    mp4->sample_to_chunk,
+    mp4->num_sample_to_chunks * sizeof(*mp4->sample_to_chunk),
+    struct sample_to_chunk *
+  );
+  
+  if ( !mp4->sample_to_chunk ) {
+    PerlIO_printf(PerlIO_stderr(), "Unable to parse stsc: too large\n");
+    return 0;
+  }
+  
+  for (i = 0; i < mp4->num_sample_to_chunks; i++) {
+    mp4->sample_to_chunk[i].first_chunk = buffer_get_int(mp4->buf);
+    mp4->sample_to_chunk[i].num_samples = buffer_get_int(mp4->buf);
+    
+    // Skip sample desc index
+    buffer_consume(mp4->buf, 4);
+    
+    DEBUG_TRACE("  first_chunk %d num_samples %d\n",
+      mp4->sample_to_chunk[i].first_chunk,
+      mp4->sample_to_chunk[i].num_samples
+    );
   }
   
   return 1;
@@ -660,8 +849,6 @@ _mp4_parse_stsc(mp4info *mp4)
 uint8_t
 _mp4_parse_stsz(mp4info *mp4)
 {
-  uint32_t sample_size;
-  uint32_t sample_count;
   int i;
   
   if ( !_check_buf(mp4->infile, mp4->buf, mp4->rsize, MP4_BLOCK_SIZE) ) {
@@ -671,20 +858,39 @@ _mp4_parse_stsz(mp4info *mp4)
   // Skip version/flags
   buffer_consume(mp4->buf, 4);
   
-  sample_size  = buffer_get_int(mp4->buf);
-  sample_count = buffer_get_int(mp4->buf);
-  
-  if (sample_size == 0) {
-    DEBUG_TRACE("  XXX sample_count %d\n", sample_count);
-    for (i = 0; i < sample_count; i++) {
-      /*
-      uint32_t entry_size = buffer_get_int(mp4->buf);
-      //DEBUG_TRACE("  XXX entry_size %d\n", entry_size);
-      */
-    }
+  // Check sample size is 0
+  if ( buffer_get_int(mp4->buf) != 0 ) {
+    DEBUG_TRACE("  stsz uses fixed sample size\n");
+    buffer_consume(mp4->buf, 4);
+    return 1;
   }
-  else {
-    DEBUG_TRACE("  XXX sample_size %d\n", sample_size);
+  
+  mp4->num_sample_byte_sizes = buffer_get_int(mp4->buf);
+  
+  DEBUG_TRACE("  num_sample_byte_sizes %d\n", mp4->num_sample_byte_sizes);
+  
+  Newx(
+    mp4->sample_byte_size,
+    mp4->num_sample_byte_sizes * sizeof(*mp4->sample_byte_size),
+    uint16_t *
+  );
+  
+  if ( !mp4->sample_byte_size ) {
+    PerlIO_printf(PerlIO_stderr(), "Unable to parse stsz: too large\n");
+    return 0;
+  }
+  
+  for (i = 0; i < mp4->num_sample_byte_sizes; i++) {
+    uint32_t v = buffer_get_int(mp4->buf);
+    
+    if (v > 0x0000ffff) {
+      DEBUG_TRACE("stsz[%d] > 65 kB (%ld)\n", i, (long)v);
+      return 0;
+    }
+    
+    mp4->sample_byte_size[i] = v;
+    
+    DEBUG_TRACE("  sample_byte_size %d\n", v);
   }
   
   return 1;
@@ -693,7 +899,6 @@ _mp4_parse_stsz(mp4info *mp4)
 uint8_t
 _mp4_parse_stco(mp4info *mp4)
 {
-  uint32_t entry_count;
   int i;
   
   if ( !_check_buf(mp4->infile, mp4->buf, mp4->rsize, MP4_BLOCK_SIZE) ) {
@@ -703,14 +908,24 @@ _mp4_parse_stco(mp4info *mp4)
   // Skip version/flags
   buffer_consume(mp4->buf, 4);
   
-  entry_count = buffer_get_int(mp4->buf);
-  DEBUG_TRACE("  XXX entry_count %d\n", entry_count);
+  mp4->num_chunk_offsets = buffer_get_int(mp4->buf);
+  DEBUG_TRACE("  num_chunk_offsets %d\n", mp4->num_chunk_offsets);
+      
+  Newx(
+    mp4->chunk_offset,
+    mp4->num_chunk_offsets * sizeof(*mp4->chunk_offset),
+    uint32_t *
+  );
   
-  for (i = 0; i < entry_count; i++) {
-    /*
-    uint32_t chunk_offset = buffer_get_int(mp4->buf);
-    //DEBUG_TRACE("  XXX chunk_offset %d\n", chunk_offset);
-    */
+  if ( !mp4->chunk_offset ) {
+    PerlIO_printf(PerlIO_stderr(), "Unable to parse stco: too large\n");
+    return 0;
+  }
+  
+  for (i = 0; i < mp4->num_chunk_offsets; i++) {
+    mp4->chunk_offset[i] = buffer_get_int(mp4->buf);
+    
+    DEBUG_TRACE("  chunk_offset %d\n", mp4->chunk_offset[i]);
   }
   
   return 1;

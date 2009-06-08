@@ -1,11 +1,17 @@
 Revision history for Audio::Scan
 
+0.19
+        - MP4 find_frame support.
+        - Added leading_mdat flag for MP4 files where mdat precedes
+          moov.
+
 0.18    2009-06-05 11:45:00
         - Added support for reading ID3v2 tags from ADTS files.
 
 0.17    2009-06-05 09:45:00
         - MPEG-4 ADTS support.
-        - Fixed Makefile.PL to set local include dirs before FLAC include dirs. (Philippe Kehl)
+        - Fixed Makefile.PL to set local include dirs before FLAC include
+          dirs. (Philippe Kehl)
 
 0.16    2009-06-04 15:45:00
         - Fixed parsing of MPEG-4 files where mdat occurs before moov.

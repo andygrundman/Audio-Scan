@@ -3,7 +3,7 @@ package Audio::Scan;
 use 5.008008;
 use strict;
 
-our $VERSION = '0.18';
+our $VERSION = '0.19';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -102,9 +102,9 @@ The offset value is different depending on the file type:
 Offset is the byte offset to start searching from.  The byte offset to the first
 audio packet/frame past this point will be returned.
 
-=item ASF
+=item ASF, MP4
 
-Offset is a timestamp in milliseconds.  The byte offset to the ASF data packet
+Offset is a timestamp in milliseconds.  The byte offset to the data packet
 containing this timestamp will be returned.
 
 =item WAV, AIFF, Musepack, Monkey's Audio
@@ -216,6 +216,7 @@ The following metadata about a file may be returned:
     audio_offset (byte offset to start of mdat)
     compatible_brands
     file_size
+    leading_mdat (if file has mdat before moov)
     major_brand
     minor_version
     song_length_ms
@@ -556,6 +557,9 @@ Musepack uses APEv2 tags.  They are returned as a hash of key/value pairs.
 =head1 
 
 =head1 THANKS
+
+Some code from the Rockbox project was very helpful in implementing ASF and
+MP4 seeking.
 
 Some of the file format parsing code was derived from the mt-daapd project,
 and adapted by Netgear.  It has been heavily rewritten to fix bugs and add

@@ -31,7 +31,6 @@ Refactor a bit
 
 MP4
 ---
-Print warning if file has mdat before moov.
 
 Wavpack
 ---
@@ -47,6 +46,7 @@ Monkey's Audio Codec
 Musepack
 ---
  SV8 support. Need test files.
+ Rewrite using buffer API, breaks on big-endian.
 
 Tests
 ---
