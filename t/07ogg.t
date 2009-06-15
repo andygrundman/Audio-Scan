@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 33;
+use Test::More tests => 38;
 
 use Audio::Scan;
 use Encode;
@@ -79,7 +79,9 @@ use Encode;
 
     my $info = $s->{info};
 
-    is($info->{bitrate_average}, 206723, 'Bug1155 bitrate ok');
+    is($info->{bitrate_nominal}, 206723, 'Bug1155 nominal bitrate ok');
+    is($info->{bitrate_average}, 1092, 'Bug1155 avg bitrate ok');
+    is($info->{song_length_ms}, 187146, 'Bug1155 duration ok');
 }
 
 {
@@ -87,7 +89,8 @@ use Encode;
 
     my $info = $s->{info};
 
-    is($info->{bitrate_average}, 8696, 'Bug1155 bitrate ok');
+    is($info->{bitrate_average}, 8696, 'Bug1155-2 bitrate ok');
+    is($info->{song_length_ms}, 5864, 'Bug1155-2 duration ok');
 }
 
 {
@@ -95,7 +98,8 @@ use Encode;
 
     my $info = $s->{info};
     
-    is($info->{song_length_ms}, 219693, 'Bug803 song length ok');
+    is($info->{bitrate_average}, 785, 'Bug803 bitrate ok');
+    is($info->{song_length_ms}, 219104, 'Bug803 song length ok');
 }
 
 {
@@ -104,7 +108,8 @@ use Encode;
     my $info = $s->{info};
     my $tags = $s->{tags};
     
-    is($info->{song_length_ms}, 225986, 'Bug905 song length ok' );
+    is($info->{bitrate_average}, 682, 'Bug905 bitrate ok');
+    is($info->{song_length_ms}, 223484, 'Bug905 song length ok');
     is($tags->{DATE}, '08-05-1998', 'Bug905 date ok');
 }
 

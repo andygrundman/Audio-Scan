@@ -81,6 +81,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     buffer_clear(&ogg_buf);
     
     audio_offset += id3_size;
+    
+    DEBUG_TRACE("Skipping ID3v2 tag of size %d\n", id3_size);
 
     PerlIO_seek(infile, id3_size, SEEK_SET);
   }
@@ -242,15 +244,17 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   my_hv_store( info, "audio_offset", newSViv(audio_offset - 28) );
   
   // calculate average bitrate and duration
-  // XXX: original code used blocksize_0 * 2, is that correct?
-  if ( file_size > blocksize_0 ) {
-    avg_buf_size = blocksize_0;
+  avg_buf_size = blocksize_0 * 2;
+  if ( file_size > avg_buf_size ) {
+    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", file_size - avg_buf_size);
+    PerlIO_seek(infile, file_size - avg_buf_size, SEEK_SET);
   }
   else {
-    avg_buf_size = file_size;
+    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", audio_offset - 28);
+    PerlIO_seek(infile, audio_offset - 28, SEEK_SET);
   }
 
-  PerlIO_seek(infile, file_size - avg_buf_size, SEEK_SET);
+  
 
   if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, avg_buf_size), avg_buf_size) == 0 ) {
     if ( PerlIO_error(infile) ) {
@@ -276,6 +280,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 
     if ( buf_size < 14 ) {
       // Give up, use less accurate bitrate for length
+      DEBUG_TRACE("buf_size %d, using less accurate bitrate for length\n", buf_size);
+      
       my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
       my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
 
@@ -293,11 +299,15 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
     my_hv_store( info, "song_length_ms", newSViv(length) );
     my_hv_store( info, "bitrate_average", newSVpvf( "%d", (int)( file_size * 8 ) / ( length / 1000 ) ) );
+    
+    DEBUG_TRACE("Using granule_pos/samplerate to calculate bitrate/duration\n");
   }
   else {
     // Use nominal bitrate
     my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
     my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
+    
+    DEBUG_TRACE("Using nominal bitrate for average\n");
   }
   
 out:
