@@ -683,6 +683,7 @@ _mp4_parse_mp4a(mp4info *mp4)
   // Skip reserved
   buffer_consume(mp4->buf, 4);
   
+  // XXX: this is not the right place to get samplerate, i.e. 88200 doesn't fit
   my_hv_store( trackinfo, "samplerate", newSVuv( buffer_get_short(mp4->buf) ) );
   
   // Skip reserved

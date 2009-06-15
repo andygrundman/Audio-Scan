@@ -1,10 +1,12 @@
 Revision history for Audio::Scan
 
 0.19
-        - MP4 find_frame support.
-        - Added leading_mdat flag for MP4 files where mdat precedes
+        - MP4: find_frame support.
+        - MP4: Added leading_mdat flag for MP4 files where mdat precedes
           moov.
-        - Handle invalid data sizes in ilst box.
+        - MP4: Handle invalid data sizes in ilst box.
+        - Changed FLAC parser to return CUESHEET_BLOCK for cuesheet metadata
+          block so it doesn't conflict with user-added CUESHEET tag.
 
 0.18    2009-06-05 11:45:00
         - Added support for reading ID3v2 tags from ADTS files.

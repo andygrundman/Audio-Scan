@@ -261,7 +261,7 @@ void _read_metadata(char *path, HV *info, HV *tags, FLAC__StreamMetadata *block,
         (unsigned)cs->tracks[track_num].number, decimal)
       );
 
-      my_hv_store(tags, "CUESHEET",  newRV_noinc((SV*) cueArray));
+      my_hv_store(tags, "CUESHEET_BLOCK",  newRV_noinc((SV*) cueArray));
 
       break;
     }

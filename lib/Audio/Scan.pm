@@ -340,11 +340,11 @@ APPLICATION
 
     Each application block is returned in the APPLICATION tag keyed by application ID.
 
-CUESHEET
+CUESHEET_BLOCK
 
-    The CUESHEET tag is an array containing each line of the cue sheet.
+    The CUESHEET_BLOCK tag is an array containing each line of the cue sheet.
 
-PICTURE
+ALLPICTURES
 
     Embedded pictures are returned in an ALLPICTURES array.  Each picture has the following metadata:
     

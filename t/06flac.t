@@ -31,7 +31,7 @@ SKIP:
 
     my $tags = $s->{tags};
 
-    my $cue = $tags->{CUESHEET};
+    my $cue = $tags->{CUESHEET_BLOCK};
     ok($cue, 'Cue sheet exists');
 
     my $app = $tags->{APPLICATION}{1835361648};
@@ -56,7 +56,7 @@ SKIP:
     ok($info->{frames} =~ /70.00\d+/, "Track Length Frames ok");
     ok($info->{bitrate} =~ /1.236\d+/, 'Bitrate ok');
 
-    my $cue = $tags->{CUESHEET};
+    my $cue = $tags->{CUESHEET_BLOCK};
 
     ok($cue, 'Got cuesheet ok');
 
