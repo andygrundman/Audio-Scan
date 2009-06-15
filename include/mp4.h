@@ -18,6 +18,16 @@
 
 #define FOURCC_EQ(a, b) ((a)[0] == (b)[0] && (a)[1] == (b)[1] && (a)[2] && (b)[2] && (a)[3] == (b)[3])
 
+typedef struct tts {
+  uint32_t sample_count;
+  uint32_t sample_duration;
+} tts;
+
+typedef struct stc {
+  uint32_t first_chunk;
+  uint32_t num_samples;
+} stc;
+
 typedef struct mp4info {
   PerlIO *infile;
   char *file;
@@ -40,20 +50,14 @@ typedef struct mp4info {
   
   // stsc
   uint32_t num_sample_to_chunks;
-  struct {
-      uint32_t first_chunk;
-      uint32_t num_samples;
-  } *sample_to_chunk;
+  struct stc *sample_to_chunk;
   
   // stco
   uint32_t *chunk_offset;
   uint32_t num_chunk_offsets;
   
   // stts
-  struct {
-      uint32_t sample_count;
-      uint32_t sample_duration;
-  } *time_to_sample;
+  struct tts *time_to_sample;
   uint32_t num_time_to_samples;
   
   // stsz

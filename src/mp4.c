@@ -31,7 +31,7 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
 int
 mp4_find_frame(PerlIO *infile, char *file, int offset)
 {
-  uint16_t samplerate;
+  uint16_t samplerate = 0;
   uint32_t sound_sample_loc;
   uint32_t i = 0;
   uint32_t j = 0;
@@ -783,7 +783,7 @@ _mp4_parse_stts(mp4info *mp4)
   Newx(
     mp4->time_to_sample,
     mp4->num_time_to_samples * sizeof(*mp4->time_to_sample),
-    struct time_to_sample *
+    struct tts
   );
   
   if ( !mp4->time_to_sample ) {
@@ -823,7 +823,7 @@ _mp4_parse_stsc(mp4info *mp4)
   Newx(
     mp4->sample_to_chunk,
     mp4->num_sample_to_chunks * sizeof(*mp4->sample_to_chunk),
-    struct sample_to_chunk *
+    struct stc
   );
   
   if ( !mp4->sample_to_chunk ) {
@@ -873,7 +873,7 @@ _mp4_parse_stsz(mp4info *mp4)
   Newx(
     mp4->sample_byte_size,
     mp4->num_sample_byte_sizes * sizeof(*mp4->sample_byte_size),
-    uint16_t *
+    uint16_t
   );
   
   if ( !mp4->sample_byte_size ) {
@@ -915,7 +915,7 @@ _mp4_parse_stco(mp4info *mp4)
   Newx(
     mp4->chunk_offset,
     mp4->num_chunk_offsets * sizeof(*mp4->chunk_offset),
-    uint32_t *
+    uint32_t
   );
   
   if ( !mp4->chunk_offset ) {
