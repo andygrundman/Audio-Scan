@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.19
+0.19    2009-06-15 15:35:00
         - MP4: find_frame support.
         - MP4: Added leading_mdat flag for MP4 files where mdat precedes
           moov.
