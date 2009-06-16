@@ -56,7 +56,7 @@ Refactored by Dan Sully
 #define APE_ITEM_EXTERNAL      4
 #define APE_ITEM_RESERVED      6
 
-#define APE_PREAMBLE "APETAGEX\320\07\0\0"
+#define APE_PREAMBLE "APETAGEX"
 #define APE_HEADER_FLAGS "\0\0\240"
 #define APE_FOOTER_FLAGS "\0\0\200"
 
@@ -68,11 +68,13 @@ Refactored by Dan Sully
 
 typedef struct {
     PerlIO* fd;           /* PerlIO handle */
+    HV* info;
     HV* tags;             /* Perl Hash structure to append tags into */
     char* filename;       /* Name of the file being parsed */
     Buffer tag_header;    /* Tag Header data */
     Buffer tag_data;      /* Tag body data */
     Buffer tag_footer;    /* Tag footer data */
+    uint32_t version;     /* 1000 or 2000 */
     uint32_t flags;       /* Internal tag flags */
     uint32_t size;        /* On disk size in bytes */
     uint32_t item_count;

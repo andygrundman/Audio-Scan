@@ -156,6 +156,7 @@ t/flac/id3tagged.flac
 t/flac/md5.flac
 t/flac/picture.flac
 t/flac/test.flac
+t/mac/apev1.ape
 t/mac/apev2.ape
 t/mp3/bug5686/latin/good.mp3
 t/mp3/bug5686/utf/invalid.mp3

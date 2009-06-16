@@ -121,25 +121,23 @@ int _ape_get_tag_info(ApeTag* tag) {
     return _ape_error(tag, "Couldn't read tag footer", -2);
   }
 
-  buffer_get(&tag->tag_footer, &compare, 12);
+  buffer_get(&tag->tag_footer, &compare, 8);
 
-  if (memcmp(APE_PREAMBLE, &compare, 12)) {
+  if (memcmp(APE_PREAMBLE, &compare, 8)) {
     tag->flags &= ~APE_HAS_APE;
     tag->flags |= APE_CHECKED_APE;
     return 0;
   }
-
-  tmp_ptr = buffer_ptr(&tag->tag_footer);
-
-  if ((memcmp(APE_FOOTER_FLAGS, (tmp_ptr+9), 3) != 0) || 
-      (tmp_ptr[8] != '\0' && tmp_ptr[8] != '\1')) {
-    return _ape_error(tag, "Bad tag footer flags", -3);
-  }
-
+  
+  tag->version    = buffer_get_int_le(&tag->tag_footer) / 1000;
   tag->size       = buffer_get_int_le(&tag->tag_footer);
   tag->item_count = buffer_get_int_le(&tag->tag_footer);
   tag->size += APE_TAG_FOOTER_LEN;
   data_size = tag->size - APE_TAG_HEADER_LEN - APE_TAG_FOOTER_LEN;
+  
+  DEBUG_TRACE("Found APEv%d tag, size %d with %d items\n", tag->version, tag->size, tag->item_count);
+  
+  my_hv_store( tag->info, "ape_version", newSVpvf( "APEv%d", tag->version ) );
 
   /* Check tag footer for validity */
   if (tag->size < APE_MINIMUM_TAG_SIZE) {
@@ -178,22 +176,24 @@ int _ape_get_tag_info(ApeTag* tag) {
     return _ape_error(tag, "Couldn't read tag data", -2);
   }
 
-  buffer_get(&tag->tag_header, &compare, 12);
-  tmp_ptr = buffer_ptr(&tag->tag_header);
+  if (tag->version > 1) { // not necessary?
+    buffer_get(&tag->tag_header, &compare, 12);
+    tmp_ptr = buffer_ptr(&tag->tag_header);
 
-  /* Check tag header for validity */
-  if (memcmp(APE_PREAMBLE, &compare, 12) || 
-     (memcmp(APE_HEADER_FLAGS, (tmp_ptr+9), 3) != 0) || 
-     (tmp_ptr[8] != '\0' && tmp_ptr[8] != '\1')) {
-    return _ape_error(tag, "Bad tag header flags", -3);
-  }
+    /* Check tag header for validity */
+    if (memcmp(APE_PREAMBLE, &compare, 8) || 
+       (memcmp(APE_HEADER_FLAGS, (tmp_ptr+9), 3) != 0) || 
+       (tmp_ptr[8] != '\0' && tmp_ptr[8] != '\1')) {
+      return _ape_error(tag, "Bad tag header flags", -3);
+    }
 
-  if (tag->size != (buffer_get_int_le(&tag->tag_header) + APE_TAG_HEADER_LEN)) {
-    return _ape_error(tag, "Header and footer size do not match", -3);
-  }
+    if (tag->size != (buffer_get_int_le(&tag->tag_header) + APE_TAG_HEADER_LEN)) {
+      return _ape_error(tag, "Header and footer size do not match", -3);
+    }
 
-  if (tag->item_count != buffer_get_int_le(&tag->tag_header)) {
-    return _ape_error(tag, "Header and footer item count do not match", -3);
+    if (tag->item_count != buffer_get_int_le(&tag->tag_header)) {
+      return _ape_error(tag, "Header and footer item count do not match", -3);
+    }
   }
   
   tag->flags |= APE_CHECKED_APE | APE_HAS_APE;
@@ -267,7 +267,8 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
 
   // Don't add invalid items
   if (_ape_check_validity(tag, flags, SvPVX(key), SvPVX(value)) != 0) {
-    return _ape_error(tag, "Invalid tag", -3);
+    // skip this item
+    return 0;
   } else {
     sv_utf8_decode(value);
   }
@@ -331,9 +332,11 @@ int _ape_check_validity(ApeTag* tag, uint32_t flags, char* key, char* value) {
     }
   }
   
-  /* Check value is utf-8 if flags specify utf8 or external format*/
-  if (((flags & APE_ITEM_TYPE_FLAGS) & 2) == 0 && !is_utf8_string((unsigned char*)(value), strlen(value))) {
-    return _ape_error(tag, "Invalid UTF-8 value", -3);
+  if (tag->version > 1) {
+    /* Check value is utf-8 if flags specify utf8 or external format*/
+    if (((flags & APE_ITEM_TYPE_FLAGS) & 2) == 0 && !is_utf8_string((unsigned char*)(value), strlen(value))) {
+      return _ape_error(tag, "Invalid UTF-8 value", -3);
+    }
   }
   
   return 0;
@@ -353,6 +356,7 @@ get_ape_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   }
 
   tag->fd         = infile;
+  tag->info       = info;
   tag->tags       = tags;
   tag->filename   = file;
   tag->flags      = 0 | APE_DEFAULT_FLAGS;
