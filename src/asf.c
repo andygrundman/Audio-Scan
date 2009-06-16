@@ -164,7 +164,7 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       // Unhandled GUID
       PerlIO_printf(PerlIO_stderr(), "** Unhandled GUID: ");
       print_guid(tmp.ID);
-      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", tmp.size);
+      PerlIO_printf(PerlIO_stderr(), "size: %llu\n", tmp.size);
       
       buffer_consume(&asf_buf, tmp.size - 24);
     }
@@ -584,7 +584,7 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
       // Unhandled
       PerlIO_printf(PerlIO_stderr(), "  ** Unhandled extended header: ");
       print_guid(hdr);
-      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", hdr_size);
+      PerlIO_printf(PerlIO_stderr(), "size: %llu\n", hdr_size);
       
       buffer_consume(buf, hdr_size - 24);
     }
