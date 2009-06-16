@@ -169,7 +169,7 @@ mp4_find_frame(PerlIO *infile, char *file, int offset)
   }
   
   if (file_offset > mp4->audio_offset + mp4->audio_size) {
-    PerlIO_printf(PerlIO_stderr(), "find_frame: file offset out of range (%d > %d)\n", file_offset, mp4->audio_offset + mp4->audio_size);
+    PerlIO_printf(PerlIO_stderr(), "find_frame: file offset out of range (%d > %lld)\n", file_offset, mp4->audio_offset + mp4->audio_size);
     return -1;
   }
   
