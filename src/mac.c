@@ -155,7 +155,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
 
     my_hv_store(info, "file_size", newSVnv(si->file_size));
     my_hv_store(info, "compression", newSVpv(si->compression, 0));
-    my_hv_store(info, "version", newSVnv((double)(si->version / 1000.0)));
+    my_hv_store(info, "version", newSVpvf( "%.2f", (double)(si->version / 1000.0) ) );
   }
 
 out:

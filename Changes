@@ -5,6 +5,7 @@ Revision history for Audio::Scan
           files.
         - Bug 12326, fixed bug in scanning MP4 meta box.
         - Bug 12152, added support for APEv1 tags.
+        - Fixed some APE test failures that happened on some platforms.
 
 0.19    2009-06-15 15:35:00
         - MP4: find_frame support.
