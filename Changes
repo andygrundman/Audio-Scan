@@ -3,6 +3,7 @@ Revision history for Audio::Scan
 0.20
         - Bug 12168, fixed Vorbis calculation of bitrate and duration in certain
           files.
+        - Bug 12326, fixed bug in scanning MP4 meta box.
 
 0.19    2009-06-15 15:35:00
         - MP4: find_frame support.
