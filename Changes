@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.20
+0.20    2009-06-16 15:00:00
         - Bug 12168, fixed Vorbis calculation of bitrate and duration in certain
           files.
         - Bug 12326, fixed bug in scanning MP4 meta box.
