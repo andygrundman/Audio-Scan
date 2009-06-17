@@ -76,6 +76,13 @@ struct mp3_frameinfo {
   unsigned int vbri_frames;
 };
 
+typedef struct mp3info {
+  PerlIO *infile;
+  char *file;
+  Buffer *buf;
+  HV *info;
+} mp3info;
+
 // LAME lookup tables
 const char *stereo_modes[] = {
   "Mono",

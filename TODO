@@ -8,7 +8,7 @@ RIFF-MP3 support
 Free-format support (not reading Xing/LAME tag properly)
 TOC tables?
 Support VBRI mono file with wrong offset?
-Refactor to use buffer API.
+Refactor to remove use of mp3_frameinfo
 
 ID3
 ---

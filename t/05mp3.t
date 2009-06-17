@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 221;
+use Test::More tests => 225;
 
 use Audio::Scan;
 use Encode;
@@ -675,6 +675,19 @@ my $pate = Encode::decode_utf8("pâté");
     is( $offset, 42641, 'Find frame via filehandle ok' );
     
     close $fh;
+}
+
+# Bug 12409, file with just enough junk data before first audio frame
+# to require a second buffer read
+{
+    my $s = Audio::Scan->scan_info( _f('v2.3-null-bytes.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 4896, 'Bug 12409 audio offset ok' );
+    is( $info->{bitrate}, 64000, 'Bug 12409 bitrate ok' ); # XXX technically should be 128k, but Xing data is wrong
+    is( $info->{lame_encoder_version}, 'LAME3.96r', 'Bug 12409 encoder version ok' );
+    is( $info->{song_length_ms}, 244464, 'Bug 12409 song length ok' );
 }
 
 sub _f {    
