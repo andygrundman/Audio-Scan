@@ -495,7 +495,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       audio_offset++;
 
       if ( !buf_size ) {
-        PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked %d bytes): %s\n", file, BLOCK_SIZE);
+        PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
         err = -1;
         goto out;
       }
