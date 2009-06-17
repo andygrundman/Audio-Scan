@@ -270,12 +270,16 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
       ||
       ( buf[1] == 'n' && buf[2] == 'f' && buf[3] == 'o' )
     ) {
+      DEBUG_TRACE("Found Xing/Info tag\n");
+      
       // It's VBR if tag is Xing, and CBR if Info
       pfi->vbr = buf[1] == 'i' ? VBR : CBR;
 
       buf += 4;
 
       xing_flags = GET_INT32BE(buf);
+      
+      DEBUG_TRACE("xing_flags: %d\n", xing_flags);
 
       if (xing_flags & XING_FRAMES) {
         pfi->xing_frames = GET_INT32BE(buf);
@@ -402,6 +406,8 @@ _parse_xing(unsigned char *buf, struct mp3_frameinfo *pfi)
   }
   // Check for VBRI header from Fhg encoders
   else if ( buf[0] == 'V' && buf[1] == 'B' && buf[2] == 'R' && buf[3] == 'I' ) {
+    DEBUG_TRACE("Found VBRI tag\n");
+    
     // Skip tag and version ID
     buf += 6;
 
@@ -489,18 +495,24 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       audio_offset++;
 
       if ( !buf_size ) {
-        PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+        PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked %d bytes): %s\n", file, BLOCK_SIZE);
         err = -1;
         goto out;
       }
     }
+    
+    DEBUG_TRACE("Found FF sync at offset %d\n", audio_offset);
 
     if ( !_decode_mp3_frame(buf, &fi) ) {
       // Found a valid frame
+      DEBUG_TRACE("  valid frame\n");
+      
       found = 1;
     }
     else {
       // Not a valid frame, stray 0xFF
+      DEBUG_TRACE("  invalid frame\n");
+      
       buf++;
       buf_size--;
       audio_offset++;
@@ -537,10 +549,12 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       // ABR rate field only codes up to 255, use preset value instead
       if (fi.lame_preset <= 320) {
         bitrate = fi.lame_preset;
+        DEBUG_TRACE("bitrate from lame_preset: %d\n", bitrate);
       }
     }
     else {
       bitrate = fi.lame_abr_rate;
+      DEBUG_TRACE("bitrate from lame_abr_rate: %d\n", bitrate);
     }
   }
 
@@ -548,15 +562,15 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
   else if (fi.xing_frames && fi.xing_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = ( fi.xing_bytes / fi.xing_frames * mfs );
+    DEBUG_TRACE("bitrate from Xing header: %d\n", bitrate);
   }
 
   // Or use VBRI header
   else if (fi.vbri_frames && fi.vbri_bytes) {
     float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = ( fi.vbri_bytes / fi.vbri_frames * mfs );
+    DEBUG_TRACE("bitrate from VBRI header: %d\n", bitrate);
   }
-  
-  DEBUG_TRACE("bitrate: %d\n", bitrate);
 
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
   if ( !bitrate ) {
@@ -662,7 +676,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
         my_hv_store( info, "lame_preset", newSVpv( presets_v[fi.lame_preset], 0 ) );
       }
     }
-    else if (fi.lame_preset <= 1007) {
+    else if (fi.lame_preset >= 1000 && fi.lame_preset <= 1007) {
       fi.lame_preset -= 1000;
       if ( presets_old[fi.lame_preset] ) {
         my_hv_store( info, "lame_preset", newSVpv( presets_old[fi.lame_preset], 0 ) );

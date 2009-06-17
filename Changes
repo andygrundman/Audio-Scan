@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.21
+        - Bug 12409, fixed crash when scanning MP3 file with invalid/broken LAME tag.
+
 0.20    2009-06-16 15:00:00
         - Bug 12168, fixed Vorbis calculation of bitrate and duration in certain
           files.
