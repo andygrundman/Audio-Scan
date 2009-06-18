@@ -648,21 +648,21 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 
   if (fi.xing_bytes) {
     my_hv_store( info, "xing_bytes", newSViv(fi.xing_bytes) );
+    
+    if (fi.xing_has_toc) {
+      uint8_t i;
+      AV *xing_toc = newAV();
+
+      for (i = 0; i < 100; i++) {
+        av_push( xing_toc, newSVuv(fi.xing_toc[i]) );
+      }
+
+      my_hv_store( info, "xing_toc", newRV_noinc( (SV *)xing_toc ) );
+    }
   }
 
   if (fi.xing_quality) {
     my_hv_store( info, "xing_quality", newSViv(fi.xing_quality) );
-  }
-  
-  if (fi.xing_has_toc) {
-    uint8_t i;
-    AV *xing_toc = newAV();
-    
-    for (i = 0; i < 100; i++) {
-      av_push( xing_toc, newSVuv(fi.xing_toc[i]) );
-    }
-    
-    my_hv_store( info, "xing_toc", newRV_noinc( (SV *)xing_toc ) );
   }
 
   if (fi.vbri_frames) {
