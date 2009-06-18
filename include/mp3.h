@@ -49,6 +49,8 @@ struct mp3_frameinfo {
   unsigned int xing_frames;
   unsigned int xing_bytes;
   unsigned short xing_quality;
+  unsigned char xing_has_toc;
+  unsigned char xing_toc[100];
 
   // LAME header
   char lame_encoder_version[9];

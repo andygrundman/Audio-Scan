@@ -253,7 +253,7 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
   int xing_flags;
   unsigned char *bptr;
   
-  if ( !_check_buf(mp3->infile, mp3->buf, 140 + pfi->xing_offset, BLOCK_SIZE) ) {
+  if ( !_check_buf(mp3->infile, mp3->buf, 160 + pfi->xing_offset, BLOCK_SIZE) ) {
     return 0;
   }
   
@@ -285,7 +285,14 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
       }
 
       if (xing_flags & XING_TOC) {
-        // skip it
+        uint8_t i;
+        bptr = buffer_ptr(mp3->buf);
+        for (i = 0; i < 100; i++) {
+          pfi->xing_toc[i] = bptr[i];
+        }
+        
+        pfi->xing_has_toc = 1;
+        
         buffer_consume(mp3->buf, 100);
       }
 
@@ -646,6 +653,17 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
   if (fi.xing_quality) {
     my_hv_store( info, "xing_quality", newSViv(fi.xing_quality) );
   }
+  
+  if (fi.xing_has_toc) {
+    uint8_t i;
+    AV *xing_toc = newAV();
+    
+    for (i = 0; i < 100; i++) {
+      av_push( xing_toc, newSVuv(fi.xing_toc[i]) );
+    }
+    
+    my_hv_store( info, "xing_toc", newRV_noinc( (SV *)xing_toc ) );
+  }
 
   if (fi.vbri_frames) {
     my_hv_store( info, "vbri_delay", newSViv(fi.vbri_delay) );
@@ -726,11 +744,48 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   unsigned int buf_size;
   struct mp3_frameinfo fi;
   int frame_offset = -1;
-  
-  PerlIO_seek(infile, offset, SEEK_SET);
+  HV *info = newHV();
   
   buffer_init(&mp3_buf, BLOCK_SIZE);
   
+  if ( (get_mp3fileinfo(infile, file, info)) != 0 ) {
+    goto out;
+  }
+  
+  // Use Xing TOC if available
+  if ( my_hv_exists(info, "xing_toc") ) {
+    uint8_t percent;
+    uint16_t tv;
+    off_t file_size     = SvIV( *(my_hv_fetch(info, "file_size")) );
+    off_t audio_offset  = SvIV( *(my_hv_fetch(info, "audio_offset")) );
+    AV *xing_toc        = (AV *)SvRV( *(my_hv_fetch(info, "xing_toc")) );
+    uint32_t xing_bytes = SvIV( *(my_hv_fetch(info, "xing_bytes")) );
+    
+    if (offset >= file_size) {
+      goto out;
+    }
+    
+    percent = (int)((offset * 1.0 / file_size) * 100 + 0.5);
+    
+    if (percent > 99)
+      percent = 99;
+    
+    tv = SvIV( *(av_fetch(xing_toc, percent, 0)) );
+    
+    offset = (tv / 256.0) * xing_bytes;
+    
+    offset += audio_offset;
+    
+    // Don't return offset == audio_offset, because that would be the Xing frame
+    if (offset == audio_offset) {
+      offset += 1;
+    }
+    
+    DEBUG_TRACE("find_frame: using Xing TOC, percent: %d, tv: %d, new offset: %d\n", percent, tv, offset);  
+  }
+  
+  PerlIO_seek(infile, offset, SEEK_SET);
+
   if ( !_check_buf(infile, &mp3_buf, 512, BLOCK_SIZE) ) {
     goto out;
   }
@@ -754,10 +809,12 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   
   if (buf_size >= 4) {
     frame_offset = offset + BLOCK_SIZE - buf_size;
+    DEBUG_TRACE("find_frame: frame_offset: %d\n", frame_offset);
   }
 
 out:
   buffer_free(&mp3_buf);
+  SvREFCNT_dec(info);
 
   return frame_offset;
 }

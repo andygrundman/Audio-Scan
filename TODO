@@ -6,7 +6,6 @@ MP3
 Lyrics3 support
 RIFF-MP3 support
 Free-format support (not reading Xing/LAME tag properly)
-TOC tables?
 Support VBRI mono file with wrong offset?
 Refactor to remove use of mp3_frameinfo
 

@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.22    
+        - Improved accuracy of MP3 find_frame when Xing TOC is present.
+        - Fixed MP3 bug where Xing parser was not reading enough data.
+
 0.21    2009-06-17 17:30:00
         - Refactored MP3 code to use more robust buffer API.
         - Bug 12409, fixed crash when scanning MP3 file with null bytes before
