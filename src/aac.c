@@ -70,24 +70,28 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
       err = -1;
       goto out;
     }
-    
-    bptr = buffer_ptr(&buf);
   }
   
-  if ( (bptr[0] == 0xFF) && ((bptr[1] & 0xF6) == 0xF0) ) {
-    aac_parse_adts(infile, file, file_size, &buf, info);
+  // Find 0xFF sync
+  while ( buffer_len(&buf) >= 6 ) {
+    bptr = buffer_ptr(&buf);
+    
+    if ( (bptr[0] == 0xFF) && ((bptr[1] & 0xF6) == 0xF0) ) {
+      aac_parse_adts(infile, file, file_size, &buf, info);
+      break;
+    }
+    else {    
+      buffer_consume(&buf, 1);
+      audio_offset++;
+    }
   }
+  
 /*
  XXX: need an ADIF test file
   else if ( memcmp(bptr, "ADIF", 4) == 0 ) {
     aac_parse_adif(infile, file, &buf, info);
   }
 */
-  else {
-    PerlIO_printf(PerlIO_stderr(), "Not a valid ADTS file: %s\n", file);
-    err = -1;
-    goto out;
-  }
   
   my_hv_store( info, "audio_offset", newSVuv(audio_offset) );
   

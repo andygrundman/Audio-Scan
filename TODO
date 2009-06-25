@@ -1,5 +1,6 @@
 General
 -------
+5.8.6 compat if possible
 
 MP3
 ---
@@ -22,7 +23,6 @@ Infinite loop on CVE-2007-4619-1.flac
 
 Ogg
 ---
-Files with no bitrate or duration (bug 12168)
 
 ASF
 ---
