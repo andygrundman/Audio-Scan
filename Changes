@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.23
+0.23    2009-06-26 10:00:00
         - Added support for ADTS files with leading junk before first audio frame.
 
 0.22    2009-06-18 12:00:00
