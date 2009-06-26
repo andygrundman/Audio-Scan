@@ -28,9 +28,10 @@ ASF
 ---
 Refactor a bit
 
-MP4
----
+MP4/AAC
+-------
 Samplerate is broken, currently reads a 16-bit field.
+Better parsing of esds to detect HD-AAC files, etc.
 
 Wavpack
 ---

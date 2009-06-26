@@ -2,7 +2,7 @@ package Audio::Scan;
 
 use strict;
 
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);

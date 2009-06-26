@@ -131,6 +131,7 @@ t/12aiff.t
 t/13mp4.t
 t/14aac.t
 t/aac/id3v2.aac
+t/aac/leading-junk.aac
 t/aac/mono.aac
 t/aac/stereo.aac
 t/aiff/aiff-id3.aif

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 22;
+use Test::More tests => 27;
 
 use Audio::Scan;
 
@@ -52,6 +52,19 @@ use Audio::Scan;
     is( $tags->{TPE1}, 'Calibration Level', 'ID3v2 TPE1 ok' );
     is( $tags->{TENC}, 'ORBAN', 'ID3v2 TENC ok' );
     is( $tags->{TIT2}, '1kHz -20dBfs', 'ID3v2 TIT2 ok' );    
+}
+
+# ADTS with leading junk (from a radio stream)
+{
+    my $s = Audio::Scan->scan( _f('leading-junk.aac') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 638, 'Leading junk offset ok' );
+    is( $info->{bitrate}, 64000, 'Leading junk bitrate ok' );
+    is( $info->{channels}, 2, 'Leading junk channels ok' );
+    is( $info->{profile}, 'LC', 'Leading junk profile ok' );
+    is( $info->{samplerate}, 22050, 'Leading junk samplerate ok' );
 }
 
 sub _f {
