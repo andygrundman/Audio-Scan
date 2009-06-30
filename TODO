@@ -40,6 +40,7 @@ Wavpack
 
 APE (Tagging used by many codecs)
 ---
+Does not find tag if there is no ID3v1 tag (bug 9942)
 
 Monkey's Audio Codec
 ---
