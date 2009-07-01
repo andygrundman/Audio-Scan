@@ -1,0 +1,9 @@
+Known issues compiling on Sparc Linux:
+
+There appears to be a memory alignment bug in libogg, so using
+--with-flac-static causes a SIGBUS crash.
+
+The following seems to workaround the problem:
+
+Compile libFLAC with --disable-ogg.
+Comment out the line to add libogg.a to $MYEXTLIB in Makefile.PL.

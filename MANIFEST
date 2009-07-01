@@ -100,6 +100,7 @@ libid3tag/version.h
 Makefile.PL
 MANIFEST			This list of files
 README
+README.sparc
 README.win32
 Scan.xs
 src/aac.c
