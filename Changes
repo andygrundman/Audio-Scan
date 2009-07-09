@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.24
+        - Bug 12691, some people have *really* large embedded artwork, allow buffer
+          to allocate up to 5M at a time (was 1M).
+
 0.23    2009-06-26 10:00:00
         - Added support for ADTS files with leading junk before first audio frame.
 

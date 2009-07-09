@@ -16,7 +16,7 @@
 
 #include "buffer.h"
 
-#define  BUFFER_MAX_CHUNK  0x100000
+#define  BUFFER_MAX_CHUNK  0x500000
 #define  BUFFER_MAX_LEN    0xa00000
 #define  BUFFER_ALLOCSZ    0x008000
 
