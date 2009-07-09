@@ -101,7 +101,7 @@ buffer_append_space(Buffer *buffer, uint32_t len)
   void *p;
 
   if (len > BUFFER_MAX_CHUNK)
-    croak("buffer_append_space: len %u not supported", len);
+    croak("buffer_append_space: len %u too large (max %u)", len, BUFFER_MAX_CHUNK);
 
   /* If the buffer is empty, start using it from the beginning. */
   if (buffer->offset == buffer->end) {
@@ -124,8 +124,8 @@ restart:
   /* Increase the size of the buffer and retry. */
   newlen = roundup(buffer->alloc + len, BUFFER_ALLOCSZ);
   if (newlen > BUFFER_MAX_LEN)
-    croak("buffer_append_space: alloc %u not supported",
-        newlen);
+    croak("buffer_append_space: alloc %u too large (max %u)",
+        newlen, BUFFER_MAX_LEN);
   Renew(buffer->buf, (int)newlen, u_char);
   buffer->alloc = newlen;
   goto restart;
