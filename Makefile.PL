@@ -102,7 +102,7 @@ print "   WAV support:     yes\n";
 print "   AIFF support:    yes\n";
 print "\n";
 
-my $DEFINES = '-Wall';
+my $DEFINES = '-Wall' unless $^O =~ /sun|solaris/i;
 $DEFINES .= ' -Wno-unused-value' unless $^O =~ /Win32/;
 $DEFINES .= ' -DHAVE_FLAC' if $FLAC;
 
