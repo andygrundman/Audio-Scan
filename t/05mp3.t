@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 228;
+use Test::More tests => 233;
 
 use Audio::Scan;
 use Encode;
@@ -604,7 +604,7 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{TIPL}->[3], 'Steve Albini', 'ID3v2.4 TIPL string 4 ok' );
 }
 
-# ID3v2.4 + APEv2 tags
+# ID3v2.4 + APEv2 tags, some tags are multiple
 {
     my $s = Audio::Scan->scan( _f('v2.4-ape.mp3') );
     
@@ -612,6 +612,9 @@ my $pate = Encode::decode_utf8("pâté");
     
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 with APEv2 tag ok' );
     is( $tags->{APE_TAGS_SUCK}, 1, 'APEv2 tag ok' );
+    is( ref $tags->{POPULARIMETER}, 'ARRAY', 'APEv2 POPULARIMETER tag ok' );
+    is( $tags->{POPULARIMETER}->[0], 'foo@foo.com|150|1234567890', 'APEv2 POPULARIMETER tag 1 ok' );
+    is( $tags->{POPULARIMETER}->[1], 'foo2@foo.com|30|7', 'APEv2 POPULARIMETER tag 2 ok' );
 }
 
 # iTunes-tagged file with invalid length frames
@@ -690,7 +693,7 @@ my $pate = Encode::decode_utf8("pâté");
     is( $info->{song_length_ms}, 244464, 'Bug 12409 song length ok' );
 }
 
-# Bug 9942, APE tag with no ID3v1 tag
+# Bug 9942, APE tag with no ID3v1 tag and multiple tags
 {
     my $s = Audio::Scan->scan( _f('ape-no-v1.mp3') );
     
@@ -700,7 +703,9 @@ my $pate = Encode::decode_utf8("pâté");
     is( $info->{ape_version}, 'APEv2', 'APE no ID3v1 ok' );
     
     is( $tags->{ALBUM}, '13 Blues for Thirteen Moons', 'APE no ID3v1 ALBUM ok' );
-    is( $tags->{ARTIST}, "artist1\0artist2", 'APE no ID3v1 ARTIST ok' );
+    is( ref $tags->{ARTIST}, 'ARRAY', 'APE no ID3v1 ARTIST ok' );
+    is( $tags->{ARTIST}->[0], 'artist1', 'APE no ID3v1 artist1 ok' );
+    is( $tags->{ARTIST}->[1], 'artist2', 'APE no ID3v1 artist2 ok' );
 }
 
 sub _f {    

@@ -241,7 +241,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
    * <value:value_size bytes>
    */
   uint32_t data_size = tag->size - APE_MINIMUM_TAG_SIZE;
-  uint32_t size, flags, key_length = 0;
+  uint32_t size, flags, key_length = 0, val_length = 0;
   unsigned char *tmp_ptr;
   SV *key, *value;
   
@@ -256,21 +256,74 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
 
   key = newSVpvn( buffer_ptr(&tag->tag_data), key_length );
   buffer_consume(&tag->tag_data, key_length + 1);
-
-  value = newSVpvn( buffer_ptr(&tag->tag_data), size );
-  buffer_consume(&tag->tag_data, size);
+  
+  // Bug 9942, APE tags can contain multiple items with a null separator
+  tmp_ptr = buffer_ptr(&tag->tag_data);
+  while (tmp_ptr[0] != '\0' && val_length <= size) {
+    val_length += 1;
+    tmp_ptr    += 1;
+  }
+  
+  DEBUG_TRACE("val_length: %d / size: %d\n", val_length, size);
+  
+  if (val_length >= size - 1) {
+    // Single item
+    value = newSVpvn( buffer_ptr(&tag->tag_data), size );
+    
+    buffer_consume(&tag->tag_data, size);
+    
+    // Don't add invalid items
+    if (_ape_check_validity(tag, flags, SvPVX(key), SvPVX(value)) != 0) {
+      // skip this item
+      return 0;
+    }
+    else {
+      sv_utf8_decode(value);
+    }
+  }
+  else {
+    // Multiple items
+    AV *av = newAV();
+    SV *tmp_val;
+    uint32_t done = 0;
+    
+    while ( done < size ) {
+      val_length = 0;
+      tmp_ptr = buffer_ptr(&tag->tag_data);
+      while (tmp_ptr[0] != '\0' && done < size) {
+        val_length++;
+        tmp_ptr++;
+        done++;
+      }
+      
+      tmp_val = newSVpvn( buffer_ptr(&tag->tag_data), val_length );
+    
+      // Don't add invalid items
+      if (_ape_check_validity(tag, flags, SvPVX(key), SvPVX(tmp_val)) != 0) {
+        // skip this item
+        return 0;
+      }
+      else {
+        sv_utf8_decode(tmp_val);
+      }
+    
+      av_push(av, tmp_val);
+      
+      buffer_consume(&tag->tag_data, val_length);
+      
+      if ( done < size ) {
+        // Still more to read, consume the null separator
+        buffer_consume(&tag->tag_data, 1);
+        done++;
+      }
+    }
+    
+    value = newRV_noinc( (SV *)av );
+  }
 
   /* Find and check start of value */
   if (size + buffer_len(&tag->tag_data) + APE_ITEM_MINIMUM_SIZE > data_size) {
     return _ape_error(tag, "Impossible item length (greater than remaining space)", -3);
-  }
-
-  // Don't add invalid items
-  if (_ape_check_validity(tag, flags, SvPVX(key), SvPVX(value)) != 0) {
-    // skip this item
-    return 0;
-  } else {
-    sv_utf8_decode(value);
   }
   
   my_hv_store(tag->tags, upcase(SvPVX(key)), value);
