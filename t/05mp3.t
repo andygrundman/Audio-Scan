@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 225;
+use Test::More tests => 228;
 
 use Audio::Scan;
 use Encode;
@@ -688,6 +688,19 @@ my $pate = Encode::decode_utf8("pâté");
     is( $info->{bitrate}, 64000, 'Bug 12409 bitrate ok' ); # XXX technically should be 128k, but Xing data is wrong
     is( $info->{lame_encoder_version}, 'LAME3.96r', 'Bug 12409 encoder version ok' );
     is( $info->{song_length_ms}, 244464, 'Bug 12409 song length ok' );
+}
+
+# Bug 9942, APE tag with no ID3v1 tag
+{
+    my $s = Audio::Scan->scan( _f('ape-no-v1.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{ape_version}, 'APEv2', 'APE no ID3v1 ok' );
+    
+    is( $tags->{ALBUM}, '13 Blues for Thirteen Moons', 'APE no ID3v1 ALBUM ok' );
+    is( $tags->{ARTIST}, "artist1\0artist2", 'APE no ID3v1 ARTIST ok' );
 }
 
 sub _f {    

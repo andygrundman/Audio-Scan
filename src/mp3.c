@@ -51,7 +51,9 @@ _has_ape(PerlIO *infile)
   
   DEBUG_TRACE("Seeked to %d looking for APE tag\n", PerlIO_tell(infile));
   
-  if ( !_check_buf(infile, &buf, 8, 8) ) {
+  // Bug 9942, read 136 bytes so we can check at -32 bytes in case file
+  // does not have an ID3v1 tag
+  if ( !_check_buf(infile, &buf, 136, 136) ) {
     goto out;
   }
   
@@ -61,8 +63,22 @@ _has_ape(PerlIO *infile)
     && bptr[3] == 'T' && bptr[4] == 'A' && bptr[5] == 'G'
     && bptr[6] == 'E' && bptr[7] == 'X'
   ) {
-    DEBUG_TRACE("APE tag found\n");
+    DEBUG_TRACE("APE tag found at -160 (with ID3v1)\n");
     ret = 1;
+  }
+  else {
+    // APE tag without ID3v1 tag will be -32 bytes from end
+    buffer_consume(&buf, 128);
+    
+    bptr = buffer_ptr(&buf);
+
+    if ( bptr[0] == 'A' && bptr[1] == 'P' && bptr[2] == 'E'
+      && bptr[3] == 'T' && bptr[4] == 'A' && bptr[5] == 'G'
+      && bptr[6] == 'E' && bptr[7] == 'X'
+    ) {
+      DEBUG_TRACE("APE tag found at -32 (no ID3v1)\n");
+      ret = 1;
+    }
   }
   
 out:

@@ -38,9 +38,8 @@ Wavpack
  Need implementation for stream info.
  Uses APE tags.
 
-APE (Tagging used by many codecs)
+APE
 ---
-Does not find tag if there is no ID3v1 tag (bug 9942)
 
 Monkey's Audio Codec
 ---
