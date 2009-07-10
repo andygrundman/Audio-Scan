@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.24
+0.24    2009-07-09 22:45:00
         - Bug 12691, some people have *really* large embedded artwork, allow buffer
           to allocate up to 5M at a time (was 1M).
 
