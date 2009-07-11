@@ -3,6 +3,8 @@ Revision history for Audio::Scan
 0.25
         - Bug 9942, fixed APE check when file does not have an ID3v1 tag, and
           fixed parsing of APE tags with multiple items separated by a null byte.
+        - Bug 12615, improved Ogg Vorbis parser to do a better job finding the
+          audio offset.
         - Bug 12668, fixed build on OpenSolaris (Sun's CC doesn't support -Wall).
 
 0.24    2009-07-09 22:45:00

@@ -107,6 +107,12 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     // Header type flag
     header_type = ogghdr[5];
     
+    // Absolute granule position, used to find the first audio page
+    bptr = ogghdr + 6;
+    granule_pos = (uint64_t)CONVERT_INT32LE(bptr);
+    bptr += 4;
+    granule_pos |= (uint64_t)CONVERT_INT32LE(bptr) << 32;
+    
     // Stream serial number
     serialno = CONVERT_INT32LE((ogghdr+14));
     
@@ -136,61 +142,75 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       PerlIO_printf(PerlIO_stderr(), "Missing page(s) in Ogg file: %s\n", file);
     }
     
-    // Number of page segments
-    num_segments = ogghdr[26];
-       
-    // Avoid reading more data if we've reached the end of comments
-    if (packets <= 2 * streams) {
-      // Calculate total page size
-      pagelen = ogghdr[27];
-      if (num_segments > 1) {
-        int i;
-        
-        if ( !_check_buf(infile, &ogg_buf, num_segments, OGG_BLOCK_SIZE) ) {
-          err = -1;
-          goto out;
-        }
-        
-        for( i = 0; i < num_segments - 1; i++ ) {
-          u_char x;
-          x = buffer_get_char(&ogg_buf);
-          pagelen += x;
-        }
+    DEBUG_TRACE("OggS page %d / packet %d at %d\n", pagenum, packets, audio_offset - 28);
+    DEBUG_TRACE("  granule_pos: %lu\n", granule_pos);
+    
+    // If the granule_pos > 0, we have reached the end of headers and
+    // this is the first audio page
+    if (granule_pos > 0 && granule_pos != -1) {
+      _parse_comments(&vorbis_buf, tags);
 
-        audio_offset += num_segments - 1;
-      }
+      DEBUG_TRACE("  parsed vorbis comments\n");
+
+      buffer_clear(&vorbis_buf);
       
-      if ( !_check_buf(infile, &ogg_buf, pagelen, OGG_BLOCK_SIZE) ) {
-        err = -1;
-        goto out;
-      }
-    
-      // Still don't have enough data, must have reached the end of the file
-      if ( buffer_len(&ogg_buf) < pagelen ) {
-        PerlIO_printf(PerlIO_stderr(), "Premature end of file: %s\n", file);
-      
-        err = -1;
-        goto out;
-      }
-      
-      audio_offset += pagelen;
-    
-      // Copy page into vorbis buffer
-      buffer_append( &vorbis_buf, buffer_ptr(&ogg_buf), pagelen );
-      buffer_consume( &ogg_buf, pagelen );
-      
-      // Process vorbis packet
-      if ( !vorbis_type ) {
-        vorbis_type = buffer_get_char(&vorbis_buf);
-        // Verify 'vorbis' string
-        if ( strncmp( buffer_ptr(&vorbis_buf), "vorbis", 6 ) ) {
-          PerlIO_printf(PerlIO_stderr(), "Not a Vorbis file (bad vorbis header): %s\n", file);
-          goto out;
-        }
-        buffer_consume( &vorbis_buf, 6 );
-      }
+      break;
     }
     
+    // Number of page segments
+    num_segments = ogghdr[26];
+    
+    // Calculate total page size
+    pagelen = ogghdr[27];
+    if (num_segments > 1) {
+      int i;
+      
+      if ( !_check_buf(infile, &ogg_buf, num_segments, OGG_BLOCK_SIZE) ) {
+        err = -1;
+        goto out;
+      }
+      
+      for( i = 0; i < num_segments - 1; i++ ) {
+        u_char x;
+        x = buffer_get_char(&ogg_buf);
+        pagelen += x;
+      }
+
+      audio_offset += num_segments - 1;
+    }
+    
+    if ( !_check_buf(infile, &ogg_buf, pagelen, OGG_BLOCK_SIZE) ) {
+      err = -1;
+      goto out;
+    }
+  
+    // Still don't have enough data, must have reached the end of the file
+    if ( buffer_len(&ogg_buf) < pagelen ) {
+      PerlIO_printf(PerlIO_stderr(), "Premature end of file: %s\n", file);
+    
+      err = -1;
+      goto out;
+    }
+    
+    audio_offset += pagelen;
+
+    // Copy page into vorbis buffer
+    buffer_append( &vorbis_buf, buffer_ptr(&ogg_buf), pagelen );
+    DEBUG_TRACE("  Read %d into vorbis buffer\n", pagelen);
+    
+    // Process vorbis packet
+    if ( !vorbis_type ) {
+      vorbis_type = buffer_get_char(&vorbis_buf);
+      // Verify 'vorbis' string
+      if ( strncmp( buffer_ptr(&vorbis_buf), "vorbis", 6 ) ) {
+        PerlIO_printf(PerlIO_stderr(), "Not a Vorbis file (bad vorbis header): %s\n", file);
+        goto out;
+      }
+      buffer_consume( &vorbis_buf, 6 );
+      
+      DEBUG_TRACE("  Found vorbis packet type %d\n", vorbis_type);
+    }
+      
     if (vorbis_type == 1) {
       // Parse info
       // Grab 23-byte Vorbis header
@@ -218,23 +238,15 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       blocksize_0 = 2 << ((vorbishdr[21] & 0xF0) >> 4);
       my_hv_store( info, "blocksize_0", newSViv( blocksize_0 ) );
       my_hv_store( info, "blocksize_1", newSViv( 2 << (vorbishdr[21] & 0x0F) ) );
-      
+
+      DEBUG_TRACE("  parsed vorbis info header\n");
+
       buffer_clear(&vorbis_buf);
       vorbis_type = 0;
     }
-    else if (vorbis_type == 3) {
-      // Ready for comments if we are on stream 3, or header type indicates end of stream
-      if ( packets > 2 * streams || header_type & 0x04 ) {
-        _parse_comments(&vorbis_buf, tags);
-        
-        buffer_clear(&vorbis_buf);
-      
-        break;
-      }
-    }
-    else {
-      break;
-    }
+    
+    // Skip rest of this page
+    buffer_consume( &ogg_buf, pagelen );
   }
   
   buffer_clear(&ogg_buf);
@@ -348,6 +360,9 @@ _parse_comments(Buffer *vorbis_buf, HV *tags)
     
     Safefree(tmp);
   }
+  
+  // Skip framing byte
+  buffer_consume(vorbis_buf, 1);
 }
 
 static int

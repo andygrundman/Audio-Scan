@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 38;
+use Test::More tests => 40;
 
 use Audio::Scan;
 use Encode;
@@ -145,6 +145,18 @@ use Encode;
     is( $offset, 17004, 'Find frame via filehandle ok' );
     
     close $fh;
+}
+
+# Bug 12615, aoTuV-encoded file uncovered bug in offset calculation
+{
+    my $s = Audio::Scan->scan( _f('bug12615-aotuv.ogg') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{audio_offset}, 3970, 'Bug 12615 aoTuV offset ok' );
+    
+    like( $tags->{VENDOR}, qr/aoTuV/, 'Bug 12615 aoTuV tags ok' );
 }
 
 sub _f {

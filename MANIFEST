@@ -215,6 +215,7 @@ t/mp4/leading-mdat.m4a
 t/musepack/apev2.mpc
 t/ogg/bug1155-1.ogg
 t/ogg/bug1155-2.ogg
+t/ogg/bug12615-aotuv.ogg
 t/ogg/bug803.ogg
 t/ogg/bug905.ogg
 t/ogg/empty.ogg
