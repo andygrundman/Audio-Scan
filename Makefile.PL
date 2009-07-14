@@ -103,7 +103,7 @@ print "   AIFF support:    yes\n";
 print "\n";
 
 my $DEFINES = '-Wall' unless $^O =~ /sun|solaris/i;
-$DEFINES .= ' -Wno-unused-value' unless $^O =~ /Win32/;
+$DEFINES .= ' -Wno-unused-value' unless $^O =~ /Win32|sun|solaris/i;
 $DEFINES .= ' -DHAVE_FLAC' if $FLAC;
 
 # we want to put the local include dirs in front since the flac include dir possibly added above
