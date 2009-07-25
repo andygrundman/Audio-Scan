@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 233;
+use Test::More tests => 240;
 
 use Audio::Scan;
 use Encode;
@@ -418,7 +418,7 @@ my $pate = Encode::decode_utf8("pâté");
     is( $tags->{RVA2}->[0], 'normalize', 'ID3v2.4 RVA2 ok' );
     is( $tags->{RVA2}->[1], 1, 'ID3v2.4 RVA2 channel ok' );
     is( $tags->{RVA2}->[2], '4.972656 dB', 'ID3v2.4 RVA2 adjustment ok' );
-    is( $tags->{RVA2}->[3], 0, 'ID3v2.4 RVA2 peak ok' );
+    is( $tags->{RVA2}->[3], '0.000000 dB', 'ID3v2.4 RVA2 peak ok' );
     is( $tags->{TBPM}, 120, 'ID3v2.4 BPM field ok' );
     is( $tags->{UFID}->[0], 'foo@foo.com', 'ID3v2.4 UFID owner id ok' );
     is( $tags->{UFID}->[1], 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'ID3v2.4 UFID ok' );
@@ -435,6 +435,20 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $tags = $s->{tags};
     is( $tags->{RVA2}->[2], '-2.123047 dB', 'ID3v2.4 negative RVA2 adjustment ok' );
+}
+
+# Multiple RVA2 tags with peak, from mp3gain
+{
+    my $s = Audio::Scan->scan( _f('v2.4-rva2-mp3gain.mp3') );
+    
+    my $tags = $s->{tags};
+    is( ref $tags->{RVA2}, 'ARRAY', 'mp3gain RVA2 ok' );
+    is( $tags->{RVA2}->[0]->[0], 'track', 'mp3gain track RVA2 ok' );
+    is( $tags->{RVA2}->[0]->[2], '-7.478516 dB', 'mp3gain track gain ok' );
+    is( $tags->{RVA2}->[0]->[3], '1.172028 dB', 'mp3gain track peak ok' );
+    is( $tags->{RVA2}->[1]->[0], 'album', 'mp3gain album RVA2 ok' );
+    is( $tags->{RVA2}->[1]->[2], '-7.109375 dB', 'mp3gain album gain ok' );
+    is( $tags->{RVA2}->[1]->[3], '1.258026 dB', 'mp3gain album peak ok' );
 }
 
 # ID3v2.4 ISO-8859-1

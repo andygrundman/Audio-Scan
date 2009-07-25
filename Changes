@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.26
+        - Added support for ID3v2.4 RVA2 peak values.
         - Fixed build on Solaris again.
 
 0.25    2009-07-10 22:00:00

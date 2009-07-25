@@ -405,9 +405,14 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
             case ID3_FIELD_TYPE_BINARYDATA:
               // Special handling for RVA2 tags, expand to correct fields
               if ( !strcmp( pid3frame->id, "RVA2" ) ) {
-                unsigned char *rva = (unsigned char*)pid3frame->fields[i].binary.data;
+                const id3_byte_t *rva;
+                id3_length_t len;
                 float adj = 0.0;
                 int adj_fp;
+                uint8_t peakbits;
+                float peak = 0.0;
+                
+                rva = id3_field_getbinarydata(&pid3frame->fields[i], &len);
                 
                 // Channel
                 av_push( framedata, newSViv(rva[0]) );
@@ -420,8 +425,23 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
                 av_push( framedata, newSVpvf( "%f dB", adj ) );
                 rva += 2;
                 
-                // Ignore peak, nobody seems to support this
-                av_push( framedata, newSViv(0) );
+                // Peak
+                // Based on code from mp3gain
+                peakbits = rva[0];
+                if (4 + (peakbits + 7) / 8 <= len) {
+                  DEBUG_TRACE("  peakbits: %d\n", peakbits);
+                  if (peakbits > 0)
+                    peak += (float)rva[1];
+                  if (peakbits > 8)
+                    peak += (float)rva[2] / 256.0;
+                  if (peakbits > 16)
+                    peak += (float)rva[3] / 65536.0;
+                  
+                  if (peakbits > 0)
+                    peak /= (float)(1 << ((peakbits - 1) & 7));                    
+                }
+                
+                av_push( framedata, newSVpvf( "%f dB", peak ) );
               }
               else {
                 SV *bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
