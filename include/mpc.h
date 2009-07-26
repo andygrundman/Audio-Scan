@@ -69,6 +69,9 @@ typedef struct mpc_streaminfo {
 
   int32_t         tag_offset;          ///< offset to file tags
   int32_t         total_file_length;   ///< total length of underlying file
+  
+  Buffer *buf;
+  PerlIO *infile;
 } mpc_streaminfo;
 
 #endif

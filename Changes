@@ -1,5 +1,10 @@
 Revision history for Audio::Scan
 
+0.27
+        - Refactored Musepack code to use buffer API, fixes
+          crashes on big-endian platforms.
+        - Added support for reading Musepack track gain and album gain.
+
 0.26    2009-07-25 17:00:00
         - Added support for ID3v2.4 RVA2 peak values.
         - Fixed build on Solaris again.
