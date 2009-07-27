@@ -36,8 +36,10 @@
 
 #include "mpc.h"
 
-#define MPC_HEADER_SIZE 32
+#define MPC_BLOCK_SIZE 1024
 #define MPC_OLD_GAIN_REF 64.82
+
+const int32_t samplefreqs[4] = { 44100, 48000, 37800, 32000 };
 
 // profile is 0...15, where 7...13 is used
 static const char *
@@ -66,17 +68,137 @@ _mpc_profile_string(uint32_t profile)
   return profile >= sizeof(names) / sizeof(*names) ? na : names[profile];
 }
 
-// not yet implemented
+unsigned int
+_mpc_bits_get_size(Buffer *buf, uint64_t *p_size)
+{
+	unsigned char tmp;
+	uint64_t size = 0;
+	unsigned int ret = 0;
+
+	do {
+		tmp = buffer_get_char(buf);
+		size = (size << 7) | (tmp & 0x7F);
+		ret++;
+	} while((tmp & 0x80));
+
+	*p_size = size;
+	return ret;
+}
+
+static void
+_mpc_get_encoder_string(mpc_streaminfo* si)
+{
+	int ver = si->encoder_version;
+	if (si->stream_version >= 8)
+		ver = (si->encoder_version >> 24) * 100 + ((si->encoder_version >> 16) & 0xFF);
+	if (ver <= 116) {
+		if (ver == 0) {
+			sprintf(si->encoder, "Buschmann 1.7.0...9, Klemm 0.90...1.05");
+		} else {
+			switch (ver % 10) {
+				case 0:
+					sprintf(si->encoder, "Release %u.%u", ver / 100,
+							ver / 10 % 10);
+					break;
+				case 2: case 4: case 6: case 8:
+					sprintf(si->encoder, "Beta %u.%02u", ver / 100,
+							ver % 100);
+					break;
+				default:
+					sprintf(si->encoder, "--Alpha-- %u.%02u",
+							ver / 100, ver % 100);
+					break;
+			}
+		}
+	} else {
+		int major = si->encoder_version >> 24;
+		int minor = (si->encoder_version >> 16) & 0xFF;
+		int build = (si->encoder_version >> 8) & 0xFF;
+		char * tmp = "--Stable--";
+
+		if (minor & 1)
+			tmp = "--Unstable--";
+
+		sprintf(si->encoder, "%s %u.%u.%u", tmp, major, minor, build);
+	}
+}
+
 static int32_t
 _mpc_read_header_sv8(mpc_streaminfo *si)
 {
+  unsigned char *bptr = buffer_ptr(si->buf);
+  uint64_t size;
+  
+  while ( memcmp(bptr, "AP", 2) != 0 ) { // scan all blocks until audio
+    buffer_consume(si->buf, 2);
+    
+    _mpc_bits_get_size(si->buf, &size);
+    size -= 3;
+    
+    DEBUG_TRACE("%c%c block, size %d\n", bptr[0], bptr[1], size);
+    
+    if ( !_check_buf(si->infile, si->buf, size, MPC_BLOCK_SIZE) ) {
+      return -1;
+    }
+    
+    if (memcmp(bptr, "SH", 2) == 0) {
+      // Skip CRC
+      buffer_consume(si->buf, 4);
+      
+      si->stream_version = buffer_get_char(si->buf);
+      _mpc_bits_get_size(si->buf, &si->pcm_samples);
+      _mpc_bits_get_size(si->buf, &si->beg_silence);
+      
+      si->is_true_gapless = 1;
+      
+      bptr = buffer_ptr(si->buf);
+      si->sample_freq = samplefreqs[ (bptr[0] & 0xE0) >> 5 ];
+      si->max_band = (bptr[0] & 0x1F) + 1;
+      si->channels = ( (bptr[1] & 0xF0) >> 4 ) + 1;
+      si->ms = (bptr[1] & 0x8) >> 3;
+      si->block_pwr = (bptr[1] & 0x7) * 2;
+      buffer_consume(si->buf, 2);
+    }
+    else if (memcmp(bptr, "RG", 2) == 0) {
+      // Check version
+      if ( buffer_get_char(si->buf) != 1 ) {
+        // Skip
+        buffer_consume(si->buf, size - 1);
+      }
+      else {
+        si->gain_title = buffer_get_short(si->buf);
+        si->peak_title = buffer_get_short(si->buf);
+        si->gain_album = buffer_get_short(si->buf);
+        si->peak_album = buffer_get_short(si->buf);
+      }      
+    }
+    else if (memcmp(bptr, "EI", 2) == 0) {
+      bptr = buffer_ptr(si->buf);
+      
+      si->fprofile = ((bptr[0] & 0xFE) >> 1) / 8.;
+      si->profile_name = _mpc_profile_string((uint32_t)si->fprofile);
+      buffer_consume(si->buf, 1);
+      
+      si->encoder_version = buffer_get_char(si->buf) << 24; // major
+      si->encoder_version |= buffer_get_char(si->buf) << 16; // minor
+      si->encoder_version |= buffer_get_char(si->buf) << 8; // build
+      DEBUG_TRACE("ver: %d\n", si->encoder_version);
+      
+      _mpc_get_encoder_string(si);
+    }
+    else {
+      break;
+    }
+    
+    bptr = buffer_ptr(si->buf);
+  }
+  
   return 0;
 }
 
 static int32_t
 _mpc_read_header_sv7(mpc_streaminfo *si)
 {
-  const int32_t samplefreqs[4] = { 44100, 48000, 37800, 32000 };
   unsigned char *bptr;
 
   // Update (si->stream_version);
@@ -108,22 +230,22 @@ _mpc_read_header_sv7(mpc_streaminfo *si)
   
   // convert gain info
   if (si->gain_title != 0) {
-		int tmp = (int)((MPC_OLD_GAIN_REF - (int16_t)si->gain_title / 100.) * 256. + .5);
-		if (tmp >= (1 << 16) || tmp < 0) tmp = 0;
-		si->gain_title = (int16_t)tmp;
-	}
-	
-	if (si->gain_album != 0) {
-		int tmp = (int)((MPC_OLD_GAIN_REF - (int16_t)si->gain_album / 100.) * 256. + .5);
-		if (tmp >= (1 << 16) || tmp < 0) tmp = 0;
-		si->gain_album = (int16_t)tmp;
-	}
-	
-	if (si->peak_title != 0)
- 		si->peak_title = (uint16_t) (log10(si->peak_title) * 20 * 256 + .5);
+    int tmp = (int)((MPC_OLD_GAIN_REF - (int16_t)si->gain_title / 100.) * 256. + .5);
+    if (tmp >= (1 << 16) || tmp < 0) tmp = 0;
+    si->gain_title = (int16_t)tmp;
+  }
+  
+  if (si->gain_album != 0) {
+    int tmp = (int)((MPC_OLD_GAIN_REF - (int16_t)si->gain_album / 100.) * 256. + .5);
+    if (tmp >= (1 << 16) || tmp < 0) tmp = 0;
+    si->gain_album = (int16_t)tmp;
+  }
+  
+  if (si->peak_title != 0)
+    si->peak_title = (uint16_t) (log10(si->peak_title) * 20 * 256 + .5);
 
-	if (si->peak_album != 0)
-		si->peak_album = (uint16_t) (log10(si->peak_album) * 20 * 256 + .5);
+  if (si->peak_album != 0)
+    si->peak_album = (uint16_t) (log10(si->peak_album) * 20 * 256 + .5);
   
   bptr = buffer_ptr(si->buf);
   si->is_true_gapless    = (bptr[3] >> 7) & 0x1;
@@ -134,26 +256,7 @@ _mpc_read_header_sv7(mpc_streaminfo *si)
   si->encoder_version    = bptr[3];
   si->channels           = 2;
 
-  if (si->encoder_version == 0) {
-
-    sprintf(si->encoder, "Buschmann 1.7.0...9, Klemm 0.90...1.05");
-
-  } else {
-    switch (si->encoder_version % 10) {
-    case 0:
-      sprintf(si->encoder, "Release %u.%u", si->encoder_version / 100, si->encoder_version / 10 % 10);
-      break;
-    case 2:
-    case 4:
-    case 6:
-    case 8:
-      sprintf(si->encoder, "Beta %u.%02u", si->encoder_version / 100, si->encoder_version % 100);
-      break;
-    default:
-      sprintf(si->encoder, "--Alpha-- %u.%02u", si->encoder_version / 100, si->encoder_version % 100);
-      break;
-    }
-  }
+  _mpc_get_encoder_string(si);
 
   return 0;
 }
@@ -168,7 +271,7 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
   mpc_streaminfo *si;
 
   Newxz(si, sizeof(mpc_streaminfo), mpc_streaminfo);
-  buffer_init(&buf, MPC_HEADER_SIZE);
+  buffer_init(&buf, MPC_BLOCK_SIZE);
   
   si->buf    = &buf;
   si->infile = infile;
@@ -185,7 +288,7 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
     goto out;
   }
   
-  if ( !_check_buf(infile, &buf, MPC_HEADER_SIZE, MPC_HEADER_SIZE) ) {
+  if ( !_check_buf(infile, &buf, MPC_BLOCK_SIZE, MPC_BLOCK_SIZE) ) {
     goto out;
   }
 
@@ -227,17 +330,13 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
   }
 
   // estimation, exact value needs too much time
-  si->pcm_samples = 1152 * si->frames - 576;
-
-  if (si->pcm_samples > 0) {
-    si->average_bitrate = (si->tag_offset - si->header_position) * 8.0 * si->sample_freq / si->pcm_samples;
-  } else {
-    si->average_bitrate = 0;
-  }
+  if ( !si->pcm_samples )
+    si->pcm_samples = 1152 * si->frames - 576;
 
   if (ret == 0) {
     double total_seconds = (double)( (si->pcm_samples * 1.0) / si->sample_freq);
 
+    my_hv_store(info, "stream_version", newSVuv(si->stream_version));
     my_hv_store(info, "samplerate", newSViv(si->sample_freq));
     my_hv_store(info, "channels", newSViv(si->channels));
     my_hv_store(info, "song_length_ms", newSVuv(total_seconds * 1000));
@@ -245,8 +344,12 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
     
     my_hv_store(info, "audio_offset", newSVuv(si->tag_offset));
     my_hv_store(info, "file_size", newSVuv(si->total_file_length));
-    my_hv_store(info, "encoder", newSVpv(si->encoder, 0));
-    my_hv_store(info, "profile", newSVpv(si->profile_name, 0));
+    
+    if (si->encoder)
+      my_hv_store(info, "encoder", newSVpv(si->encoder, 0));
+    
+    if (si->profile_name)
+      my_hv_store(info, "profile", newSVpv(si->profile_name, 0));
     
     my_hv_store(info, "gapless", newSViv(si->is_true_gapless));
     my_hv_store(info, "track_gain", newSVpvf("%2.2f dB", si->gain_title == 0 ? 0 : MPC_OLD_GAIN_REF - si->gain_title / 256.0));

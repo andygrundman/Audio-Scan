@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.27
+        - Added support for Musepack SV8 files.
         - Refactored Musepack code to use buffer API, fixes
           crashes on big-endian platforms.
         - Added support for reading Musepack track gain and album gain.

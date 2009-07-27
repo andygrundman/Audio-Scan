@@ -46,12 +46,14 @@ typedef struct mpc_streaminfo {
   uint32_t         bitrate;            ///< bitrate of stream file (in bps)
   double           average_bitrate;    ///< average bitrate of stream (in bits/sec)
   uint32_t         frames;             ///< number of frames in stream
-  int64_t          pcm_samples;
+  uint64_t         pcm_samples;
   uint32_t         max_band;           ///< maximum band-index used in stream (0...31)
   uint32_t         is;                 ///< intensity stereo (0: off, 1: on)
   uint32_t         ms;                 ///< mid/side stereo (0: off, 1: on)
   uint32_t         block_size;         ///< only needed for SV4...SV6 -> not supported
+  uint32_t         block_pwr;          ///< Number of frames in a block = 2^block_pwr (sv8)
   uint32_t         profile;            ///< quality profile of stream
+  float            fprofile;           ///< sv8 uses float profile
   const char*      profile_name;       ///< name of profile used by stream
 
   /// @name replaygain related fields
@@ -63,6 +65,7 @@ typedef struct mpc_streaminfo {
   /// @name true gapless support data
   uint32_t        is_true_gapless;     ///< true gapless? (0: no, 1: yes)
   uint32_t        last_frame_samples;  ///< number of valid samples within last frame
+  uint64_t        beg_silence;         ///< Number of samples that must not be played at the beginning of the stream
 
   uint32_t        encoder_version;     ///< version of encoder used
   char            encoder[256];        ///< encoder name
