@@ -31,6 +31,8 @@ MP4/AAC
 -------
 Samplerate is broken, currently reads a 16-bit field.
 Better parsing of esds to detect HD-AAC files, etc.
+A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
+correct offsets, etc.  Possibly also rewrite duration info.
 
 Wavpack
 ---
