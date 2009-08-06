@@ -421,8 +421,8 @@ get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     unsigned int  is_last = 0;
     unsigned char buf[4];
     long len;
-    struct stat st;
     float totalMS;
+    int file_size;
 
     if (PerlIO_read(infile, &buf, 4) == -1) {
       PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
@@ -492,13 +492,11 @@ get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       totalMS = (float)SvIV(*(my_hv_fetch(info, "song_length_ms")));
 
       /* Find the file size */
-      if (stat(file, &st) == 0) {
-        my_hv_store(info, "file_size", newSViv(st.st_size));
-      } else {
-        PerlIO_printf(PerlIO_stderr(), "Couldn't stat file: [%s], might be more problems ahead!", file);
-      }
-
-      my_hv_store(info, "bitrate", newSVnv(8 * (st.st_size - len) / (totalMS / 1000) ));
+      PerlIO_seek(infile, 0, SEEK_END);
+      file_size = PerlIO_tell(infile);
+      
+      my_hv_store(info, "file_size", newSViv(file_size));
+      my_hv_store(info, "bitrate", newSVnv(8 * (file_size - len) / (totalMS / 1000) ));
     }
   }
 

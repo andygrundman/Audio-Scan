@@ -19,6 +19,7 @@ Support iTunNORM, translate into replay gain values
 FLAC
 ----
 Infinite loop on CVE-2007-4619-1.flac
+Seek using seektable?
 
 Ogg
 ---
