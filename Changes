@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.29
+        - Bug 13198, really fixed bad FLAC bitrate calculation on some
+          files under Windows.
+
 0.28    2009-08-06 19:00:00
         - Bug 13198, Changed the method for determining FLAC bitrate.
 

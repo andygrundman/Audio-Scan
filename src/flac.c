@@ -421,7 +421,7 @@ get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     unsigned int  is_last = 0;
     unsigned char buf[4];
     long len;
-    float totalMS;
+    int totalMS;
     int file_size;
 
     if (PerlIO_read(infile, &buf, 4) == -1) {
@@ -489,14 +489,14 @@ get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     /* Now calculate the bit rate and file size */
     if (my_hv_exists(info, "song_length_ms")) {
 
-      totalMS = (float)SvIV(*(my_hv_fetch(info, "song_length_ms")));
+      totalMS = SvIV(*(my_hv_fetch(info, "song_length_ms")));
 
       /* Find the file size */
       PerlIO_seek(infile, 0, SEEK_END);
       file_size = PerlIO_tell(infile);
       
       my_hv_store(info, "file_size", newSViv(file_size));
-      my_hv_store(info, "bitrate", newSVnv(8 * (file_size - len) / (totalMS / 1000) ));
+      my_hv_store(info, "bitrate", newSVnv(8. * (file_size - len) / (totalMS / 1000) ));
     }
   }
 
