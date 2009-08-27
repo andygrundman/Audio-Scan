@@ -1004,16 +1004,23 @@ _mp4_parse_ilst(mp4info *mp4)
       
       // Sanity check for bad data size
       if ( bsize == size - 8 ) {
+        SV *skey;
+        
         char *bptr = buffer_ptr(mp4->buf);
         if ( !FOURCC_EQ(bptr, "data") ) {
           return 0;
         }
       
         buffer_consume(mp4->buf, 4);
+        
+        skey = newSVpv(key, 0);
       
-        if ( !_mp4_parse_ilst_data(mp4, bsize - 8, newSVpv(key, 0)) ) {
+        if ( !_mp4_parse_ilst_data(mp4, bsize - 8, skey) ) {
+          SvREFCNT_dec(skey);
           return 0;
         }
+        
+        SvREFCNT_dec(skey);
       }
       else {
         DEBUG_TRACE("    invalid data size %d, skipping value\n", bsize);
@@ -1039,7 +1046,7 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
   // Skip reserved
   buffer_consume(mp4->buf, 4);
 
-  DEBUG_TRACE("    flags %d\n", flags);
+  DEBUG_TRACE("      flags %d\n", flags);
 
   // XXX store multiple values as array
   if ( !flags || flags == 21 ) {
@@ -1100,6 +1107,8 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
   else { // text data
     SV *value = newSVpvn( buffer_ptr(mp4->buf), size - 8 );
     sv_utf8_decode(value);
+    
+    DEBUG_TRACE("      %s = %s\n", SvPVX(key), SvPVX(value));
   
     // strip copyright symbol 0xA9 out of key
     if ( SvPVX(key)[0] == -87 ) {
@@ -1110,8 +1119,6 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
     }
     buffer_consume(mp4->buf, size - 8);
   }
-  
-  SvREFCNT_dec(key);
   
   return 1;
 } 
@@ -1149,6 +1156,7 @@ _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size)
       }
       
       if ( !_mp4_parse_ilst_data(mp4, bsize - 8, key) ) {
+        SvREFCNT_dec(key);
         return 0;
       }
     }
@@ -1159,6 +1167,8 @@ _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size)
     
     size -= bsize;
   }
+  
+  SvREFCNT_dec(key);
   
   return 1;
 }
