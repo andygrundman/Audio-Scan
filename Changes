@@ -1,7 +1,8 @@
 Revision history for Audio::Scan
 
 0.30
-        - Bug 13486, Fixed parsing of MP4 files with multiple values for
+        - Bug 8563, fixed parsing of MP4 sample rate.
+        - Bug 13486, fixed parsing of MP4 files with multiple values for
           a single key.
         - Added Snow Leopard 64-bit universal binary support.
 

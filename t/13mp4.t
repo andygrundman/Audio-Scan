@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 74;
+use Test::More tests => 75;
 
 use Audio::Scan;
 
@@ -22,7 +22,7 @@ use Audio::Scan;
     is( $info->{major_brand}, 'M4A ', 'Major brand ok' );
     is( $info->{minor_version}, 0, 'Minor version ok' );
     is( $info->{song_length_ms}, 69, 'Song length ok' );
-    is( $info->{timescale}, 44100, 'Timescale ok' );
+    is( $info->{samplerate}, 44100, 'Sample rate ok' );
     
     is( $track->{audio_type}, 64, 'Audio type ok' );
     is( $track->{avg_bitrate}, 96000, 'Avg bitrate ok' );
@@ -34,7 +34,6 @@ use Audio::Scan;
     is( $track->{handler_type}, 'soun', 'Handler type ok' );
     is( $track->{id}, 1, 'Track ID ok' );
     is( $track->{max_bitrate}, 0, 'Max bitrate ok' );
-    is( $track->{samplerate}, 44100, 'Samplerate ok' );
     
     is( $tags->{AART}, 'Album Artist', 'AART ok' );
     is( $tags->{ALB}, 'Album', 'ALB ok' );
@@ -78,7 +77,7 @@ use Audio::Scan;
     
     is( $info->{audio_offset}, 3850, 'ALAC audio offset ok' );
     is( $info->{song_length_ms}, 10, 'ALAC song length ok' );
-    is( $info->{timescale}, 44100, 'ALAC timescale ok' );
+    is( $info->{samplerate}, 44100, 'ALAC samplerate ok' );
     
     is( $track->{avg_bitrate}, 122700, 'ALAC avg bitrate ok' );
     is( $track->{duration}, 10, 'ALAC duration ok' );
@@ -100,9 +99,9 @@ use Audio::Scan;
     is( $info->{audio_offset}, 20, 'Leading MDAT offset ok' );
     is( $info->{leading_mdat}, 1, 'Leading MDAT flag ok' );
     is( $info->{song_length_ms}, 69845, 'Leading MDAT length ok' );
+    is( $info->{samplerate}, 44100, 'Leading MDAT samplerate ok' );
     
     is( $track->{avg_bitrate}, 128000, 'Leading MDAT bitrate ok' );
-    is( $track->{samplerate}, 44100, 'Leading MDAT samplerate ok' );
     
     is( $tags->{DAY}, '-001', 'Leading MDAT DAY ok' );
     is( $tags->{TOO}, 'avc2.0.11.1110', 'Leading MDAT TOO ok' );
@@ -121,6 +120,16 @@ use Audio::Scan;
     is( $tags->{PRODUCER}->[2], 'Sonic Youth', 'Array key element 2 ok' );
     is( $tags->{PRODUCER}->[3], 'J Mascis', 'Array key element 3 ok' );
     is( $tags->{PRODUCER}->[4], 'Don Fleming', 'Array key element 4 ok' );
+}
+
+# 88.2 kHz sample rate, bug 8563
+{
+    my $s = Audio::Scan->scan( _f('882-sample-rate.m4a') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{samplerate}, 88200, '88.2 sample rate ok' );
+    is( $info->{song_length_ms}, 179006, '88.2 song length ok' );
 }
 
 # Find frame

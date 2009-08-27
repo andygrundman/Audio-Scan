@@ -73,6 +73,7 @@ int _mp4_read_box(mp4info *mp4);
 uint8_t _mp4_parse_ftyp(mp4info *mp4);
 uint8_t _mp4_parse_mvhd(mp4info *mp4);
 uint8_t _mp4_parse_tkhd(mp4info *mp4);
+uint8_t _mp4_parse_mdhd(mp4info *mp4);
 uint8_t _mp4_parse_hdlr(mp4info *mp4);
 uint8_t _mp4_parse_stsd(mp4info *mp4);
 uint8_t _mp4_parse_mp4a(mp4info *mp4);
