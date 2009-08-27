@@ -1047,8 +1047,7 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
   buffer_consume(mp4->buf, 4);
 
   DEBUG_TRACE("      flags %d\n", flags);
-
-  // XXX store multiple values as array
+  
   if ( !flags || flags == 21 ) {
     if ( FOURCC_EQ( SvPVX(key), "TRKN" ) || FOURCC_EQ( SvPVX(key), "DISK" ) ) {
       // Special case trkn, disk (pair of 16-bit ints)
@@ -1105,18 +1104,37 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
     }
   }
   else { // text data
+    char *ckey = SvPVX(key);
     SV *value = newSVpvn( buffer_ptr(mp4->buf), size - 8 );
     sv_utf8_decode(value);
     
     DEBUG_TRACE("      %s = %s\n", SvPVX(key), SvPVX(value));
   
     // strip copyright symbol 0xA9 out of key
-    if ( SvPVX(key)[0] == -87 ) {
-      my_hv_store( mp4->tags, SvPVX(key) + 1, value );
+    if ( ckey[0] == -87 ) {
+      ckey++;
+    }
+    
+    // if key exists, create array
+    if ( my_hv_exists( mp4->tags, ckey ) ) {
+      SV **entry = my_hv_fetch( mp4->tags, ckey );
+      if (entry != NULL) {
+        if ( SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+          av_push( (AV *)SvRV(*entry), value );
+        }
+        else {
+          // A non-array entry, convert to array.
+          AV *ref = newAV();
+          av_push( ref, newSVsv(*entry) );
+          av_push( ref, value );
+          my_hv_store( mp4->tags, ckey, newRV_noinc( (SV*)ref ) );
+        }
+      }
     }
     else {
-      my_hv_store_ent( mp4->tags, key, value );
+      my_hv_store( mp4->tags, ckey, value );  
     }
+    
     buffer_consume(mp4->buf, size - 8);
   }
   

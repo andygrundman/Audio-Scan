@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 67;
+use Test::More tests => 74;
 
 use Audio::Scan;
 
@@ -106,6 +106,21 @@ use Audio::Scan;
     
     is( $tags->{DAY}, '-001', 'Leading MDAT DAY ok' );
     is( $tags->{TOO}, 'avc2.0.11.1110', 'Leading MDAT TOO ok' );
+}
+
+# File with array keys, bug 13486
+{
+    my $s = Audio::Scan->scan( _f('array-keys.m4a') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{AART}, 'Sonic Youth', 'Array key single key ok' );
+    is( ref $tags->{PRODUCER}, 'ARRAY', 'Array key array element ok' );
+    is( $tags->{PRODUCER}->[0], 'Ron Saint Germain', 'Array key element 0 ok' );
+    is( $tags->{PRODUCER}->[1], 'Nick Sansano', 'Array key element 1 ok' );
+    is( $tags->{PRODUCER}->[2], 'Sonic Youth', 'Array key element 2 ok' );
+    is( $tags->{PRODUCER}->[3], 'J Mascis', 'Array key element 3 ok' );
+    is( $tags->{PRODUCER}->[4], 'Don Fleming', 'Array key element 4 ok' );
 }
 
 # Find frame
