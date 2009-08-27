@@ -584,7 +584,7 @@ _mp4_parse_tkhd(mp4info *mp4)
     // Skip reserved
     buffer_consume(mp4->buf, 4);
     
-    my_hv_store( trackinfo, "track_length_ms", newSVuv( (buffer_get_int64(mp4->buf) * 1.0 / timescale ) * 1000 ) );
+    my_hv_store( trackinfo, "duration", newSVuv( (buffer_get_int64(mp4->buf) * 1.0 / timescale ) * 1000 ) );
   }
   else {
     return 0;
