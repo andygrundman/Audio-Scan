@@ -1,5 +1,10 @@
 Revision history for Audio::Scan
 
+0.31    2009-08-29 13:30:00
+        - Allow static linking to a libFLAC that was built without
+          Ogg support.
+        - Change Snow Leopard hint to use 10.5 SDK and minimum version.
+
 0.30    2009-08-27 00:15:00
         - Bug 8563, fixed parsing of MP4 sample rate.
         - Bug 13486, fixed parsing of MP4 files with multiple values for

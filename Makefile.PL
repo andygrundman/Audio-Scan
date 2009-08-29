@@ -30,7 +30,7 @@ Configure Audio::Scan module.
 Options:
      --with-flac-includes       Path to directory containing FLAC/all.h
      --with-flac-libs           Path to directory containing libFLAC
-     --with-flac-static         Statically link in libFLAC (requires libFLAC.a and libogg.a)
+     --with-flac-static         Statically link in libFLAC (requires libFLAC.a)
 
 END
 
@@ -73,11 +73,17 @@ for my $incdir ( $flac_inc, @check ) {
             if ( $flac_static ) {
                 if ( $flac_lib ) {
                     $MYEXTLIB .= $flac_lib . '/' . 'libFLAC$(LIB_EXT) ';
-                    $MYEXTLIB .= $flac_lib . '/' . 'libogg$(LIB_EXT) ';
+                    # Allow FLAC without Ogg support
+                    if ( glob $flac_lib . '/' . 'libogg.*' ) {
+                        $MYEXTLIB .= $flac_lib . '/' . 'libogg$(LIB_EXT) ';
+                    }
                 }
                 else {
                     $MYEXTLIB .= $flac_inc . '/../lib/libFLAC$(LIB_EXT) ';
-                    $MYEXTLIB .= $flac_inc . '/../lib/libogg$(LIB_EXT) ';
+                    # Allow FLAC without Ogg support
+                    if ( glob $flac_inc . '/../lib/libogg.*' ) {
+                        $MYEXTLIB .= $flac_inc . '/../lib/libogg$(LIB_EXT) ';
+                    }
                 }
             }
             else {
