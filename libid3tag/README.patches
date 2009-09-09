@@ -25,3 +25,4 @@ Patches only in this version:
                                     and treat it as a non-syncsafe integer.
 	translate-pic.patch  - v2.2 PIC frame has a 3-byte field that isn't compatible with APIC, causing parsing
                                to fail.
+    v2.3-xsop.patch - support experimental ID3v2.3 XSOP tag.

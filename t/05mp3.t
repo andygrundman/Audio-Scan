@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 240;
+use Test::More tests => 241;
 
 use Audio::Scan;
 use Encode;
@@ -720,6 +720,15 @@ my $pate = Encode::decode_utf8("pâté");
     is( ref $tags->{ARTIST}, 'ARRAY', 'APE no ID3v1 ARTIST ok' );
     is( $tags->{ARTIST}->[0], 'artist1', 'APE no ID3v1 artist1 ok' );
     is( $tags->{ARTIST}->[1], 'artist2', 'APE no ID3v1 artist2 ok' );
+}
+
+# Bug 13921, ID3v2.3 with experimental XSOP tag that should be treated as text
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.3-xsop.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{XSOP}, 'Addy, Obo', 'Bug 13921, v2.3 XSOP ok' );
 }
 
 sub _f {    

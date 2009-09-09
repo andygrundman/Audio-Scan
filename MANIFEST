@@ -193,6 +193,7 @@ t/mp3/v2.3-no-audio-frames.mp3
 t/mp3/v2.3-null-bytes.mp3
 t/mp3/v2.3-utf16be.mp3
 t/mp3/v2.3-utf16le.mp3
+t/mp3/v2.3-xsop.mp3
 t/mp3/v2.3.mp3
 t/mp3/v2.4-ape.mp3
 t/mp3/v2.4-apic-jpg.mp3

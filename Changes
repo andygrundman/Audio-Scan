@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.32    2009-09-09 14:00:00
+        - Bug 13921, added support for ID3v2.3 experimental XSOP frame.
+        - PPC is dead, changed Snow Leopard hint to only compile 32/64-bit x86.
+
 0.31    2009-08-29 13:30:00
         - Allow static linking to a libFLAC that was built without
           Ogg support.
