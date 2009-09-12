@@ -594,14 +594,14 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 
   // Or if we have a Xing header, use it to determine bitrate
   else if (fi.xing_frames && fi.xing_bytes) {
-    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
+    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x20 || fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = ( fi.xing_bytes / fi.xing_frames * mfs );
     DEBUG_TRACE("bitrate from Xing header: %d\n", bitrate);
   }
 
   // Or use VBRI header
   else if (fi.vbri_frames && fi.vbri_bytes) {
-    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x25 ? 72000. : 144000. );
+    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x20 || fi.mpeg_version == 0x25 ? 72000. : 144000. );
     bitrate = ( fi.vbri_bytes / fi.vbri_frames * mfs );
     DEBUG_TRACE("bitrate from VBRI header: %d\n", bitrate);
   }

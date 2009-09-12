@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 241;
+use Test::More tests => 242;
 
 use Audio::Scan;
 use Encode;
@@ -702,7 +702,7 @@ my $pate = Encode::decode_utf8("pâté");
     my $info = $s->{info};
     
     is( $info->{audio_offset}, 4896, 'Bug 12409 audio offset ok' );
-    is( $info->{bitrate}, 64000, 'Bug 12409 bitrate ok' ); # XXX technically should be 128k, but Xing data is wrong
+    is( $info->{bitrate}, 128000, 'Bug 12409 bitrate ok' );
     is( $info->{lame_encoder_version}, 'LAME3.96r', 'Bug 12409 encoder version ok' );
     is( $info->{song_length_ms}, 244464, 'Bug 12409 song length ok' );
 }
@@ -729,6 +729,15 @@ my $pate = Encode::decode_utf8("pâté");
     my $tags = $s->{tags};
     
     is( $tags->{XSOP}, 'Addy, Obo', 'Bug 13921, v2.3 XSOP ok' );
+}
+
+# MPEG 2.0 with Xing header, bitrate calculation was broken
+{
+	my $s = Audio::Scan->scan_info( _f('v2.2-mpeg20-xing.mp3') );
+	
+	my $info = $s->{info};
+	
+	is( $info->{bitrate}, 69000, 'MPEG 2.0 Xing bitrate ok' );
 }
 
 sub _f {    

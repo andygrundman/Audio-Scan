@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.33
+        - Fixed Xing bitrate calculation for MPEG 2.0 files.
+
 0.32    2009-09-09 14:00:00
         - Bug 13921, added support for ID3v2.3 experimental XSOP frame.
         - PPC is dead, changed Snow Leopard hint to only compile 32/64-bit x86.
