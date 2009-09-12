@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.33
+0.33    2009-09-11 22:15:00
         - Fixed Xing bitrate calculation for MPEG 2.0 files.
 
 0.32    2009-09-09 14:00:00
