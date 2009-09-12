@@ -249,15 +249,20 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset)
       }
 
       buffer_consume(mp3->buf, fi.frame_length);
+      
+      DEBUG_TRACE("  Found frame %d of length %d (%d remaining)\n", frame_count, fi.frame_length, buffer_len(mp3->buf));
     }
     else {
       // Not a valid frame, stray 0xFF
       buffer_consume(mp3->buf, 1);
+      DEBUG_TRACE("  Found FF but it was an invalid frame (%d remaining)\n", buffer_len(mp3->buf));
     }
   }
 
 out:
   if (err) return err;
+  
+  if (!frame_count) return -1;
 
   return bitrate_total / frame_count;
 }

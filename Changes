@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.34    2009-09-12 00:15:00
+        - Bug 13995, fixed divide by zero error when trying to detect MP3 average
+          bitrate on a file with no valid frames.
+
 0.33    2009-09-11 22:15:00
         - Fixed Xing bitrate calculation for MPEG 2.0 files.
 
