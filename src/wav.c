@@ -142,7 +142,7 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
       
       buffer_clear(buf);
     }
-    else if ( !strcmp( chunk_id, "id3 " ) || !strcmp( chunk_id, "ID32" ) ) {
+    else if ( !strcmp( chunk_id, "id3 " ) || !strcmp( chunk_id, "ID3 " ) || !strcmp( chunk_id, "ID32" ) ) {
       // Read header to verify version
       unsigned char *bptr = buffer_ptr(buf);
       

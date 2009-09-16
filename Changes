@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.35
+        - WAV: added support for tags in an "ID3 " chunk.
+
 0.34    2009-09-12 00:15:00
         - Bug 13995, fixed divide by zero error when trying to detect MP3 average
           bitrate on a file with no valid frames.
