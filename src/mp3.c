@@ -233,7 +233,7 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
   PerlIO_seek(mp3->infile, 0, SEEK_END);
   PerlIO_seek(mp3->infile, offset, SEEK_SET);
   
-  while ( done < audio_size ) {
+  while ( done < audio_size - 4 ) {
     if ( !_check_buf(mp3->infile, mp3->buf, 4, 65536) ) {
       err = -1;
       goto out;

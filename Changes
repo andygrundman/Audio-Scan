@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.37    2009-09-18 23:40:00
+        - Minor fix to avoid an error being printed during bitrate calculation.
+
 0.36    2009-09-18 23:30:00
         - Bug 13449, changed the way MP3 average bitrate calculation works. Read
           bitrate of all frames starting from the beginning of the file, bail out
