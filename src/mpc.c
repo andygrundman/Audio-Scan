@@ -288,7 +288,7 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
     goto out;
   }
   
-  if ( !_check_buf(infile, &buf, MPC_BLOCK_SIZE, MPC_BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &buf, 128, MPC_BLOCK_SIZE) ) {
     goto out;
   }
 

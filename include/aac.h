@@ -44,4 +44,4 @@ const char *aac_profiles[] = {
 
 static int get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags);
 
-void aac_parse_adts(PerlIO *infile, char *file, off_t file_size, Buffer *buf, HV *info);
+void aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *info);

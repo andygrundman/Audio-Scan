@@ -102,7 +102,11 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
   }
 
   ver = (frame[1] & 0x18) >> 3;
+  if (ver == 1) return -1;
+    
   pfi->layer = 4 - ((frame[1] & 0x6) >> 1);
+  if (pfi->layer == 4) return -1;
+  
   pfi->crc_protected = !(frame[1] & 0x1);
 
   layer_index = sample_index = -1;
@@ -164,9 +168,11 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
     return -1;
   }
 
-
   pfi->bitrate = bitrate_tbl[layer_index][bitrate_index];
   pfi->samplerate = sample_rate_tbl[sample_index][samplerate_index];
+  
+  // Validate emphasis is not reserved
+  if ((frame[3] & 0x3) == 2) return -1;
 
   if (((frame[3] & 0xC0) >> 6) == 3)
     pfi->stereo = 0;
@@ -204,58 +210,95 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 }
 
 // _mp3_get_average_bitrate
-// average bitrate from a large chunk of the middle of the file
-static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset)
+// average bitrate by averaging all the frames in the file.  This used
+// to seek to the middle of the file and take a 32K chunk but this was
+// found to have bugs if it seeked near invalid FF sync bytes that could
+// be detected as a real frame
+static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t audio_size)
 {
   struct mp3_frameinfo fi;
   int frame_count   = 0;
   int bitrate_total = 0;
   int err = 0;
+  int done = 0;
+  int wrap_skip = 0;
+  int prev_bitrate = 0;
+  bool vbr = FALSE;
 
   unsigned char *bptr;
   
   buffer_clear(mp3->buf);
 
-  // Seek to offset or middle of file
+  // Seek to offset
   PerlIO_seek(mp3->infile, 0, SEEK_END);
   PerlIO_seek(mp3->infile, offset, SEEK_SET);
   
-  if ( !_check_buf(mp3->infile, mp3->buf, WANTED_FOR_AVG, WANTED_FOR_AVG) ) {
-    err = -1;
-    goto out;
-  }
+  while ( done < audio_size ) {
+    if ( !_check_buf(mp3->infile, mp3->buf, 4, 65536) ) {
+      err = -1;
+      goto out;
+    }
+    
+    done += buffer_len(mp3->buf);
+    
+    if (wrap_skip) {
+      // Skip rest of frame from last buffer
+      DEBUG_TRACE("Wrapped, consuming %d bytes from previous frame\n", wrap_skip);
+      buffer_consume(mp3->buf, wrap_skip);
+      wrap_skip = 0;
+    }
   
-  while ( buffer_len(mp3->buf) >= 4 ) {
-    bptr = buffer_ptr(mp3->buf);
-    while ( *bptr != 0xFF ) {
-      buffer_consume(mp3->buf, 1);
-      
-      if ( !buffer_len(mp3->buf) ) {
-        // No mp3 frames found within 32K
-        err = -1;
-        goto out;
-      }
-      
+    while ( buffer_len(mp3->buf) >= 4 ) {
       bptr = buffer_ptr(mp3->buf);
-    }
-
-    if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &fi ) ) {
-      // Found a valid frame
-      frame_count++;
-      bitrate_total += fi.bitrate;
-
-      if (fi.frame_length > buffer_len(mp3->buf)) {
-        break;
+      while ( *bptr != 0xFF ) {
+        buffer_consume(mp3->buf, 1);
+      
+        if ( !buffer_len(mp3->buf) ) {
+          // ran out of data
+          continue;
+        }
+      
+        bptr = buffer_ptr(mp3->buf);
       }
 
-      buffer_consume(mp3->buf, fi.frame_length);
-      
-      DEBUG_TRACE("  Found frame %d of length %d (%d remaining)\n", frame_count, fi.frame_length, buffer_len(mp3->buf));
-    }
-    else {
-      // Not a valid frame, stray 0xFF
-      buffer_consume(mp3->buf, 1);
-      DEBUG_TRACE("  Found FF but it was an invalid frame (%d remaining)\n", buffer_len(mp3->buf));
+      if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &fi ) ) {
+        // Found a valid frame
+        frame_count++;
+        bitrate_total += fi.bitrate;
+        
+        if ( !vbr ) {
+          // If we see the bitrate changing, we have a VBR file, and read
+          // the entire file.  Otherwise, if we see 20 frames with the same
+          // bitrate, assume CBR and stop
+          if (prev_bitrate > 0 && prev_bitrate != fi.bitrate) {
+            DEBUG_TRACE("Bitrate changed, assuming file is VBR\n");
+            vbr = TRUE;
+          }
+          else {
+            if (frame_count > 20) {
+              DEBUG_TRACE("Found 20 frames with same bitrate, assuming CBR\n");
+              goto out;
+            }
+            
+            prev_bitrate = fi.bitrate;
+          }
+        }
+        
+        DEBUG_TRACE("  Frame %d: %dkbps\n", frame_count, fi.bitrate);
+
+        if (fi.frame_length > buffer_len(mp3->buf)) {
+          // Partial frame in buffer
+          wrap_skip = fi.frame_length - buffer_len(mp3->buf);
+          buffer_consume(mp3->buf, buffer_len(mp3->buf));
+        }
+        else {
+          buffer_consume(mp3->buf, fi.frame_length);
+        }
+      }
+      else {
+        // Not a valid frame, stray 0xFF
+        buffer_consume(mp3->buf, 1);
+      }
     }
   }
 
@@ -263,6 +306,8 @@ out:
   if (err) return err;
   
   if (!frame_count) return -1;
+  
+  DEBUG_TRACE("Average of %d frames: %dkbps\n", frame_count, bitrate_total / frame_count);
 
   return bitrate_total / frame_count;
 }
@@ -486,7 +531,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 
   memset((void*)&fi, 0, sizeof(fi));
   
-  if ( !_check_buf(mp3->infile, mp3->buf, BLOCK_SIZE, BLOCK_SIZE) ) {
+  if ( !_check_buf(mp3->infile, mp3->buf, 10, BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
@@ -515,7 +560,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
     
     PerlIO_seek(infile, id3_size, SEEK_SET);
     
-    if ( !_check_buf(mp3->infile, mp3->buf, BLOCK_SIZE, BLOCK_SIZE) ) {
+    if ( !_check_buf(mp3->infile, mp3->buf, 4, BLOCK_SIZE) ) {
       err = -1;
       goto out;
     }
@@ -535,7 +580,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       audio_offset++;
 
       if ( !buffer_len(mp3->buf) ) {
-        if ( !_check_buf(mp3->infile, mp3->buf, BLOCK_SIZE, BLOCK_SIZE) ) {
+        if ( !_check_buf(mp3->infile, mp3->buf, 4, BLOCK_SIZE) ) {
           PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
           err = -1;
           goto out;
@@ -621,13 +666,9 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
   }
 
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
-  if ( !bitrate ) {
-    if (audio_size >= WANTED_FOR_AVG) {
-      uint32_t offset = audio_offset + ( audio_size / 2 );
-      
-      DEBUG_TRACE("Calculating average bitrate starting from %d...\n", offset);
-      bitrate = _mp3_get_average_bitrate(mp3, offset);
-    }
+  if ( !bitrate ) {    
+    DEBUG_TRACE("Calculating average bitrate starting from %d...\n", audio_offset);
+    bitrate = _mp3_get_average_bitrate(mp3, audio_offset, audio_size);
 
     if (bitrate <= 0) {
       // Couldn't determine bitrate, just use
@@ -647,7 +688,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 				  (double) fi.samplerate);
 		}
     else {
-      song_length_ms = (int) ((double) (file_size - audio_offset) * 8. /
+      song_length_ms = (int) ((double)audio_size * 8. /
 				  (double)bitrate);
     }
   }
@@ -807,7 +848,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   
   PerlIO_seek(infile, offset, SEEK_SET);
 
-  if ( !_check_buf(infile, &mp3_buf, 512, BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &mp3_buf, 4, BLOCK_SIZE) ) {
     goto out;
   }
   

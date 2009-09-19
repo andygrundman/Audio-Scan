@@ -105,7 +105,7 @@ my $pate = Encode::decode_utf8("pâté");
     
     my $info = $s->{info};
     
-    is( $info->{bitrate}, 229000, 'Non-Xing VBR average bitrate calc ok' );
+    is( $info->{bitrate}, 215000, 'Non-Xing VBR average bitrate calc ok' );
 }
 
 # File with no audio frames, test is rejected properly

@@ -77,7 +77,7 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
     bptr = buffer_ptr(&buf);
     
     if ( (bptr[0] == 0xFF) && ((bptr[1] & 0xF6) == 0xF0) ) {
-      aac_parse_adts(infile, file, file_size, &buf, info);
+      aac_parse_adts(infile, file, file_size - audio_offset, &buf, info);
       break;
     }
     else {    
@@ -112,7 +112,7 @@ out:
 // ADTS parser adapted from faad
 
 void
-aac_parse_adts(PerlIO *infile, char *file, off_t file_size, Buffer *buf, HV *info)
+aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *info)
 {
   int frames, frame_length;
   int t_framelength = 0;
@@ -126,7 +126,7 @@ aac_parse_adts(PerlIO *infile, char *file, off_t file_size, Buffer *buf, HV *inf
   
   /* Read all frames to ensure correct time and bitrate */
   for (frames = 0; /* */; frames++) {
-    if ( !_check_buf(infile, buf, file_size > AAC_BLOCK_SIZE ? AAC_BLOCK_SIZE : file_size, AAC_BLOCK_SIZE) ) {
+    if ( !_check_buf(infile, buf, audio_size > AAC_BLOCK_SIZE ? AAC_BLOCK_SIZE : audio_size, AAC_BLOCK_SIZE) ) {
       break;
     }
     
@@ -151,7 +151,7 @@ aac_parse_adts(PerlIO *infile, char *file, off_t file_size, Buffer *buf, HV *inf
       break;
 
     buffer_consume(buf, frame_length);
-    file_size -= frame_length;
+    audio_size -= frame_length;
   }
   
   frames_per_sec = (float)samplerate/1024.0f;

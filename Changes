@@ -1,5 +1,11 @@
 Revision history for Audio::Scan
 
+0.36
+        - Bug 13449, changed the way MP3 average bitrate calculation works. Read
+          bitrate of all frames starting from the beginning of the file, bail out
+          early if the file appears to be CBR.
+        - Fixed a few bugs in the buffering code.
+
 0.35    2009-09-17 15:00:00
         - WAV: added support for tags in an "ID3 " chunk.
 

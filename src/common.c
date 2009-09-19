@@ -18,35 +18,50 @@
 #include "buffer.c"
 
 int
-_check_buf(PerlIO *infile, Buffer *buf, int size, int min_size)
+_check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
 {
- // Do we have enough data?
- if ( buffer_len(buf) < size ) {
-   // Read more data
-   uint32_t read;
-   int readlen = size > min_size ? size : min_size;
+  int ret = 1;
+  
+  // Do we have enough data?
+  if ( buffer_len(buf) < min_wanted ) {
+    // Read more data
+    uint32_t read;
+    unsigned char *tmp;
+    
+    if (min_wanted > max_wanted) {
+      max_wanted = min_wanted;
+    }
 
-   if ( (read = PerlIO_read(infile, buffer_append_space(buf, readlen), readlen)) == 0 ) {
-     if ( PerlIO_error(infile) ) {
-       PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-     }
-     else {
-       PerlIO_printf(PerlIO_stderr(), "Error: Unable to read %d bytes from file.\n", readlen);
-     }
-     
-     return 0;
-   }
-   
-   // Make sure we got enough
-   if ( buffer_len(buf) < size ) {
-     PerlIO_printf(PerlIO_stderr(), "Error: Unable to read at least %d bytes from file (only read %d).\n", size, read);
-     return 0;
-   }
-   
-   DEBUG_TRACE("Buffered %d bytes from file (min %d, readlen: %d)\n", read, size, readlen);
- }
+    Newx(tmp, max_wanted, unsigned char);
 
- return 1;
+    if ( (read = PerlIO_read(infile, tmp, max_wanted)) == 0 ) {
+      if ( PerlIO_error(infile) ) {
+        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
+      }
+      else {
+        PerlIO_printf(PerlIO_stderr(), "Error: Unable to read %d bytes from file.\n", max_wanted);
+      }
+
+      ret = 0;
+      goto out;
+    }
+
+    buffer_append(buf, tmp, read);
+
+    // Make sure we got enough
+    if ( buffer_len(buf) < min_wanted ) {
+      PerlIO_printf(PerlIO_stderr(), "Error: Unable to read at least %d bytes from file (only read %d).\n", min_wanted, read);
+      ret = 0;
+      goto out;
+    }
+
+    DEBUG_TRACE("Buffered %d bytes from file (min_wanted %d, max_wanted %d)\n", read, min_wanted, max_wanted);
+
+out:
+    Safefree(tmp);
+  }
+
+  return ret;
 }
 
 char* upcase(char *s) {
