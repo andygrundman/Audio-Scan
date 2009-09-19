@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.36
+0.36    2009-09-18 23:30:00
         - Bug 13449, changed the way MP3 average bitrate calculation works. Read
           bitrate of all frames starting from the beginning of the file, bail out
           early if the file appears to be CBR.
