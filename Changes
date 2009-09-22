@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.38
+0.38    2009-09-22 13:00:00
         - Fixed crasher bug in average bitrate calculation logic.
 
 0.37    2009-09-18 23:40:00
