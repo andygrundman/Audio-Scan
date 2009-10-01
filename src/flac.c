@@ -522,11 +522,9 @@ _is_flac_header(unsigned char *buf)
     return false;
   }
 
-  /*
-  fprintf(stderr, "Found FLAC header: block_size: %d, sample_rate: %d, channel: %d, sample_size: %d, padding: %d\n",
+  DEBUG_TRACE("Found FLAC header: block_size: %d, sample_rate: %d, channel: %d, sample_size: %d, padding: %d\n",
     block_size, sample_rate, channel, sample_size, padding
   );
-  */
 
   if (!(buf[4] & 0x80)) {
     len += 1;
@@ -564,7 +562,7 @@ _is_flac_header(unsigned char *buf)
   crc8 = buf[len];
 
   if (my_FLAC__crc8(buf, len) != crc8) {
-    fprintf(stderr, "CRC FAILED\n");
+    DEBUG_TRACE("CRC FAILED");
     return false;
   }
 
