@@ -251,3 +251,19 @@ CODE:
 }
 OUTPUT:
   RETVAL
+
+int
+is_supported(char *, SV *path)
+CODE:
+{
+  char *suffix = strrchr( SvPVX(path), '.' );
+
+  if (suffix != NULL && *suffix == '.' && _get_taghandler(suffix + 1)) {
+    RETVAL = 1;
+  }
+  else {
+    RETVAL = 0;
+  }
+}
+OUTPUT:
+  RETVAL

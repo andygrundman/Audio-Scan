@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 242;
+use Test::More tests => 244;
 
 use Audio::Scan;
 use Encode;
@@ -738,6 +738,12 @@ my $pate = Encode::decode_utf8("pâté");
 	my $info = $s->{info};
 	
 	is( $info->{bitrate}, 69000, 'MPEG 2.0 Xing bitrate ok' );
+}
+
+# Test for is_supported, doesn't really belong here but it'll do
+{
+	is( Audio::Scan->is_supported( _f('v1.mp3') ), 1, 'is_supported on mp3 file ok' );
+	is( Audio::Scan->is_supported( _f('foo.dat') ), 0, 'is_supported on non-audio file ok' );
 }
 
 sub _f {    

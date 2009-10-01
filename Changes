@@ -2,6 +2,8 @@ Revision history for Audio::Scan
 
 0.39
         - Bug 14241, fixed Win32 crash when using find_frame on FLAC files.
+        - Added is_supported($path) method. Can be used to determine if a given
+          file can be scanned. (Frank Terbeck)
 
 0.38    2009-09-22 13:00:00
         - Fixed crasher bug in average bitrate calculation logic.
