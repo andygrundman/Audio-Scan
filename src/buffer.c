@@ -16,8 +16,8 @@
 
 #include "buffer.h"
 
-#define  BUFFER_MAX_CHUNK  0x500000
-#define  BUFFER_MAX_LEN    0xa00000
+#define  BUFFER_MAX_CHUNK  0xA00000
+#define  BUFFER_MAX_LEN    0xA00000
 #define  BUFFER_ALLOCSZ    0x008000
 
 #define UnsignedToFloat(u) (((double)((long)(u - 2147483647L - 1))) + 2147483648.0)

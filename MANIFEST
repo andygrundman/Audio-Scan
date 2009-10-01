@@ -217,6 +217,7 @@ t/mp4/alac.m4a
 t/mp4/array-keys.m4a
 t/mp4/itunes811.m4a
 t/mp4/leading-mdat.m4a
+t/mp4/multiple-covers.m4a
 t/musepack/apev2.mpc
 t/musepack/sv8.mpc
 t/ogg/bug1155-1.ogg

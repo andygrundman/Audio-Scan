@@ -1034,8 +1034,10 @@ _mp4_parse_ilst(mp4info *mp4)
       // Verify data box
       uint32_t bsize = buffer_get_int(mp4->buf);
       
+      DEBUG_TRACE("    box size %d\n", bsize);
+      
       // Sanity check for bad data size
-      if ( bsize == size - 8 ) {
+      if ( bsize <= size - 8 ) {
         SV *skey;
         
         char *bptr = buffer_ptr(mp4->buf);
@@ -1053,6 +1055,12 @@ _mp4_parse_ilst(mp4info *mp4)
         }
         
         SvREFCNT_dec(skey);
+        
+        // XXX: bug 14476, files with multiple COVR images aren't handled here, just skipped for now
+        if ( bsize < size - 8 ) {
+          DEBUG_TRACE("    skipping rest of box, %d\n", size - 8 - bsize );
+          buffer_consume(mp4->buf, size - 8 - bsize);
+        }
       }
       else {
         DEBUG_TRACE("    invalid data size %d, skipping value\n", bsize);

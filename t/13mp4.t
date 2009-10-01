@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 75;
+use Test::More tests => 76;
 
 use Audio::Scan;
 
@@ -130,6 +130,15 @@ use Audio::Scan;
     
     is( $info->{samplerate}, 88200, '88.2 sample rate ok' );
     is( $info->{song_length_ms}, 179006, '88.2 song length ok' );
+}
+
+# Multiple covers, bug 14476
+{
+	my $s = Audio::Scan->scan( _f('multiple-covers.m4a') );
+	
+	my $tags = $s->{tags};
+	
+	is( length( $tags->{COVR} ), 2103, 'Multiple cover art reads first cover ok' );
 }
 
 # Find frame
