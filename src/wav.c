@@ -135,6 +135,13 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
         }
       }
       
+      // sanity check size, this is inside the data chunk code
+      // to support setting audio_offset even when the data size is wrong
+      if (chunk_size > file_size - offset) {
+        DEBUG_TRACE("data size > file_size, skipping\n");
+        return;
+      }
+      
       // Seek past data if there are more chunks after it
       if ( file_size > offset + chunk_size ) {
         PerlIO_seek(infile, offset + chunk_size, SEEK_SET);
@@ -162,6 +169,12 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
       buffer_clear(buf);
     }
     else {
+      // sanity check size
+      if (chunk_size > file_size - offset) {
+        DEBUG_TRACE("chunk_size > file_size, skipping\n");
+        return;
+      }
+      
       // Make sure we have enough data
       if ( !_check_buf(infile, buf, chunk_size, WAV_BLOCK_SIZE) ) {
         return;

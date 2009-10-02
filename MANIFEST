@@ -233,6 +233,7 @@ t/ogg/old1.ogg
 t/ogg/old2.ogg
 t/ogg/test.ogg
 t/wav/8kmp38.wav
+t/wav/bug14462-wav-bad-data-size.wav
 t/wav/bug14462-wav-fmt.wav
 t/wav/id3.wav
 t/wav/wav32-info-badchunk.wav

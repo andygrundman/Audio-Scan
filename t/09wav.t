@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 40;
+use Test::More tests => 42;
 
 use Audio::Scan;
 
@@ -86,6 +86,16 @@ use Audio::Scan;
     
     is( $info->{audio_offset}, 58, '18-byte fmt audio offset ok' );
     is( $info->{song_length_ms}, 7418, '18-byte fmt duration ok' );
+}
+
+# Bug 14462, WAV file with bad data size
+{
+    my $s = Audio::Scan->scan( _f('bug14462-wav-bad-data-size.wav') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 44, 'bad data size audio offset ok' );
+    is( $info->{song_length_ms}, 2977, 'bad data size duration ok' );
 }
 
 sub _f {
