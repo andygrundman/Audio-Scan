@@ -215,8 +215,10 @@ _parse_wav_fmt(Buffer *buf, uint32_t chunk_size, HV *info)
   
   if ( chunk_size > 16 ) {
     uint16_t extra_len = buffer_get_short_le(buf);
-  
-    if (extra_len) {
+    
+    // Bug 14462, a WAV file with only an 18-byte fmt chunk should ignore extra_len bytes
+    if (extra_len && chunk_size > 18) {
+      DEBUG_TRACE(" skipping extra_len bytes in fmt: %d\n", extra_len);
       buffer_consume(buf, extra_len);
     }
   }

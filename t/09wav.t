@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 38;
+use Test::More tests => 40;
 
 use Audio::Scan;
 
@@ -76,6 +76,16 @@ use Audio::Scan;
     is( $tags->{IGNR}, 'Soundtrack', 'IGNR ok' );
     is( $tags->{INAM}, 'Here Come The ABCs', 'INAM ok' );
     is( $tags->{IPRD}, 'Here Come The Abcs With Tmbg - Original Songs About The Alphabet', 'IPRD ok' );
+}
+
+# Bug 14462, WAV file with 18-byte fmt chunk
+{
+    my $s = Audio::Scan->scan( _f('bug14462-wav-fmt.wav') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 58, '18-byte fmt audio offset ok' );
+    is( $info->{song_length_ms}, 7418, '18-byte fmt duration ok' );
 }
 
 sub _f {
