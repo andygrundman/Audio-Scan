@@ -1140,7 +1140,25 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
         buffer_consume(mp4->buf, dsize);
       }
       
-      my_hv_store_ent( mp4->tags, key, data );
+      // if key exists, create array
+      if ( my_hv_exists_ent( mp4->tags, key ) ) {
+        SV **entry = my_hv_fetch( mp4->tags, SvPVX(key) );
+        if (entry != NULL) {
+          if ( SvROK(*entry) && SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+            av_push( (AV *)SvRV(*entry), data );
+          }
+          else {
+            // A non-array entry, convert to array.
+            AV *ref = newAV();
+            av_push( ref, newSVsv(*entry) );
+            av_push( ref, data );
+            my_hv_store_ent( mp4->tags, key, newRV_noinc( (SV*)ref ) );
+          }
+        }
+      }
+      else {
+        my_hv_store_ent( mp4->tags, key, data );
+      }
     }
   }
   else { // text data
@@ -1148,18 +1166,18 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
     SV *value = newSVpvn( buffer_ptr(mp4->buf), size - 8 );
     sv_utf8_decode(value);
     
-    DEBUG_TRACE("      %s = %s\n", SvPVX(key), SvPVX(value));
-  
     // strip copyright symbol 0xA9 out of key
     if ( ckey[0] == -87 ) {
       ckey++;
     }
     
+    DEBUG_TRACE("      %s = %s\n", ckey, SvPVX(value));
+    
     // if key exists, create array
     if ( my_hv_exists( mp4->tags, ckey ) ) {
       SV **entry = my_hv_fetch( mp4->tags, ckey );
       if (entry != NULL) {
-        if ( SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+        if ( SvROK(*entry) && SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
           av_push( (AV *)SvRV(*entry), value );
         }
         else {

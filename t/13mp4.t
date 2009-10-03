@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 76;
+use Test::More tests => 84;
 
 use Audio::Scan;
 
@@ -139,6 +139,22 @@ use Audio::Scan;
 	my $tags = $s->{tags};
 	
 	is( length( $tags->{COVR} ), 2103, 'Multiple cover art reads first cover ok' );
+}
+
+# File with array keys that are integers, bug 14462
+{
+    my $s = Audio::Scan->scan( _f('array-keys-int.m4a') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{AART}, 'Stevie Wonder', 'Array key int single key ok' );
+    is( ref $tags->{FREE}, 'ARRAY', 'Array key int array element ok' );
+    is( $tags->{FREE}->[0], 1969970, 'Array key int element 0 ok' );
+    is( $tags->{FREE}->[1], 'xxxxxx@xxxxxx.com', 'Array key int element 1 ok' );
+    is( $tags->{FREE}->[2], 46726, 'Array key int element 2 ok' );
+    is( $tags->{FREE}->[3], 1969972, 'Array key int element 3 ok' );
+    is( $tags->{FREE}->[4], 15, 'Array key int element 4 ok' );
+    is( $tags->{FREE}->[5], 0, 'Array key int element 5 ok' );
 }
 
 # Find frame

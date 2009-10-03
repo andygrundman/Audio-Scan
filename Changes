@@ -2,8 +2,10 @@ Revision history for Audio::Scan
 
 0.40
         - Bug 14462, fixed reading of WAV files with 18-byte fmt chunks.
-        - Fixed reading of WAV files with data chunks having the wrong size.
-
+        - WAV: Fixed reading of files with data chunks having the wrong size.
+        - MP4: Fixed parsing of tags with duplicate keys containing integer
+          values.
+        
 0.39    2009-10-01 16:00:00
         - Bug 14241, fixed Win32 crash when using find_frame on FLAC files.
         - Bug 14476, fixed crash when very large artwork is present (now supports
