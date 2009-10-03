@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.40
+0.40    2009-10-03 16:00:00
         - Bug 14462, fixed reading of WAV files with 18-byte fmt chunks.
         - WAV: Fixed reading of files with data chunks having the wrong size.
         - MP4: Fixed parsing of tags with duplicate keys containing integer
