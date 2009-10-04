@@ -18,6 +18,8 @@ Support iTunNORM, translate into replay gain values
 
 FLAC
 ----
+Port to native code, libFLAC is a lot of bloat
+Support ID3v2 tags
 Infinite loop on CVE-2007-4619-1.flac
 Seek using seektable?
 
@@ -30,7 +32,6 @@ Refactor a bit
 
 MP4/AAC
 -------
-Samplerate is broken, currently reads a 16-bit field.
 Better parsing of esds to detect HD-AAC files, etc.
 A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
 correct offsets, etc.  Possibly also rewrite duration info.
