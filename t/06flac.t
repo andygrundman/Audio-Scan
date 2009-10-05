@@ -12,7 +12,7 @@ SKIP:
         plan skip_all => 'FLAC support not available';
     }
     else {
-        plan tests => 19;
+        plan tests => 22;
     }
 }
 
@@ -71,9 +71,14 @@ SKIP:
 
     my $s = Audio::Scan->scan( _f('id3tagged.flac') );
 
+    my $info = $s->{info};
     my $tags = $s->{tags};
-
-    ok($tags->{TITLE} =~ /Allegro Maestoso/, "Found title after ID3 tag ok.");
+    
+    is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 tag ok' );
+    is( $info->{audio_offset}, 10034, 'ID3 tag audio offset ok' );
+    
+    is( $tags->{TITLE}, 'Allegro Maestoso', 'ID3 tag Vorbis title ok' );
+    is( $tags->{TIT2}, 'Allegro Maestoso', 'ID3 tag TIT2 ok' );
 }
 
 {

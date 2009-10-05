@@ -16,7 +16,7 @@
 
 #include <FLAC/all.h>
 
+#define FLAC_BUF_SIZE  4096
 #define FLACHEADERFLAG "fLaC"
-#define ID3HEADERFLAG  "ID3"
 
 static int get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags);

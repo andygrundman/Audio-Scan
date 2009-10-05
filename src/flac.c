@@ -371,6 +371,11 @@ static int
 get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 {
   FLAC__Metadata_Chain *chain = FLAC__metadata_chain_new();
+  unsigned int id3size = 0;
+  unsigned int err = 0;
+  unsigned int audio_offset = 0;
+  Buffer buf;
+  unsigned char *bptr;
 
   if (chain == 0) {
     PerlIO_printf(PerlIO_stderr(), "Out of memory allocating chain. Cannot open %s\n", file);
@@ -418,73 +423,99 @@ get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 
   {
     /* Find the offset of the start pos for audio blocks (ie: after metadata) */
-    unsigned int  is_last = 0;
-    unsigned char buf[4];
+    unsigned int is_last = 0;
     long len;
     int totalMS;
     int file_size;
-
-    if (PerlIO_read(infile, &buf, 4) == -1) {
-      PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
-      return -1;
+    
+    buffer_init(&buf, 0);
+    
+    if ( !_check_buf(infile, &buf, 10, FLAC_BUF_SIZE) ) {
+      err = -1;
+      goto out;
     }
+      
+    // Check for ID3v2 tag
+    bptr = buffer_ptr(&buf);
+    if (
+      (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
+      bptr[3] < 0xff && bptr[4] < 0xff &&
+      bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
+    ) {
+      my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
+      
+      /* found an ID3 header... */
+      id3size = 10 + (bptr[6]<<21) + (bptr[7]<<14) + (bptr[8]<<7) + bptr[9];
 
-    if (memcmp(buf, ID3HEADERFLAG, 3) == 0) {
-
-      unsigned id3size = 0;
-      int c = 0;
-
-      /* How big is the ID3 header? Skip the next two bytes */
-      if (PerlIO_read(infile, &buf, 2) == -1) {
-        PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length! %s\n", strerror(errno));
-        return -1;
+      if (bptr[5] & 0x10) {
+        // footer present
+        id3size += 10;
       }
-
-      /* The size of the ID3 tag is a 'synchsafe' 4-byte uint */
-      for (c = 0; c < 4; c++) {
-
-        if (PerlIO_read(infile, &buf, 1) == -1 || buf[0] & 0x80) {
-          PerlIO_printf(PerlIO_stderr(), "Couldn't read ID3 header length (syncsafe)! %s\n", strerror(errno));
-          return -1;
+      
+      DEBUG_TRACE("Found ID3 tag of size %d\n", id3size);
+      
+      audio_offset += id3size;
+              
+      // seek past ID3
+      if ( id3size < buffer_len(&buf) ) {
+        buffer_consume(&buf, id3size);
+      }
+      else {
+         buffer_clear(&buf);
+         
+        if (PerlIO_seek(infile, id3size, SEEK_SET) < 0) {
+          err = -1;
+          goto out;
         }
-
-        id3size <<= 7;
-        id3size |= (buf[0] & 0x7f);
       }
-
-      if (PerlIO_seek(infile, id3size, SEEK_CUR) < 0) {
-        PerlIO_printf(PerlIO_stderr(), "Couldn't seek past ID3 header!\n");
-        return -1;
-      }
-
-      if (PerlIO_read(infile, &buf, 4) == -1) {
-        PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header! %s\n", strerror(errno));
-        return -1;
+      
+      if ( !_check_buf(infile, &buf, 4, FLAC_BUF_SIZE) ) {
+        err = -1;
+        goto out;
       }
     }
-
-    if (memcmp(buf, FLACHEADERFLAG, 4)) {
-      PerlIO_printf(PerlIO_stderr(), "Couldn't read magic fLaC header - got gibberish instead!\n");
-      return -1;
+    
+    bptr = buffer_ptr(&buf);
+    if (memcmp(bptr, FLACHEADERFLAG, 4)) {
+      err = -1;
+      goto out;
     }
+    
+    buffer_consume(&buf, 4);
+    audio_offset += 4;
 
     while (!is_last) {
-
-      if (PerlIO_read(infile, &buf, 4) == -1) {
-        PerlIO_printf(PerlIO_stderr(), "Couldn't read 4 bytes of the metadata block!\n");
-        return -1;
+      if ( !_check_buf(infile, &buf, 4, FLAC_BUF_SIZE) ) {
+        err = -1;
+        goto out;
       }
+      
+      bptr = buffer_ptr(&buf);
 
-      is_last = (unsigned int)(buf[0] & 0x80);
+      is_last = (unsigned int)(bptr[0] & 0x80);
+      
+      DEBUG_TRACE("Read metadata block header @ %d, is_last: %d\n", audio_offset, is_last);
 
-      len = (long)((buf[1] << 16) | (buf[2] << 8) | (buf[3]));
-
-      PerlIO_seek(infile, len, SEEK_CUR);
+      len = (long)((bptr[1] << 16) | (bptr[2] << 8) | (bptr[3]));
+      
+      buffer_consume(&buf, 4);
+      
+      if ( !is_last ) {
+        DEBUG_TRACE("Skipping %d bytes\n", len);
+      
+        if ( len < buffer_len(&buf) ) {
+          buffer_consume(&buf, len);
+        }
+        else {
+          buffer_clear(&buf);
+          PerlIO_seek(infile, audio_offset + 4 + len, SEEK_SET);
+        }
+      }
+      
+      audio_offset += 4 + len;
     }
 
-    len = PerlIO_tell(infile);
-
-    my_hv_store(info, "audio_offset", newSVnv(len));
+    my_hv_store(info, "audio_offset", newSVuv(audio_offset));
 
     /* Now calculate the bit rate and file size */
     if (my_hv_exists(info, "song_length_ms")) {
@@ -496,11 +527,20 @@ get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       file_size = PerlIO_tell(infile);
       
       my_hv_store(info, "file_size", newSViv(file_size));
-      my_hv_store(info, "bitrate", newSVnv(8. * (file_size - len) / (totalMS / 1000) ));
+      my_hv_store(info, "bitrate", newSVnv(8. * (file_size - audio_offset) / (totalMS / 1000) ));
     }
   }
+  
+  // Parse ID3 last, due to an issue with libid3tag screwing
+  // up the filehandle
+  if (id3size) {
+    parse_id3(infile, file, info, tags, 0);
+  }
+  
+out:
+  buffer_free(&buf);
 
-  return 0;
+  return err;
 }
 
 bool
