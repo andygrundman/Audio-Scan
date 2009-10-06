@@ -136,6 +136,7 @@ t/aac/leading-junk.aac
 t/aac/mono.aac
 t/aac/stereo.aac
 t/aiff/aiff-id3.aif
+t/aiff/aiff-id3-bad-chunksize.aif
 t/aiff/aiff32.aiff
 t/asf/drm.wma
 t/asf/jfif.wma

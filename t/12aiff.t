@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 22;
+use Test::More tests => 24;
 
 use Audio::Scan;
 
@@ -27,6 +27,18 @@ use Audio::Scan;
     is( $tags->{TCON}, 'Electronica/Dance', 'TCON ok' );
     is( $tags->{TDRC}, 2008, 'TDRC ok' );
     is( $tags->{TIT2}, 'Dark Roads', 'TIT2 ok' );
+    is( $tags->{TPE1}, 'Kaya Project', 'TPE1 ok' );
+}
+
+# AIFF file with ID3 tags with a bad chunksize
+{
+    my $s = Audio::Scan->scan( _f('aiff-id3-bad-chunksize.aif') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.2.0', 'ID3 version ok' );
+    
     is( $tags->{TPE1}, 'Kaya Project', 'TPE1 ok' );
 }
 

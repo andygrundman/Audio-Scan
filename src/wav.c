@@ -328,7 +328,7 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
   
   while ( offset < file_size - 8 ) {
     char chunk_id[5];
-    uint32_t chunk_size;
+    int chunk_size;
     
     // Verify we have at least 8 bytes
     if ( !_check_buf(infile, buf, 8, WAV_BLOCK_SIZE) ) {
@@ -362,7 +362,7 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
       
       buffer_clear(buf);
     }
-    else if ( !strcmp( chunk_id, "ID3 " ) || !strcmp( chunk_id, "ID32" ) ) {
+    else if ( !strcmp( chunk_id, "id3 " ) || !strcmp( chunk_id, "ID3 " ) || !strcmp( chunk_id, "ID32" ) ) {
       // Read header to verify version
       unsigned char *bptr = buffer_ptr(buf);
       
@@ -377,7 +377,13 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
         parse_id3(infile, file, info, tags, offset);
       }
       
+      // Seen ID3 chunks with the chunk size in little-endian instead of big-endian
+      if (chunk_size < 0 || offset + chunk_size > file_size) {
+        break;
+      }
+      
       // Seek past ID3 and clear buffer
+      DEBUG_TRACE("Seeking past ID3 to %d\n", offset + chunk_size);
       PerlIO_seek(infile, offset + chunk_size, SEEK_SET);
       buffer_clear(buf);
     }

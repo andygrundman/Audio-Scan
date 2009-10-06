@@ -2,6 +2,7 @@ Revision history for Audio::Scan
 
 0.41
         - FLAC: Added support for reading ID3v2 tags.
+        - AIFF: Fixed error when reading ID3 chunks with a bad chunk size.
 
 0.40    2009-10-03 16:00:00
         - Bug 14462, fixed reading of WAV files with 18-byte fmt chunks.
