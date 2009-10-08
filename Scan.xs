@@ -16,10 +16,7 @@
 #include "mpc.c"
 #include "ogg.c"
 #include "wav.c"
-
-#ifdef HAVE_FLAC
 #include "flac.c"
-#endif
 
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02
@@ -43,9 +40,7 @@ struct _types audio_types[] = {
   {"ogg", {"ogg", "oga", 0}},
   {"mpc", {"mpc", "mp+", "mpp", 0}},
   {"ape", {"ape", "apl", 0}},
-#ifdef HAVE_FLAC
   {"flc", {"flc", "flac", "fla", 0}},
-#endif
   {"asf", {"wma", "asf", "wmv", 0}},
   {"wav", {"wav", "aif", "aiff", 0}},
   {0, {0, 0}}
@@ -58,9 +53,7 @@ static taghandler taghandlers[] = {
   { "ogg", get_ogg_metadata, 0, ogg_find_frame },
   { "mpc", get_ape_metadata, get_mpcfileinfo, 0 },
   { "ape", get_ape_metadata, get_macfileinfo, 0 },
-#ifdef HAVE_FLAC
   { "flc", get_flac_metadata, 0, flac_find_frame },
-#endif
   { "asf", get_asf_metadata, 0, asf_find_frame },
   { "wav", get_wav_metadata, 0, 0 },
   { NULL, 0, 0, 0 }
@@ -153,11 +146,7 @@ int
 has_flac(void)
 CODE:
 {
-#ifdef HAVE_FLAC
   RETVAL = 1;
-#else
-  RETVAL = 0;
-#endif
 }
 OUTPUT:
   RETVAL

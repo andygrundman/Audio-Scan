@@ -18,13 +18,10 @@ Support iTunNORM, translate into replay gain values
 
 FLAC
 ----
-Port to native code, libFLAC is a lot of bloat
-Support ID3v2 tags
-Infinite loop on CVE-2007-4619-1.flac
-Sample-accurate seeking using seektable or audio frames
 
 Ogg
 ---
+More accurate seeking?
 
 ASF
 ---

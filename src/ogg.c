@@ -148,7 +148,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     // If the granule_pos > 0, we have reached the end of headers and
     // this is the first audio page
     if (granule_pos > 0 && granule_pos != -1) {
-      _parse_comments(&vorbis_buf, tags);
+      _parse_vorbis_comments(&vorbis_buf, tags, 1);
 
       DEBUG_TRACE("  parsed vorbis comments\n");
 
@@ -332,7 +332,7 @@ out:
 }
 
 void
-_parse_comments(Buffer *vorbis_buf, HV *tags)
+_parse_vorbis_comments(Buffer *vorbis_buf, HV *tags, int has_framing)
 {
   unsigned int len;
   unsigned int num_comments;
@@ -361,8 +361,10 @@ _parse_comments(Buffer *vorbis_buf, HV *tags)
     Safefree(tmp);
   }
   
-  // Skip framing byte
-  buffer_consume(vorbis_buf, 1);
+  if (has_framing) {
+    // Skip framing byte (Ogg only)
+    buffer_consume(vorbis_buf, 1);
+  }
 }
 
 static int

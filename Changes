@@ -1,6 +1,10 @@
 Revision history for Audio::Scan
 
 0.41
+        - FLAC: Re-factored FLAC code to remove libFLAC dependency.
+        - FLAC: API change: more accurate seeking via find_frame, which
+          now takes an offset in milliseconds instead of bytes and seeks
+          to the correct audio frame containing the desired sample.
         - FLAC: Added support for reading ID3v2 tags.
         - AIFF: Fixed error when reading ID3 chunks with a bad chunk size.
 
