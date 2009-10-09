@@ -7,6 +7,7 @@ Revision history for Audio::Scan
           to the correct audio frame containing the desired sample.
         - FLAC: Added support for reading ID3v2 tags.
         - AIFF: Fixed error when reading ID3 chunks with a bad chunk size.
+        - MP4: Fixed parsing of files with short TRKN fields.
 
 0.40    2009-10-03 16:00:00
         - Bug 14462, fixed reading of WAV files with 18-byte fmt chunks.

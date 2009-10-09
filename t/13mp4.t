@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 84;
+use Test::More tests => 85;
 
 use Audio::Scan;
 
@@ -155,6 +155,15 @@ use Audio::Scan;
     is( $tags->{FREE}->[3], 1969972, 'Array key int element 3 ok' );
     is( $tags->{FREE}->[4], 15, 'Array key int element 4 ok' );
     is( $tags->{FREE}->[5], 0, 'Array key int element 5 ok' );
+}
+
+# File with short trkn field
+{
+    my $s = Audio::Scan->scan( _f('short-trkn.m4a') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TRKN}, 10, 'Short trkn ok' );
 }
 
 # Find frame

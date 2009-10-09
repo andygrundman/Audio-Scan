@@ -1091,14 +1091,20 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
   if ( !flags || flags == 21 ) {
     if ( FOURCC_EQ( SvPVX(key), "TRKN" ) || FOURCC_EQ( SvPVX(key), "DISK" ) ) {
       // Special case trkn, disk (pair of 16-bit ints)
-      uint16_t num, total;
-    
+      uint16_t num = 0;
+      uint16_t total = 0;
+      
       buffer_consume(mp4->buf, 2); // padding
     
-      num   = buffer_get_short(mp4->buf);
-      total = buffer_get_short(mp4->buf);
-    
-      buffer_consume(mp4->buf, size - 14); // optional padding
+      num = buffer_get_short(mp4->buf);
+      
+      // Total may not always be present
+      if (size > 12) {
+        total = buffer_get_short(mp4->buf);  
+        buffer_consume(mp4->buf, size - 14); // optional padding
+      }
+      
+      DEBUG_TRACE("      %d/%d\n", num, total);
     
       if (total) {
         my_hv_store_ent( mp4->tags, key, newSVpvf( "%d/%d", num, total ) );
