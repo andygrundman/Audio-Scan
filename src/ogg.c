@@ -322,6 +322,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     DEBUG_TRACE("Using nominal bitrate for average\n");
   }
   
+  my_hv_store( info, "file_size", newSVuv(file_size) );
+  
 out:
   buffer_free(&ogg_buf);
   buffer_free(&vorbis_buf);

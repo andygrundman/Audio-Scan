@@ -5,7 +5,8 @@ General
 MP3
 ---
 Lyrics3 support
-RIFF-MP3 support
+APE tags from files with Lyric tags not read properly (apev2-lyricsv2.mp3)
+  http://www.id3.org/lyrics3200.html
 Free-format support (not reading Xing/LAME tag properly)
 Support VBRI mono file with wrong offset?
 Refactor to remove use of mp3_frameinfo
@@ -14,6 +15,9 @@ ID3
 ---
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
+  2nd value: encoder delay (usually 528)
+  3rd value: encoder padding
+  4th value: length in samples of original track
 Support iTunNORM, translate into replay gain values
 
 FLAC
@@ -22,6 +26,7 @@ FLAC
 Ogg
 ---
 More accurate seeking?
+bug-8922-3707.ogg - does not parse correctly
 
 ASF
 ---
@@ -29,7 +34,7 @@ Refactor a bit
 
 MP4/AAC
 -------
-Better parsing of esds to detect HD-AAC files, etc.
+HD-AAC bitrate is wrong?
 A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
 correct offsets, etc.  Possibly also rewrite duration info.
 

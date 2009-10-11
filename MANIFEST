@@ -158,6 +158,7 @@ t/flac/empty.flac
 t/flac/id3tagged.flac
 t/flac/md5.flac
 t/flac/picture.flac
+t/flac/short-duration.flac
 t/flac/test.flac
 t/flac/tiny.flac
 t/mac/apev1.ape
@@ -218,6 +219,7 @@ t/mp4/882-sample-rate.m4a
 t/mp4/alac.m4a
 t/mp4/array-keys.m4a
 t/mp4/array-keys-int.m4a
+t/mp4/hd-aac.m4a
 t/mp4/itunes811.m4a
 t/mp4/leading-mdat.m4a
 t/mp4/multiple-covers.m4a

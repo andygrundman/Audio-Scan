@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 85;
+use Test::More tests => 90;
 
 use Audio::Scan;
 
@@ -24,6 +24,7 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 69, 'Song length ok' );
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     
+    is( $track->{audio_object_type}, 2, 'Audio object type ok' );
     is( $track->{audio_type}, 64, 'Audio type ok' );
     is( $track->{avg_bitrate}, 96000, 'Avg bitrate ok' );
     is( $track->{bits_per_sample}, 16, 'Bits per sample ok' );
@@ -164,6 +165,22 @@ use Audio::Scan;
     my $tags = $s->{tags};
     
     is( $tags->{TRKN}, 10, 'Short trkn ok' );
+}
+
+# HD-AAC file
+{
+    my $s = Audio::Scan->scan( _f('hd-aac.m4a') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{samplerate}, 44100, 'HD-AAC samplerate ok' );
+    is( $info->{song_length_ms}, 217872, 'HD-AAC song length ok' );
+    
+    my $track1 = $info->{tracks}->[0];
+    my $track2 = $info->{tracks}->[1];
+    
+    is( $track1->{audio_object_type}, 2, 'HD-AAC LC track ok' );
+    is( $track2->{audio_object_type}, 37, 'HD-AAC SLS track ok' );
 }
 
 # Find frame

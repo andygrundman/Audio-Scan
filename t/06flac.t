@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 54;
+use Test::More tests => 56;
 
 use Audio::Scan;
 
@@ -78,6 +78,7 @@ use Audio::Scan;
     is( $tags->{TIT2}, 'Allegro Maestoso', 'ID3 tag TIT2 ok' );
 }
 
+# FLAC file with picture
 {
     my $s = Audio::Scan->scan( _f('picture.flac') );
 
@@ -98,6 +99,16 @@ use Audio::Scan;
     is( $pic->{mime_type}, 'image/jpeg', 'MIME type ok' );
     is( $pic->{picture_type}, 3, 'Picture type ok' );
     is( $pic->{width}, 301, 'Width ok' );
+}
+
+# File with very short duration, make sure bitrate is correct
+{
+    my $s = Audio::Scan->scan( _f('short-duration.flac') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 8304, 'Short duration audio offset ok' );
+    is( $info->{bitrate}, 946303, 'Short duration bitrate ok' );
 }
 
 # Find frame, seektable available
