@@ -58,5 +58,5 @@ void _flac_parse_picture(flacinfo *flac);
 int _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, off_t high);
 int _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample);
 uint8_t _flac_crc8(const unsigned char *buf, unsigned len);
-bool _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen);
-bool _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen);
+int _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen);
+int _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen);

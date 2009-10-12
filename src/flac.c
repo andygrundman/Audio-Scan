@@ -660,13 +660,15 @@ _flac_parse_cuesheet(flacinfo *flac)
     }
     
     while (num_index--) {
+      SV *index;
+      
       uint64_t index_offset = buffer_get_int64(flac->buf);
       uint8_t index_num = (uint8_t)buffer_get_char(flac->buf);
       buffer_consume(flac->buf, 3);
       
       DEBUG_TRACE("      index %d, offset %ld\n", index_num, index_offset);
       
-      SV *index = newSVpvf("    INDEX %02u ", index_num);
+      index = newSVpvf("    INDEX %02u ", index_num);
       
       if (is_cd) {
         uint32_t samplerate = SvIV( *( my_hv_fetch( flac->info, "samplerate") ) );
@@ -801,7 +803,7 @@ _flac_crc8(const unsigned char *buf, unsigned len)
   return crc;
 }
 
-bool
+int
 _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen)
 {
   uint64_t v = 0;
@@ -840,23 +842,23 @@ _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen)
   }
   else {
     *val = 0xffffffffffffffffLL;
-    return true;
+    return 1;
   }
   
   for( ; i; i--) {
     x = raw[(*rawlen)++];
     if(!(x & 0x80) || (x & 0x40)) { /* 10xxxxxx */
       *val = 0xffffffffffffffffLL;
-      return true;
+      return 1;
     }
     v <<= 6;
     v |= (x & 0x3F);
   }
   *val = v;
-  return true;
+  return 1;
 }
 
-bool
+int
 _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen)
 {
   uint32_t v = 0;
@@ -891,18 +893,18 @@ _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen)
   }
   else {
     *val = 0xffffffff;
-    return true;
+    return 1;
   }
   
   for( ; i; i--) {
     x = raw[(*rawlen)++];
     if(!(x & 0x80) || (x & 0x40)) { /* 10xxxxxx */
       *val = 0xffffffff;
-      return true;
+      return 1;
     }
     v <<= 6;
     v |= (x & 0x3F);
   }
   *val = v;
-  return true;
+  return 1;
 }
