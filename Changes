@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.41
+0.41    2009-10-12 10:30:00
         - FLAC: Re-factored FLAC code to remove libFLAC dependency.
         - FLAC: API change: more accurate seeking via find_frame, which
           now takes an offset in milliseconds instead of bytes and seeks
