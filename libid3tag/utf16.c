@@ -277,6 +277,12 @@ id3_ucs4_t *id3_utf16_deserialize(id3_byte_t const **ptr, id3_length_t length,
       break;
     }
   }
+  
+  /* Bug 14728
+    If there is no BOM, assume LE, this is what appears in the wild -andy
+  */
+  if (byteorder == ID3_UTF16_BYTEORDER_ANY)
+    byteorder = ID3_UTF16_BYTEORDER_LE;
 
   utf16ptr = utf16;
   while (end - *ptr > 0 && (*utf16ptr = id3_utf16_get(ptr, byteorder)))

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 244;
+use Test::More tests => 246;
 
 use Audio::Scan;
 use Encode;
@@ -314,6 +314,16 @@ my $pate = Encode::decode_utf8("pâté");
     
     # Make sure it's been converted to UTF-8
     is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v2.3 ISO-8859-1 is valid UTF-8' );
+}
+
+# ID3v2.3 UTF-16 with no BOM (defaults to LE), bug 14728
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.3-utf16any.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, "Guns N' Roses", 'ID3v2.3 UTF-16 title ok' );
+    is( $tags->{TALB}, 'Use Your Illusion II', 'ID3v2.3 UTF-16 title ok' );
 }
 
 # ID3v2.3 UTF-16BE

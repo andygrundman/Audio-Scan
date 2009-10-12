@@ -26,3 +26,4 @@ Patches only in this version:
 	translate-pic.patch  - v2.2 PIC frame has a 3-byte field that isn't compatible with APIC, causing parsing
                                to fail.
     v2.3-xsop.patch - support experimental ID3v2.3 XSOP tag.
+    utf16-le-default.patch - Bug 14728, default UTF-16 byte order to LE when no BOM is present.
