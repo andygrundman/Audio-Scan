@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.42
+0.42    2009-10-13 10:45:00
         - Bug 14728, fixed issue in libid3tag where default ID3v2.3 UTF-16 byte
           order was set to big-endian instead of little-endian when no BOM
           was present.  Several other tag readers also default to little-endian
