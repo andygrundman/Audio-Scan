@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 246;
+use Test::More tests => 254;
 
 use Audio::Scan;
 use Encode;
@@ -748,6 +748,22 @@ my $pate = Encode::decode_utf8("pâté");
 	my $info = $s->{info};
 	
 	is( $info->{bitrate}, 69000, 'MPEG 2.0 Xing bitrate ok' );
+}
+
+# Bug 14705, 9th frame is corrupt, but previous 8 should be returned ok
+{
+    my $s = Audio::Scan->scan( _f('v2.4-corrupt-frame.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, 'Miles Davis', 'ID3v2.4 corrupt frame TPE1 ok' );
+    is( $tags->{TALB}, "Ascenseur pour l'\xE9chafaud", 'ID3v2.4 corrupt frame TALB ok' );
+    is( $tags->{TCON}, 'Jazz', 'ID3v2.4 corrupt frame TCON ok' );
+    is( $tags->{TENC}, 'iTunes v1.1', 'ID3v2.4 corrupt frame TENC ok' );
+    is( $tags->{TIT2}, 'Evasion de Julien', 'ID3v2.4 corrupt frame TIT2 ok' );
+    is( $tags->{TRCK}, '23/26', 'ID3v2.4 corrupt frame TRCK ok' );
+    is( $tags->{COMM}->[3], 'Diskapif', 'ID3v2.4 corrupt frame COMM ok' );
+    is( length( $tags->{APIC}->[4] ), 33133, 'ID3v2.4 corrupt frame APIC ok' );
 }
 
 # Test for is_supported, doesn't really belong here but it'll do

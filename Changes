@@ -6,6 +6,8 @@ Revision history for Audio::Scan
           was present.  Several other tag readers also default to little-endian
           so this appears to be the de-facto standard, even though the v2.3 spec
           says all Unicode text must have a BOM.
+        - Bug 14705, Fixed libid3tag to return frames parsed so far when it runs into
+          an invalid frame.
         - Bug 14658, MP4: fixed signed char issue on some PPC platforms.
 
 0.41    2009-10-12 10:30:00

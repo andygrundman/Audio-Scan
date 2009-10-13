@@ -204,6 +204,7 @@ t/mp3/v2.4-ape.mp3
 t/mp3/v2.4-apic-jpg.mp3
 t/mp3/v2.4-apic-multiple.mp3
 t/mp3/v2.4-apic-png.mp3
+t/mp3/v2.4-corrupt-frame.mp3
 t/mp3/v2.4-geob-multiple.mp3
 t/mp3/v2.4-geob.mp3
 t/mp3/v2.4-iso-8859-1.mp3

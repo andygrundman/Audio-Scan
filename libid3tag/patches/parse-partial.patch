@@ -1,0 +1,19 @@
+=== tag.c
+==================================================================
+--- tag.c	(revision 59460)
++++ tag.c	(local)
+@@ -626,11 +626,14 @@
+       goto fail;
+   }
+ 
++/* Return what we've read so far instead of trashing the whole tag
+   if (0) {
+   fail:
+     id3_tag_delete(tag);
+     tag = 0;
+   }
++*/
++fail:
+ 
+   if (mem)
+     free(mem);

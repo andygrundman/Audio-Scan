@@ -626,11 +626,14 @@ struct id3_tag *v2_parse(id3_byte_t const *ptr)
       goto fail;
   }
 
+/* Return what we've read so far instead of trashing the whole tag
   if (0) {
   fail:
     id3_tag_delete(tag);
     tag = 0;
   }
+*/
+fail:
 
   if (mem)
     free(mem);

@@ -1,0 +1,48 @@
+=== frame.c
+==================================================================
+--- frame.c	(revision 59460)
++++ frame.c	(local)
+@@ -376,16 +376,21 @@
+   else {  /* ID3v2.4 */
+     if (length < 10)
+       goto fail;
++    
++    DEBUG_TRACE("v2.4 frame: %c%c%c%c\n", id[0], id[1], id[2], id[3]);
+ 
+     *ptr += 4;
+     size  = id3_parse_syncsafe(ptr, 4);
+     flags = id3_parse_uint(ptr, 2);
+     
++    DEBUG_TRACE("  size %d flags %d\n", size, flags);
++    
+     // iTunes writes non-syncsafe length integers, check for this here
+     *ptr -= 6;
+     if ( id3_parse_uint(ptr, 4) & 0x80 ) {
+       *ptr -= 4;
+       size = id3_parse_uint(ptr, 4);
++      DEBUG_TRACE("  found bad iTunes length, size adjusted to %d\n", size);
+     }
+     *ptr += 2;
+ 
+=== global.h
+==================================================================
+--- global.h	(revision 59460)
++++ global.h	(local)
+@@ -26,6 +26,17 @@
+ #include "perl.h"
+ #endif
+ 
++/* trace debugging */
++
++//#define TRACE_DEBUG
++
++#ifdef TRACE_DEBUG
++# include <stdio.h>
++# define DEBUG_TRACE(...) fprintf(stderr, __VA_ARGS__)
++#else
++# define DEBUG_TRACE(...)
++#endif
++
+ /* conditional debugging */
+ 
+ # if defined(DEBUG) && defined(NDEBUG)

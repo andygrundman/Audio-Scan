@@ -26,6 +26,17 @@
 #include "perl.h"
 #endif
 
+/* trace debugging */
+
+//#define TRACE_DEBUG
+
+#ifdef TRACE_DEBUG
+# include <stdio.h>
+# define DEBUG_TRACE(...) fprintf(stderr, __VA_ARGS__)
+#else
+# define DEBUG_TRACE(...)
+#endif
+
 /* conditional debugging */
 
 # if defined(DEBUG) && defined(NDEBUG)
