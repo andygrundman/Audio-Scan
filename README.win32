@@ -17,18 +17,12 @@ Change Additional Include Directories to point to your zlib and Perl directories
   .;"C:\dev\zlib-1.2.3";"C:\Perl\lib\CORE"
 Build Release
 
-libflac
--------
-Follow the instructions in FLAC's README file under "Building with MSVC".
-
 Audio::Scan
 -----------
 Install ActivePerl 5.8.8 or 5.10.0.
 Open command prompt.
 Run the vcvars file, for example C:\Program Files\Microsoft Visual Studio 8\VC\vcvarsall.bat
-If your zlib and flac directories are not ..\zlib-1.2.3 and ..\flac-1.2.1 edit Makefile.PL
+If your zlib directory is not ..\zlib-1.2.3 edit Makefile.PL
 perl Makefile.PL
 nmake
 
-I could not get libFLAC_static.lib to link properly, so you need to copy libFLAC_dynamic.dll
-to the blib/arch/auto/Audio/Scan directory in order to run the FLAC tests.
