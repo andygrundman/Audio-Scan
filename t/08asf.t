@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 138;
+use Test::More tests => 140;
 
 use Audio::Scan;
 use Encode;
@@ -255,6 +255,16 @@ use Encode;
     is( $info->{streams}->[1]->{codec_id}, 85, 'MP3 codec ID ok' );
     is( $info->{streams}->[0]->{width}, 320, 'JFIF width ok' );
     is( $info->{streams}->[0]->{height}, 240, 'JFIF height ok' );
+}
+
+# Bug 14788, multiple tags where one is an integer, caused a crash
+{
+    my $s = Audio::Scan->scan( _f('wma92-multiple-tags.wma') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{'WM/TrackNumber'}->[0], 1, 'Multiple tag Track Number ok' );
+    is( $tags->{'WM/TrackNumber'}->[1], '01', 'Multiple tag Track Number ok' );
 }
 
 # Scan via a filehandle

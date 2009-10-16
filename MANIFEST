@@ -143,6 +143,7 @@ t/asf/wma-live.wma
 t/asf/wma92-32k.wma
 t/asf/wma92-48k-pro.wma
 t/asf/wma92-lossless.wma
+t/asf/wma92-multiple-tags.wma
 t/asf/wma92-mbr.wma
 t/asf/wma92-vbr.wma
 t/asf/wma92-voice.wma

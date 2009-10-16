@@ -30,6 +30,7 @@ bug-8922-3707.ogg - does not parse correctly
 
 ASF
 ---
+Filter out duplicate tags if the same exact tag exists in Extended Content Description and Metadata Library?
 Refactor a bit
 
 MP4/AAC

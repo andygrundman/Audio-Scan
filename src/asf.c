@@ -1092,7 +1092,7 @@ _store_tag(HV *tags, SV *key, SV *value)
   if ( my_hv_exists_ent( tags, key ) ) {
     SV **entry = my_hv_fetch( tags, SvPVX(key) );
     if (entry != NULL) {
-      if ( SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+      if ( SvROK(*entry) && SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
         av_push( (AV *)SvRV(*entry), value );
       }
       else {
