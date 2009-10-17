@@ -216,7 +216,7 @@ struct id3_frame *unparseable(char const *id, id3_byte_t const **ptr,
   id3_byte_t *mem;
 
 #ifdef _MSC_VER
-  Newx(mem, length ? length : 1, id3_byte_t);
+  New(0, mem, length ? length : 1, id3_byte_t);
 #else
   mem = malloc(length ? length : 1);
 #endif
@@ -437,7 +437,7 @@ struct id3_frame *id3_frame_parse(id3_byte_t const **ptr, id3_length_t length,
 
   if ((flags & ID3_FRAME_FLAG_UNSYNCHRONISATION) && end - data > 0) {
 #ifdef _MSC_VER
-    Newx(mem, end - data, id3_byte_t);
+    New(0, mem, end - data, id3_byte_t);
 #else
     mem = malloc(end - data);
 #endif

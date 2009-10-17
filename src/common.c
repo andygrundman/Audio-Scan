@@ -32,7 +32,7 @@ _check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
       max_wanted = min_wanted;
     }
 
-    Newx(tmp, max_wanted, unsigned char);
+    New(0, tmp, max_wanted, unsigned char);
 
     if ( (read = PerlIO_read(infile, tmp, max_wanted)) == 0 ) {
       if ( PerlIO_error(infile) ) {
@@ -99,7 +99,7 @@ void _split_vorbis_comment(char* comment, HV* tags) {
   sv_utf8_decode(value);
 
   /* Is there a better way to do this? */
-  Newx(key, klen + 1, char);
+  New(0, key, klen + 1, char);
   Move(comment, key, klen, char);
   key[klen] = '\0';
   key = upcase(key);

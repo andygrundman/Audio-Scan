@@ -180,8 +180,8 @@ _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   uint32_t box_size = 0;
   
   mp4info *mp4;
-  Newxz(mp4, sizeof(mp4info), mp4info);
-  Newxz(mp4->buf, sizeof(Buffer), Buffer);
+  Newz(0, mp4, sizeof(mp4info), mp4info);
+  Newz(0, mp4->buf, sizeof(Buffer), Buffer);
   
   mp4->audio_offset  = 0;
   mp4->infile        = infile;
@@ -831,7 +831,7 @@ _mp4_parse_stts(mp4info *mp4)
   mp4->num_time_to_samples = buffer_get_int(mp4->buf);
   DEBUG_TRACE("  num_time_to_samples %d\n", mp4->num_time_to_samples);
   
-  Newx(
+  New(0, 
     mp4->time_to_sample,
     mp4->num_time_to_samples * sizeof(*mp4->time_to_sample),
     struct tts
@@ -871,7 +871,7 @@ _mp4_parse_stsc(mp4info *mp4)
   mp4->num_sample_to_chunks = buffer_get_int(mp4->buf);
   DEBUG_TRACE("  num_sample_to_chunks %d\n", mp4->num_sample_to_chunks);
   
-  Newx(
+  New(0, 
     mp4->sample_to_chunk,
     mp4->num_sample_to_chunks * sizeof(*mp4->sample_to_chunk),
     struct stc
@@ -921,7 +921,7 @@ _mp4_parse_stsz(mp4info *mp4)
   
   DEBUG_TRACE("  num_sample_byte_sizes %d\n", mp4->num_sample_byte_sizes);
   
-  Newx(
+  New(0, 
     mp4->sample_byte_size,
     mp4->num_sample_byte_sizes * sizeof(*mp4->sample_byte_size),
     uint16_t
@@ -963,7 +963,7 @@ _mp4_parse_stco(mp4info *mp4)
   mp4->num_chunk_offsets = buffer_get_int(mp4->buf);
   DEBUG_TRACE("  num_chunk_offsets %d\n", mp4->num_chunk_offsets);
       
-  Newx(
+  New(0, 
     mp4->chunk_offset,
     mp4->num_chunk_offsets * sizeof(*mp4->chunk_offset),
     uint32_t

@@ -615,7 +615,7 @@ int id3_field_setstrings(union id3_field *field,
     return 0;
 
 #ifdef _MSC_VER
-  Newx(strings, length, id3_ucs4_t *);
+  New(0, strings, length, id3_ucs4_t *);
 #else
   strings = malloc(length * sizeof(*strings));
 #endif
@@ -746,7 +746,7 @@ int id3_field_setbinarydata(union id3_field *field,
     mem = 0;
   else {
 #ifdef _MSC_VER
-    Newx(mem, length, id3_byte_t);
+    New(0, mem, length, id3_byte_t);
 #else
     mem = malloc(length);
 #endif

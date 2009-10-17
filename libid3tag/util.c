@@ -102,7 +102,7 @@ id3_byte_t *id3_util_compress(id3_byte_t const *data, id3_length_t length,
   *newlength += *newlength / 1000;
 
 #ifdef _MSC_VER
-  Newx(compressed, *newlength, id3_byte_t);
+  New(0, compressed, *newlength, id3_byte_t);
 #else
   compressed = malloc(*newlength);
 #endif
@@ -139,7 +139,7 @@ id3_byte_t *id3_util_decompress(id3_byte_t const *data, id3_length_t length,
   id3_byte_t *decompressed;
 
 #ifdef _MSC_VER
-  Newx(decompressed, newlength ? newlength : 1, id3_byte_t);
+  New(0, decompressed, newlength ? newlength : 1, id3_byte_t);
 #else
   decompressed = malloc(newlength ? newlength : 1);
 #endif

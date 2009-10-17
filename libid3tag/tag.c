@@ -54,7 +54,7 @@ struct id3_tag *id3_tag_new(void)
   struct id3_tag *tag;
 
 #ifdef _MSC_VER
-  Newx(tag, 1, struct id3_tag);
+  New(0, tag, 1, struct id3_tag);
 #else
   tag = malloc(sizeof(*tag));
 #endif
@@ -456,7 +456,7 @@ struct id3_tag *v2_parse(id3_byte_t const *ptr)
     if ((tag->flags & ID3_TAG_FLAG_UNSYNCHRONISATION) &&
 	ID3_TAG_VERSION_MAJOR(tag->version) < 4) {
 #ifdef _MSC_VER
-      Newx(mem, size, id3_byte_t);
+      New(0, mem, size, id3_byte_t);
 #else
       mem = malloc(size);
 #endif

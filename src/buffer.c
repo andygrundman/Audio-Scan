@@ -16,8 +16,8 @@
 
 #include "buffer.h"
 
-#define  BUFFER_MAX_CHUNK  0x1400000
-#define  BUFFER_MAX_LEN    0x1400000
+#define  BUFFER_MAX_CHUNK  0xA00000
+#define  BUFFER_MAX_LEN    0xA00000
 #define  BUFFER_ALLOCSZ    0x008000
 
 #define UnsignedToFloat(u) (((double)((long)(u - 2147483647L - 1))) + 2147483648.0)
@@ -31,7 +31,7 @@ buffer_init(Buffer *buffer, uint32_t len)
     len = 4096;
 
   buffer->alloc = 0;
-  Newx(buffer->buf, (int)len, u_char);
+  New(0, buffer->buf, (int)len, u_char);
   buffer->alloc = len;
   buffer->offset = 0;
   buffer->end = 0;

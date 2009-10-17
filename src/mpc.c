@@ -270,7 +270,7 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
 
   mpc_streaminfo *si;
 
-  Newxz(si, sizeof(mpc_streaminfo), mpc_streaminfo);
+  Newz(0, si, sizeof(mpc_streaminfo), mpc_streaminfo);
   buffer_init(&buf, MPC_BLOCK_SIZE);
   
   si->buf    = &buf;

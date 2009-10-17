@@ -354,7 +354,7 @@ _parse_vorbis_comments(Buffer *vorbis_buf, HV *tags, int has_framing)
   while (num_comments--) {
     len = buffer_get_int_le(vorbis_buf);
     
-    Newx(tmp, (int)len + 1, char);
+    New(0, tmp, (int)len + 1, char);
     buffer_get(vorbis_buf, tmp, len);
     tmp[len] = '\0';
     

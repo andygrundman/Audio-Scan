@@ -401,7 +401,7 @@ get_ape_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   int status = -1;
   ApeTag* tag;
   
-  Newxz(tag, sizeof(ApeTag), ApeTag);
+  Newz(0, tag, sizeof(ApeTag), ApeTag);
 
   if (tag == NULL) {
     PerlIO_printf(PerlIO_stderr(), "APE: [Couldn't allocate memory (ApeTag)] %s\n", file);

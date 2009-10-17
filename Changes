@@ -2,6 +2,7 @@ Revision history for Audio::Scan
 
 0.44
         - Bug 14788, ASF: Fixed crasher when reading multiple integer tags.
+        - Changed Newx/Newxz calls to use older New/Newz API to support older Perls.
 
 0.43    2009-10-16 15:00:00
         - Increase max buffer size yet again (to 20MB), this time someone had 16MB

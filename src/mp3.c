@@ -514,8 +514,8 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
   int err = 0;
   
   mp3info *mp3;
-  Newxz(mp3, sizeof(mp3info), mp3info);
-  Newxz(mp3->buf, sizeof(Buffer), Buffer);
+  Newz(0, mp3, sizeof(mp3info), mp3info);
+  Newz(0, mp3->buf, sizeof(Buffer), Buffer);
   
   mp3->infile = infile;
   mp3->file   = file;

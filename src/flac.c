@@ -40,8 +40,8 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   uint32_t song_length_ms;
   
   flacinfo *flac;
-  Newxz(flac, sizeof(flacinfo), flacinfo);
-  Newxz(flac->buf, sizeof(Buffer), Buffer);
+  Newz(0, flac, sizeof(flacinfo), flacinfo);
+  Newz(0, flac->buf, sizeof(Buffer), Buffer);
   
   flac->infile         = infile;
   flac->file           = file;
@@ -576,7 +576,7 @@ _flac_parse_seektable(flacinfo *flac, int len)
   
   flac->num_seekpoints = count;
   
-  Newx(
+  New(0, 
     flac->seekpoints,
     count * sizeof(*flac->seekpoints),
     struct seekpoint

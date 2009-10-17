@@ -9,7 +9,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
   uint32_t header_end;
 
   mac_streaminfo *si;
-  Newxz(si, sizeof(mac_streaminfo), mac_streaminfo);
+  Newz(0, si, sizeof(mac_streaminfo), mac_streaminfo);
 
   /*
     There are two possible variations here.
@@ -155,7 +155,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
 
     my_hv_store(info, "file_size", newSVnv(si->file_size));
     my_hv_store(info, "compression", newSVpv(si->compression, 0));
-    my_hv_store(info, "version", newSVpvf( "%.2f", (double)(si->version / 1000.0) ) );
+    my_hv_store(info, "version", newSVpvf( "%0.2f", si->version * 1.0 / 1000 ) );
   }
 
 out:
