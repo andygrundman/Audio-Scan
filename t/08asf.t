@@ -5,7 +5,12 @@ use FindBin ();
 use Test::More tests => 140;
 
 use Audio::Scan;
-use Encode;
+
+my $HAS_ENCODE;
+eval {
+    require Encode;
+    $HAS_ENCODE = 1;
+};
 
 # Basic tests of all fields
 {
@@ -119,13 +124,17 @@ use Encode;
     is( $info->{streams}->[0]->{IsVBR}, 1, 'IsVBR ok' );
     is( $info->{streams}->[0]->{avg_bitrate}, 53719, 'Average bitrate ok' );
     
-    my $pate = Encode::decode_utf8("pâté");
-    my $ber  = Encode::decode_utf8('ЪЭЯ');
-    my $yc   = Encode::decode_utf8('γζ');
+    SKIP:
+    {
+        skip 'Encode is not available', 3 unless $HAS_ENCODE;
+        my $pate = Encode::decode_utf8("pâté");
+        my $ber  = Encode::decode_utf8('ЪЭЯ');
+        my $yc   = Encode::decode_utf8('γζ');
     
-    is( $tags->{'Latin1 Key'}, $pate, 'Latin1 tag ok' );
-    is( $tags->{'Russian Key'}, $ber, 'Unicode tag ok' );
-    is( $tags->{$ber}, $yc, 'Unicode key/value ok' );
+        is( $tags->{'Latin1 Key'}, $pate, 'Latin1 tag ok' );
+        is( $tags->{'Russian Key'}, $ber, 'Unicode tag ok' );
+        is( $tags->{$ber}, $yc, 'Unicode key/value ok' );
+    }
     
     is( ref $tags->{'WM/Picture'}, 'HASH', 'WM/Picture ok' );
     is( $tags->{'WM/Picture'}->{image_type}, 3, 'WM/Picture type ok' );

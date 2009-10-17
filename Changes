@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.45
+        - Fixed tests to work on old Perls without Encode.
+
 0.44    2009-10-16 22:00:00
         - Bug 14788, ASF: Fixed crasher when reading multiple integer tags.
         - Changed Newx/Newxz calls to use older New/Newz API to support older Perls.

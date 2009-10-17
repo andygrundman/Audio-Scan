@@ -5,7 +5,12 @@ use FindBin ();
 use Test::More tests => 40;
 
 use Audio::Scan;
-use Encode;
+
+my $HAS_ENCODE;
+eval {
+    require Encode;
+    $HAS_ENCODE = 1;
+};
 
 # Basics
 {
@@ -13,11 +18,16 @@ use Encode;
 
     my $info = $s->{info};
     my $tags = $s->{tags};
-    my $utf8 = Encode::decode_utf8('シチヅヲ');
+    
+    SKIP:
+    {
+        skip 'Encode is not available', 1 unless $HAS_ENCODE;
+        my $utf8 = Encode::decode_utf8('シチヅヲ');
+        is($tags->{PERFORMER}, $utf8, 'PERFORMER (UTF8) Tag ok');
+    }
 
     is($tags->{ARTIST}, 'Test Artist', 'ASCII Tag ok');
     is($tags->{YEAR}, 2009, 'Year Tag ok');
-    is($tags->{PERFORMER}, $utf8, 'PERFORMER (UTF8) Tag ok');
     ok($tags->{VENDOR} =~ /Xiph/, 'Vendor ok');
 
     is($info->{bitrate_average}, 12141, 'Bitrate ok');

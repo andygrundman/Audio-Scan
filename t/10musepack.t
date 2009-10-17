@@ -5,7 +5,6 @@ use FindBin ();
 use Test::More tests => 24;
 
 use Audio::Scan;
-use Encode;
 
 # SV7 file with APEv2 tags
 {
