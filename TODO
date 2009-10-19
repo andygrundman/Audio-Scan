@@ -13,6 +13,7 @@ Refactor to remove use of mp3_frameinfo
 
 ID3
 ---
+Bug 8380, Properly merge ID3v2 with ID3v1 tags
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
   2nd value: encoder delay (usually 528)
