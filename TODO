@@ -1,6 +1,7 @@
 General
 -------
-5.8.6 compat if possible
+Switch to stat() instead of using seek+tell to determine file size, some platforms
+may not work right with seek+tell.
 
 MP3
 ---
@@ -28,6 +29,7 @@ Ogg
 ---
 More accurate seeking?
 bug-8922-3707.ogg - does not parse correctly
+Tag-ripped file causes infinite loop
 
 ASF
 ---
