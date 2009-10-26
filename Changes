@@ -3,7 +3,9 @@ Revision history for Audio::Scan
 0.45
         - Fixed FLAC seeking when file has ID3v2 tags.
         - Bug 14883, added audio_size info to WAV and AIFF.
+        - Fixed crash on invalid FLAC picture block.
         - Fixed tests to work on old Perls without Encode.
+        - Max buffer size got accidentally reset to 10M in 0.44.
 
 0.44    2009-10-16 22:00:00
         - Bug 14788, ASF: Fixed crasher when reading multiple integer tags.

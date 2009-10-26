@@ -198,7 +198,9 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       
       case FLAC_TYPE_PICTURE:
         if ( !flac->seeking ) {
-          _flac_parse_picture(flac);
+          if ( !_flac_parse_picture(flac) ) {
+            goto out;
+          }
         }
         else {
           DEBUG_TRACE("  seeking, skipping picture\n");
@@ -706,11 +708,12 @@ _flac_parse_cuesheet(flacinfo *flac)
   my_hv_store( flac->tags, "CUESHEET_BLOCK", newRV_noinc( (SV *)cue ) );
 }
 
-void
+int
 _flac_parse_picture(flacinfo *flac)
 {
   AV *pictures;
   HV *picture = newHV();
+  int ret = 1;
   uint32_t mime_length;
   uint32_t desc_length;
   uint32_t pic_length;
@@ -719,10 +722,24 @@ _flac_parse_picture(flacinfo *flac)
   my_hv_store( picture, "picture_type", newSVuv( buffer_get_int(flac->buf) ) );
   
   mime_length = buffer_get_int(flac->buf);
+  DEBUG_TRACE("  mime_length: %d\n", mime_length);
+  if (mime_length > buffer_len(flac->buf)) {
+    PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
+    ret = 0;
+    goto out;
+  }
+  
   my_hv_store( picture, "mime_type", newSVpvn( buffer_ptr(flac->buf), mime_length ) );
   buffer_consume(flac->buf, mime_length);
   
   desc_length = buffer_get_int(flac->buf);
+  DEBUG_TRACE("  desc_length: %d\n", mime_length);
+  if (desc_length > buffer_len(flac->buf)) {
+    PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
+    ret = 0;
+    goto out;
+  }
+  
   desc = newSVpvn( buffer_ptr(flac->buf), desc_length );
   sv_utf8_decode(desc); // XXX needs test with utf8 desc
   my_hv_store( picture, "description", desc );
@@ -734,6 +751,13 @@ _flac_parse_picture(flacinfo *flac)
   my_hv_store( picture, "color_index", newSVuv( buffer_get_int(flac->buf) ) );
   
   pic_length = buffer_get_int(flac->buf);
+  DEBUG_TRACE("  pic_length: %d\n", pic_length);
+  if (pic_length > buffer_len(flac->buf)) {
+    PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
+    ret = 0;
+    goto out;
+  }
+  
   my_hv_store( picture, "image_data", newSVpvn( buffer_ptr(flac->buf), pic_length ) );
   buffer_consume(flac->buf, pic_length);
   
@@ -754,6 +778,9 @@ _flac_parse_picture(flacinfo *flac)
 
     my_hv_store( flac->tags, "ALLPICTURES", newRV_noinc( (SV *)pictures ) );
   }
+
+out:
+  return ret;
 }
 
 /* CRC-8, poly = x^8 + x^2 + x^1 + x^0, init = 0 */

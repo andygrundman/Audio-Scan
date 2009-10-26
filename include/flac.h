@@ -54,7 +54,7 @@ void _flac_parse_streaminfo(flacinfo *flac);
 void _flac_parse_application(flacinfo *flac, int len);
 void _flac_parse_seektable(flacinfo *flac, int len);
 void _flac_parse_cuesheet(flacinfo *flac);
-void _flac_parse_picture(flacinfo *flac);
+int _flac_parse_picture(flacinfo *flac);
 int _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, off_t high);
 int _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample);
 uint8_t _flac_crc8(const unsigned char *buf, unsigned len);
