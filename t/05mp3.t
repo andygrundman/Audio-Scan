@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 257;
+use Test::More tests => 255;
 
 use Audio::Scan;
 
@@ -827,11 +827,7 @@ eval {
     is( $tags->{REPLAYGAIN_TRACK_GAIN}, '-9.15 dB', 'v2-v1 ID3v2 TXXX ok' );
 }
 
-# Test for is_supported, doesn't really belong here but it'll do
-{
-	is( Audio::Scan->is_supported( _f('v1.mp3') ), 1, 'is_supported on mp3 file ok' );
-	is( Audio::Scan->is_supported( _f('foo.dat') ), 0, 'is_supported on non-audio file ok' );
-}
+# Test for 
 
 sub _f {    
     return catfile( $FindBin::Bin, 'mp3', shift );

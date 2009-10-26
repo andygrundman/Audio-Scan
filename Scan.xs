@@ -256,3 +256,68 @@ CODE:
 }
 OUTPUT:
   RETVAL
+
+SV *
+type_for(char *, SV *suffix)
+CODE:
+{
+  taghandler *hdl = NULL;
+  char *suff = SvPVX(suffix);
+
+  if (suff == NULL || *suff == '\0') {
+    RETVAL = newSV(0);
+  }
+  else {
+    hdl = _get_taghandler(suff);
+    if (hdl == NULL) {
+      RETVAL = newSV(0);
+    }
+    else {
+      RETVAL = newSVpv(hdl->type, 0);
+    }
+  }
+}
+OUTPUT:
+  RETVAL
+
+AV *
+get_types(void)
+CODE:
+{
+  int i;
+
+  RETVAL = newAV();
+  sv_2mortal((SV*)RETVAL);
+  for (i = 0; audio_types[i].type; i++) {
+    av_push(RETVAL, newSVpv(audio_types[i].type, 0));
+  }
+}
+OUTPUT:
+  RETVAL
+
+AV *
+extensions_for(char *, SV *type)
+CODE:
+{
+  int i, j;
+  char *t = SvPVX(type);
+
+  RETVAL = newAV();
+  sv_2mortal((SV*)RETVAL);
+  for (i = 0; audio_types[i].type; i++) {
+#ifdef _MSC_VER
+    if (!stricmp(audio_types[i].type, t)) {
+#else
+    if (!strcasecmp(audio_types[i].type, t)) {
+#endif
+
+      for (j = 0; audio_types[i].suffix[j]; j++) {
+        av_push(RETVAL, newSVpv(audio_types[i].suffix[j], 0));
+      }
+      break;
+
+    }
+  }
+}
+OUTPUT:
+  RETVAL

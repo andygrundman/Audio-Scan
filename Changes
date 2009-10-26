@@ -12,6 +12,7 @@ Revision history for Audio::Scan
         - Fixed bug in Ogg bitrate calculation.
         - Fixed tests to work on old Perls without Encode.
         - Max buffer size got accidentally reset to 10M in 0.44.
+        - Added utility methods: get_types, extensions_for, type_for (Frank Terbeck)
 
 0.44    2009-10-16 22:00:00
         - Bug 14788, ASF: Fixed crasher when reading multiple integer tags.
