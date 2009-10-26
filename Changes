@@ -3,10 +3,10 @@ Revision history for Audio::Scan
 0.45
         - Bug 8380, Read multiple ID3 tags when more than one is found
           in a file, such as ID3v1 + ID3v2.
-        - Fixed MP3 seeking when looking for audio_offset + 1 and
+        - Fixed MP3 find_frame when looking for audio_offset + 1 and
           a Xing TOC is present.  Xing TOC is ignored for this special
           case.
-        - Fixed FLAC seeking when file has ID3v2 tags.
+        - Fixed FLAC find_frame when file has ID3v2 tags.
         - Bug 14883, added audio_size info to WAV and AIFF.
         - Fixed crash on invalid FLAC picture block.
         - Fixed bug in Ogg bitrate calculation.
