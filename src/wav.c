@@ -126,6 +126,7 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
       SV **bitrate;
       
       my_hv_store( info, "audio_offset", newSVuv(offset) );
+      my_hv_store( info, "audio_size", newSVuv(chunk_size) );
       
       // Calculate duration, unless we already know it (i.e. from 'fact')
       if ( !my_hv_fetch( info, "song_length_ms" ) ) {
@@ -354,6 +355,7 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
     // XXX: Are there other large chunks we should ignore?
     if ( !strcmp( chunk_id, "SSND" ) ) {
       my_hv_store( info, "audio_offset", newSVuv(offset) );
+      my_hv_store( info, "audio_size", newSVuv(chunk_size) );
 
       // Seek past data if there are more chunks after it
       if ( file_size > offset + chunk_size ) {

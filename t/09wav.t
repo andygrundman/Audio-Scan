@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 42;
+use Test::More tests => 45;
 
 use Audio::Scan;
 
@@ -14,6 +14,7 @@ use Audio::Scan;
     my $tags = $s->{tags};
     
     is( $info->{audio_offset}, 44, 'Audio offset ok' );
+    is( $info->{audio_size}, 1904, 'Audio size ok' );
     is( $info->{bitrate}, 1411200, 'Bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'Bits/sample ok' );
     is( $info->{block_align}, 4, 'Block align ok' );
@@ -43,6 +44,8 @@ use Audio::Scan;
     
     my $info = $s->{info};
     
+    is( $info->{audio_offset}, 88, '32-bit WAV audio offset ok' );
+    is( $info->{audio_size}, 3808, '32-bit WAV audio size ok' );
     is( $info->{bitrate}, 2822400, '32-bit WAV bitrate ok' );
     is( $info->{bits_per_sample}, 32, '32-bit WAV bits/sample ok' );
     is( $info->{block_align}, 8, '32-bit WAV block align ok' );
