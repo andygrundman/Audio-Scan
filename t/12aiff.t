@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 24;
+use Test::More tests => 25;
 
 use Audio::Scan;
 
