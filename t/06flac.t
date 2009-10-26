@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 56;
+use Test::More tests => 57;
 
 use Audio::Scan;
 
@@ -127,6 +127,12 @@ use Audio::Scan;
 {
     my $offset = Audio::Scan->find_frame( _f('tiny.flac'), 1000 );
     is( $offset, 80872, 'Find frame with seektable near end ok' );
+}
+
+# Find frame in file with ID3
+{
+    my $offset = Audio::Scan->find_frame( _f('id3tagged.flac'), 2000 );
+    is( $offset, 12792, 'Find frame in ID3-tagged file ok' );
 }
 
 {

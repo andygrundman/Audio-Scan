@@ -502,5 +502,9 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
   id3_file_close(pid3file);
 
 out:
+  // Re-open the filehandle
+  PerlIO_close(infile);
+  infile = PerlIO_open(file, "rb");
+
   return err;
 }
