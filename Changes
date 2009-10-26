@@ -1,6 +1,9 @@
 Revision history for Audio::Scan
 
 0.45
+        - Fixed MP3 seeking when looking for audio_offset + 1 and
+          a Xing TOC is present.  Xing TOC is ignored for this special
+          case.
         - Fixed FLAC seeking when file has ID3v2 tags.
         - Bug 14883, added audio_size info to WAV and AIFF.
         - Fixed crash on invalid FLAC picture block.

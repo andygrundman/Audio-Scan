@@ -814,36 +814,40 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
     goto out;
   }
   
+  off_t audio_offset = SvIV( *(my_hv_fetch(info, "audio_offset")) );
+  
   // Use Xing TOC if available
   if ( my_hv_exists(info, "xing_toc") ) {
-    uint8_t percent;
-    uint16_t tv;
-    off_t file_size     = SvIV( *(my_hv_fetch(info, "file_size")) );
-    off_t audio_offset  = SvIV( *(my_hv_fetch(info, "audio_offset")) );
-    AV *xing_toc        = (AV *)SvRV( *(my_hv_fetch(info, "xing_toc")) );
-    uint32_t xing_bytes = SvIV( *(my_hv_fetch(info, "xing_bytes")) );
+    // Don't use Xing TOC if trying to seek to audio_offset + 1, which is special
+    if ( offset != audio_offset + 1 ) {
+      uint8_t percent;
+      uint16_t tv;
+      off_t file_size     = SvIV( *(my_hv_fetch(info, "file_size")) );
+      AV *xing_toc        = (AV *)SvRV( *(my_hv_fetch(info, "xing_toc")) );
+      uint32_t xing_bytes = SvIV( *(my_hv_fetch(info, "xing_bytes")) );
     
-    if (offset >= file_size) {
-      goto out;
+      if (offset >= file_size) {
+        goto out;
+      }
+    
+      percent = (int)((offset * 1.0 / file_size) * 100 + 0.5);
+    
+      if (percent > 99)
+        percent = 99;
+    
+      tv = SvIV( *(av_fetch(xing_toc, percent, 0)) );
+    
+      offset = (tv / 256.0) * xing_bytes;
+    
+      offset += audio_offset;
+    
+      // Don't return offset == audio_offset, because that would be the Xing frame
+      if (offset == audio_offset) {
+        offset += 1;
+      }
+    
+      DEBUG_TRACE("find_frame: using Xing TOC, percent: %d, tv: %d, new offset: %d\n", percent, tv, offset);
     }
-    
-    percent = (int)((offset * 1.0 / file_size) * 100 + 0.5);
-    
-    if (percent > 99)
-      percent = 99;
-    
-    tv = SvIV( *(av_fetch(xing_toc, percent, 0)) );
-    
-    offset = (tv / 256.0) * xing_bytes;
-    
-    offset += audio_offset;
-    
-    // Don't return offset == audio_offset, because that would be the Xing frame
-    if (offset == audio_offset) {
-      offset += 1;
-    }
-    
-    DEBUG_TRACE("find_frame: using Xing TOC, percent: %d, tv: %d, new offset: %d\n", percent, tv, offset);  
   }
   
   PerlIO_seek(infile, offset, SEEK_SET);
