@@ -806,6 +806,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   unsigned int buf_size;
   struct mp3_frameinfo fi;
   int frame_offset = -1;
+  off_t audio_offset;
   HV *info = newHV();
   
   buffer_init(&mp3_buf, BLOCK_SIZE);
@@ -814,7 +815,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
     goto out;
   }
   
-  off_t audio_offset = SvIV( *(my_hv_fetch(info, "audio_offset")) );
+  audio_offset = SvIV( *(my_hv_fetch(info, "audio_offset")) );
   
   // Use Xing TOC if available
   if ( my_hv_exists(info, "xing_toc") ) {
