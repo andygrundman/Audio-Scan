@@ -266,8 +266,6 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     PerlIO_seek(infile, audio_offset - 28, SEEK_SET);
   }
 
-  
-
   if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, avg_buf_size), avg_buf_size) == 0 ) {
     if ( PerlIO_error(infile) ) {
       PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
@@ -309,8 +307,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 
   if ( granule_pos && samplerate ) {
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
-    my_hv_store( info, "song_length_ms", newSViv(length) );
-    my_hv_store( info, "bitrate_average", newSVpvf( "%d", (int)( file_size * 8 ) / ( length / 1000 ) ) );
+    my_hv_store( info, "song_length_ms", newSVuv(length) );
+    my_hv_store( info, "bitrate_average", newSVpvf( "%.0f", ( file_size * 8 ) / ( length * 1.0 / 1000 ) ) );
     
     DEBUG_TRACE("Using granule_pos/samplerate to calculate bitrate/duration\n");
   }

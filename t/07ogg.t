@@ -30,7 +30,7 @@ eval {
     is($tags->{YEAR}, 2009, 'Year Tag ok');
     ok($tags->{VENDOR} =~ /Xiph/, 'Vendor ok');
 
-    is($info->{bitrate_average}, 12141, 'Bitrate ok');
+    is($info->{bitrate_average}, 9887, 'Bitrate ok');
     is($info->{channels}, 2, 'Channels ok');
     is($info->{stereo}, 1, 'Stereo ok');
     is($info->{samplerate}, 44100, 'Sample Rate ok');
@@ -99,7 +99,7 @@ eval {
 
     my $info = $s->{info};
 
-    is($info->{bitrate_average}, 8696, 'Bug1155-2 bitrate ok');
+    is($info->{bitrate_average}, 7415, 'Bug1155-2 bitrate ok');
     is($info->{song_length_ms}, 5864, 'Bug1155-2 duration ok');
 }
 
@@ -118,7 +118,7 @@ eval {
     my $info = $s->{info};
     my $tags = $s->{tags};
     
-    is($info->{bitrate_average}, 682, 'Bug905 bitrate ok');
+    is($info->{bitrate_average}, 681, 'Bug905 bitrate ok');
     is($info->{song_length_ms}, 223484, 'Bug905 song length ok');
     is($tags->{DATE}, '08-05-1998', 'Bug905 date ok');
 }
@@ -135,7 +135,7 @@ eval {
     is($tags->{ARTIST}, 'Test Artist', 'ASCII Tag ok via filehandle');
     is($tags->{YEAR}, 2009, 'Year Tag ok via filehandle');
 
-    is($info->{bitrate_average}, 12141, 'Bitrate ok via filehandle');
+    is($info->{bitrate_average}, 9887, 'Bitrate ok via filehandle');
     
     close $fh;
 }
