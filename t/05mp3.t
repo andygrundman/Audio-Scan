@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 254;
+use Test::More tests => 257;
 
 use Audio::Scan;
 
@@ -812,6 +812,19 @@ eval {
     is( $tags->{TRCK}, '23/26', 'ID3v2.4 corrupt frame TRCK ok' );
     is( $tags->{COMM}->[3], 'Diskapif', 'ID3v2.4 corrupt frame COMM ok' );
     is( length( $tags->{APIC}->[4] ), 33133, 'ID3v2.4 corrupt frame APIC ok' );
+}
+
+# Bug 8380, ID3v2 + ID3v1
+{
+    my $s = Audio::Scan->scan( _f('v2-v1.mp3') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.3.0', 'v2-v1 version ok' );
+    
+    is( $tags->{TPE1}, 'AC/DC', 'v2-v1 ID3v1 TPE1 ok' );
+    is( $tags->{REPLAYGAIN_TRACK_GAIN}, '-9.15 dB', 'v2-v1 ID3v2 TXXX ok' );
 }
 
 # Test for is_supported, doesn't really belong here but it'll do

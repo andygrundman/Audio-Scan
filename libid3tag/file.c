@@ -46,25 +46,6 @@
 # include "tag.h"
 # include "field.h"
 
-struct filetag {
-  struct id3_tag *tag;
-  unsigned long location;
-  id3_length_t length;
-};
-
-struct id3_file {
-  FILE *iofile;
-  enum id3_file_mode mode;
-  char *path;
-
-  int flags;
-
-  struct id3_tag *primary;
-
-  unsigned int ntags;
-  struct filetag *tags;
-};
-
 enum {
   ID3_FILE_FLAG_ID3V1 = 0x0001
 };

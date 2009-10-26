@@ -30,3 +30,4 @@ Patches only in this version:
     debug-trace.patch - Enable trace debug output
     parse-partial.patch - Bug 14705, if we find a bad frame, return frames we've parsed so far instead of
                           ignoring the whole tag.
+    public-file-api.patch - Allow use of filetag and id3_file types. 

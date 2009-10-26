@@ -25,6 +25,8 @@
 # ifndef LIBID3TAG_ID3TAG_H
 # define LIBID3TAG_ID3TAG_H
 
+#include <stdio.h>
+
 #ifdef _MSC_VER
 #include "../include/pstdint.h"
 #else
@@ -249,6 +251,25 @@ enum id3_file_mode {
   ID3_FILE_MODE_READONLY = 0,
   ID3_FILE_MODE_READWRITE,
   ID3_FILE_MODE_READONLY_NOSEEK
+};
+
+struct filetag {
+  struct id3_tag *tag;
+  unsigned long location;
+  id3_length_t length;
+};
+
+struct id3_file {
+  FILE *iofile;
+  enum id3_file_mode mode;
+  char *path;
+
+  int flags;
+
+  struct id3_tag *primary;
+
+  unsigned int ntags;
+  struct filetag *tags;
 };
 
 struct id3_file *id3_file_open(char const *, enum id3_file_mode);

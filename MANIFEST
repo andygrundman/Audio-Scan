@@ -183,6 +183,7 @@ t/mp3/no-tags-vbri-stereo.mp3
 t/mp3/v1-iso-8859-1.mp3
 t/mp3/v1.1.mp3
 t/mp3/v1.mp3
+t/mp3/v2-v1.mp3
 t/mp3/v2.2-itunes81.mp3
 t/mp3/v2.2-mpeg20-xing.mp3
 t/mp3/v2.2-multiple-comm.mp3
