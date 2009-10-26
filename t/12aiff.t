@@ -14,6 +14,7 @@ use Audio::Scan;
     my $tags = $s->{tags};
     
     is( $info->{audio_offset}, 46, 'Audio offset ok' );
+    is( $info->{audio_size}, 1912, 'Audio size ok' );
     is( $info->{bitrate}, 1411200, 'Bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'Bits/sample ok' );
     is( $info->{block_align}, 4, 'Block align ok' );
