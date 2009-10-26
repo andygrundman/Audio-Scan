@@ -69,6 +69,7 @@ libid3tag/msvc++/Makefile.in
 libid3tag/parse.c
 libid3tag/parse.h
 libid3tag/patches/allow-id-space.patch
+libid3tag/patches/debug-trace.patch
 libid3tag/patches/itunes-non-syncsafe.patch
 libid3tag/patches/libid3tag-0.15.1b-64bit-long.patch
 libid3tag/patches/libid3tag-0.15.1b-a_capella.patch
@@ -77,9 +78,13 @@ libid3tag/patches/libid3tag-0.15.1b-fix_overflow.patch
 libid3tag/patches/libid3tag-0.15.1b-tag.patch
 libid3tag/patches/libid3tag-0.15.1b-unknown-encoding.patch
 libid3tag/patches/libid3tag-0.15.1b-utf16.patch
+libid3tag/patches/parse-partial.patch
+libid3tag/patches/public-file-api.patch
 libid3tag/patches/read-no-seek.patch
 libid3tag/patches/seek-after-fdopen.patch
 libid3tag/patches/translate-pic.patch
+libid3tag/patches/utf16-le-default.patch
+libid3tag/patches/v2.3-xsop.patch
 libid3tag/README
 libid3tag/README.patches
 libid3tag/render.c
