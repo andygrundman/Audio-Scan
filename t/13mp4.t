@@ -80,7 +80,7 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 10, 'ALAC song length ok' );
     is( $info->{samplerate}, 44100, 'ALAC samplerate ok' );
     
-    is( $track->{avg_bitrate}, 122700, 'ALAC avg bitrate ok' );
+    is( $track->{avg_bitrate}, 981600, 'ALAC avg bitrate ok' );
     is( $track->{duration}, 10, 'ALAC duration ok' );
     is( $track->{encoding}, 'alac', 'ALAC encoding ok' );
     

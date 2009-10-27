@@ -221,7 +221,7 @@ _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       SV **audio_offset = my_hv_fetch(info, "audio_offset");
       if (audio_offset) {
         uint32_t song_length_ms = SvIV(*entry);
-        uint32_t bitrate = ((file_size - SvIV(*audio_offset) * 1.0) / song_length_ms) * 1000;
+        uint32_t bitrate = _bitrate(file_size - SvIV(*audio_offset), song_length_ms);
       
         my_hv_store( trackinfo, "avg_bitrate", newSVuv(bitrate) );
       }

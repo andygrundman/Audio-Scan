@@ -218,7 +218,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   song_length_ms = SvIV( *( my_hv_fetch(info, "song_length_ms") ) );
   
   if (song_length_ms > 0) {
-    my_hv_store( info, "bitrate", newSVuv(8 * (flac->file_size - flac->audio_offset) / (1. * song_length_ms / 1000) ));
+    my_hv_store( info, "bitrate", newSVuv( _bitrate(flac->file_size - flac->audio_offset, song_length_ms) ) );
   }
   
   my_hv_store( info, "file_size", newSVuv(flac->file_size) );

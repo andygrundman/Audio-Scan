@@ -99,7 +99,7 @@ eval {
 
     my $info = $s->{info};
 
-    is($info->{bitrate_average}, 7415, 'Bug1155-2 bitrate ok');
+    is($info->{bitrate_average}, 7414, 'Bug1155-2 bitrate ok');
     is($info->{song_length_ms}, 5864, 'Bug1155-2 duration ok');
 }
 

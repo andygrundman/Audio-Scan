@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.46
+        - FLAC: Bug 14913, fixed error when calculating bitrate for large files.
+        - MP4: Fixed error in avg_bitrate calculation for ALAC files. 
+
 0.45    2009-10-26 15:00:00
         - Bug 8380, Read multiple ID3 tags when more than one is found
           in a file, such as ID3v1 + ID3v2.

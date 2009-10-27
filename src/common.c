@@ -166,3 +166,9 @@ skip_id3v2(PerlIO* infile) {
 
   return size;
 }
+
+uint32_t
+_bitrate(uint32_t audio_size, uint32_t song_length_ms)
+{
+  return ( (audio_size * 1.0) / song_length_ms ) * 8000;
+}

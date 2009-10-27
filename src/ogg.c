@@ -308,14 +308,14 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   if ( granule_pos && samplerate ) {
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
     my_hv_store( info, "song_length_ms", newSVuv(length) );
-    my_hv_store( info, "bitrate_average", newSVpvf( "%.0f", ( file_size * 8 ) / ( length * 1.0 / 1000 ) ) );
+    my_hv_store( info, "bitrate_average", newSVuv( _bitrate(file_size, length) ) );
     
     DEBUG_TRACE("Using granule_pos/samplerate to calculate bitrate/duration\n");
   }
   else {
     // Use nominal bitrate
     my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
-    my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
+    my_hv_store( info, "bitrate_average", newSVuv(bitrate_nominal) );
     
     DEBUG_TRACE("Using nominal bitrate for average\n");
   }
