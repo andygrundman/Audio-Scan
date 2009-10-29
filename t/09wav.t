@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 45;
+use Test::More tests => 51;
 
 use Audio::Scan;
 
@@ -79,6 +79,20 @@ use Audio::Scan;
     is( $tags->{IGNR}, 'Soundtrack', 'IGNR ok' );
     is( $tags->{INAM}, 'Here Come The ABCs', 'INAM ok' );
     is( $tags->{IPRD}, 'Here Come The Abcs With Tmbg - Original Songs About The Alphabet', 'IPRD ok' );
+}
+
+# Bug 14946, WAV file with INFO tags with trailing nulls
+{
+    my $s = Audio::Scan->scan( _f('wav32-info-nulls.wav') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{IART}, 'Archies, The', 'INFO nulls IART ok' );
+    is( $tags->{ICMT}, 'Gift From Uncle Roddy', 'INFO nulls ICMT ok' );
+    is( $tags->{ICRD}, 1997, 'INFO nulls ICRD ok' );
+    is( $tags->{IGNR}, 'Pop', 'INFO nulls IGNR ok' );
+    is( $tags->{INAM}, 'Tester Bang Shang A Lang', 'INFO nulls INAM ok' );
+    is( $tags->{IPRD}, 'When I Was Young', 'INFO nulls IPRD ok' );
 }
 
 # Bug 14462, WAV file with 18-byte fmt chunk

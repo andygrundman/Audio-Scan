@@ -252,6 +252,7 @@ t/wav/bug14462-wav-bad-data-size.wav
 t/wav/bug14462-wav-fmt.wav
 t/wav/id3.wav
 t/wav/wav32-info-badchunk.wav
+t/wav/wav32-info-nulls.wav
 t/wav/wav32.wav
 tools/bench.pl
 tools/leak.c

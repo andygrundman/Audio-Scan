@@ -258,8 +258,10 @@ _parse_wav_list(Buffer *buf, uint32_t chunk_size, HV *tags)
   else if ( !strcmp( type_id, "INFO" ) ) {
     while ( pos < chunk_size ) {
       uint32_t len;
+      uint32_t nulls = 0;
       SV *key;
       SV *value;
+      unsigned char *bptr;
       
       key = newSVpvn( buffer_ptr(buf), 4 );
       buffer_consume(buf, 4);
@@ -270,21 +272,29 @@ _parse_wav_list(Buffer *buf, uint32_t chunk_size, HV *tags)
       // Bug 12250, apparently some WAV files don't use the padding byte
       // so we can't read them.
       if ( len > chunk_size - pos ) {
-        PerlIO_printf(PerlIO_stderr(), "Invalid data in WAV LIST INFO chunk\n");
+        PerlIO_printf(PerlIO_stderr(), "Invalid data in WAV LIST INFO chunk (len %d > chunk_size - pos %d)\n", len, chunk_size - pos);
         break;
+      }
+      
+      pos += 4 + len;
+      
+      // Bug 14946, Strip any nulls from the end of the value
+      bptr = buffer_ptr(buf);
+      while ( len && bptr[len - 1] == '\0' ) {
+        len--;
+        nulls++;
       }
           
       value = newSVpvn( buffer_ptr(buf), len );
-      buffer_consume(buf, len);
-      pos += 4 + len;
+      buffer_consume(buf, len + nulls);
       
-      DEBUG_TRACE("    %s / %s\n", SvPVX(key), SvPVX(value));
+      DEBUG_TRACE("    %s / %s (%d + %d nulls)\n", SvPVX(key), SvPVX(value), len, nulls);
       
       my_hv_store_ent( tags, key, value );
       SvREFCNT_dec(key);
       
       // Handle padding
-      if ( len % 2 ) {
+      if ( (len + nulls) % 2 ) {
         buffer_consume(buf, 1);
         pos++;
       }
