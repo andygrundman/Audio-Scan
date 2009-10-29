@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 57;
+use Test::More tests => 58;
 
 use Audio::Scan;
 
@@ -133,6 +133,15 @@ use Audio::Scan;
 {
     my $offset = Audio::Scan->find_frame( _f('id3tagged.flac'), 2000 );
     is( $offset, 12792, 'Find frame in ID3-tagged file ok' );
+}
+
+# Find frame in file with ID3 using filehandle
+{
+    open my $fh, '<', _f('id3tagged.flac');
+    my $offset = Audio::Scan->find_frame_fh( flac => $fh, 2000 );
+    close $fh;
+    
+    is( $offset, 12792, 'Find frame via filehandle in ID3-tagged file ok' );
 }
 
 {

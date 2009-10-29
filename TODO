@@ -2,6 +2,8 @@ General
 -------
 Switch to stat() instead of using seek+tell to determine file size, some platforms
 may not work right with seek+tell.
+5.11 support
+Work around 5.6.2 failures
 
 MP3
 ---
@@ -20,6 +22,7 @@ Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/p
   3rd value: encoder padding
   4th value: length in samples of original track
 Support iTunNORM, translate into replay gain values
+ID3v1 comment + COMM are not merged but stacked
 
 FLAC
 ----
