@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.46
+0.46    2009-10-29 14:00:00
         - ID3: Change format of id3_version info field to list all versions of
           tags found in a file.
         - FLAC: Don't parse ID3 tags when using find_frame, in filehandle mode this
