@@ -79,8 +79,6 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     
     DEBUG_TRACE("Found ID3v2 tag of size %d\n", id3_size);
     
-    my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
-    
     flac->audio_offset += id3_size;
             
     // seek past ID3, we will parse it later

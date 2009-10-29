@@ -57,8 +57,6 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
     
     audio_offset += id3_size;
     
-    my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
-    
     DEBUG_TRACE("Found ID3 tag of size %d\n", id3_size);
     
     // Seek past ID3 and clear buffer

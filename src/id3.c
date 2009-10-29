@@ -79,7 +79,7 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
       goto out;
     }
   
-    DEBUG_TRACE("Found %d ID3 frames\n", pid3tag->nframes);
+    DEBUG_TRACE("Found %d ID3 frames (version %d.%d)\n", pid3tag->nframes, ID3_TAG_VERSION_MAJOR(pid3tag->version), ID3_TAG_VERSION_MINOR(pid3tag->version));
 
     index = 0;
     while ((pid3frame = id3_tag_findframe(pid3tag, "", index))) {
@@ -497,14 +497,36 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
       index++;
     }
 
-    // Update id3_version field if we found a v1 tag
-    if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 && !my_hv_fetch( info, "id3_version" ) ) {
-      if (trck_found == 1) {
-        my_hv_store( info, "id3_version", newSVpv( "ID3v1.1", 0 ) );
+    // Set id3_version info element, which contains all tag versions found in order
+    // of priority.
+    {
+      SV *version;
+      
+      if ( pid3tag->options & ID3_TAG_OPTION_ID3V1 ) {
+        if (trck_found == 1) {
+          version = newSVpv( "ID3v1.1", 0 );
+        }
+        else {
+          version = newSVpv( "ID3v1", 0 );
+        }
       }
       else {
-        my_hv_store( info, "id3_version", newSVpv( "ID3v1", 0 ) );
+        version = newSVpvf(
+          "ID3v2.%d.%d",
+          ID3_TAG_VERSION_MAJOR(pid3tag->version),
+          ID3_TAG_VERSION_MINOR(pid3tag->version)
+        );
       }
+      
+      if ( my_hv_exists(info, "id3_version") ) {
+        SV **entry = my_hv_fetch(info, "id3_version");
+        if (entry != NULL) {
+          sv_catpv( version, ", " );
+          sv_catsv( version, *entry );
+        }
+      }
+
+      my_hv_store( info, "id3_version", version );
     }
   }
 

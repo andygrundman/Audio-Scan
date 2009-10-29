@@ -158,9 +158,7 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
         (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
         bptr[3] < 0xff && bptr[4] < 0xff &&
         bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
-      ) {
-        my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
-        
+      ) {        
         // Start parsing ID3 from offset
         parse_id3(infile, file, info, tags, offset);
       }
@@ -382,9 +380,7 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
         (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
         bptr[3] < 0xff && bptr[4] < 0xff &&
         bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
-      ) {
-        my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
-        
+      ) {        
         // Start parsing ID3 from offset
         parse_id3(infile, file, info, tags, offset);
       }

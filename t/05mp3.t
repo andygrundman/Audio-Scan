@@ -445,7 +445,7 @@ eval {
     my $info = $s->{info};
     my $tags = $s->{tags};
     
-    is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 version ok' );
+    is( $info->{id3_version}, 'ID3v2.4.0, ID3v1', 'ID3v2.4 version ok' );
     is( $tags->{TPE1}, 'Artist Name', 'ID3v2.4 artist ok' );
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 title ok' );
     is( $tags->{TALB}, 'Album Name', 'ID3v2.4 album ok' );
@@ -723,7 +723,7 @@ eval {
     my $info = $s->{info};
     my $tags = $s->{tags};
 
-    is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 version ok via filehandle' );
+    is( $info->{id3_version}, 'ID3v2.4.0, ID3v1', 'ID3v2.4 version ok via filehandle' );
     is( $tags->{TPE1}, 'Artist Name', 'ID3v2.4 artist ok via filehandle' );
     is( $tags->{TIT2}, 'Track Title', 'ID3v2.4 title ok via filehandle' );
     
@@ -821,7 +821,7 @@ eval {
     my $info = $s->{info};
     my $tags = $s->{tags};
     
-    is( $info->{id3_version}, 'ID3v2.3.0', 'v2-v1 version ok' );
+    is( $info->{id3_version}, 'ID3v2.3.0, ID3v1', 'v2-v1 version ok' );
     
     is( $tags->{TPE1}, 'AC/DC', 'v2-v1 ID3v1 TPE1 ok' );
     is( $tags->{REPLAYGAIN_TRACK_GAIN}, '-9.15 dB', 'v2-v1 ID3v2 TXXX ok' );

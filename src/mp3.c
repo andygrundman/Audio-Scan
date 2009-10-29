@@ -551,8 +551,6 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       id3_size += 10;
     }
     
-    my_hv_store( info, "id3_version", newSVpvf( "ID3v2.%d.%d", bptr[3], bptr[4] ) );
-    
     DEBUG_TRACE("Found ID3v2.%d.%d tag, size %d\n", bptr[3], bptr[4], id3_size);
 
     // Always seek past the ID3 tags
