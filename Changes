@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.48    2009-11-02 15:40:00
+        - Fixed bug where AUDIO_SCAN_NO_ARTWORK didn't work properly when set to 0.
+
 0.47    2009-11-02 14:00:00
         - If the AUDIO_SCAN_NO_ARTWORK environment variable is set, binary artwork tag
           data is instead replaced by the length of the artwork data.  This can save

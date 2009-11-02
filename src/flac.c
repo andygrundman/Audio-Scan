@@ -754,7 +754,7 @@ _flac_parse_picture(flacinfo *flac)
     goto out;
   }
   
-  if ( getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+  if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
     my_hv_store( picture, "image_data", newSVuv(pic_length) );
   }
   else {

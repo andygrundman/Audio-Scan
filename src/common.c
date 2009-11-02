@@ -197,3 +197,17 @@ _file_size(PerlIO *infile)
   return 0;
 #endif
 }
+
+int
+_env_true(const char *name)
+{
+  char *value;
+  
+  value = getenv(name);
+  
+  if ( value == NULL || value[0] == '0' ) {
+    return 0;
+  }
+  
+  return 1;
+}

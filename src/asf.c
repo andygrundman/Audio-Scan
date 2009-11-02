@@ -1362,7 +1362,7 @@ _parse_picture(Buffer *buf)
   my_hv_store( picture, "description", desc );
   buffer_free(&utf8_buf);
   
-  if ( getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+  if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
     my_hv_store( picture, "image", newSVuv(image_len) );
   }
   else {

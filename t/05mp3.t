@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 257;
+use Test::More tests => 258;
 
 use Audio::Scan;
 
@@ -590,7 +590,18 @@ eval {
     
     my $tags = $s->{tags};
     
-    is( $tags->{APIC}->[4], 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK ok ');
+    is( $tags->{APIC}->[4], 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=1 ok ');
+}
+
+# Test setting AUDIO_SCAN_NO_ARTWORK to 0
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 0;
+    
+    my $s = Audio::Scan->scan( _f('v2.4-apic-jpg.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( length( $tags->{APIC}->[4] ), 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=0 ok' );
 }
 
 # ID3v2.4 with PNG APIC

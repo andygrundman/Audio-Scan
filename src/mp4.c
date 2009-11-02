@@ -1188,7 +1188,7 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
     unsigned char *ckey = (unsigned char *)SvPVX(key);
     SV *value;
     
-    if ( FOURCC_EQ(ckey, "COVR") && getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+    if ( FOURCC_EQ(ckey, "COVR") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
       value = newSVuv(size - 8);
     }
     else {

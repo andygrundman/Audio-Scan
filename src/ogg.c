@@ -360,7 +360,7 @@ _parse_vorbis_comments(Buffer *vorbis_buf, HV *tags, int has_framing)
       !strncasecmp(bptr, "COVERART=", 9)
 #endif
       &&
-      getenv("AUDIO_SCAN_NO_ARTWORK")
+      _env_true("AUDIO_SCAN_NO_ARTWORK")
     ) {
       my_hv_store_ent( tags, newSVpvn("COVERART", 8), newSVuv(len - 9) );
       

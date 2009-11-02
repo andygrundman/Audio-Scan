@@ -453,7 +453,7 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
                 }
                 else {
                   // Avoid reading artwork into memory if requested
-                  if ( !strcmp(pid3frame->id, "APIC") && getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+                  if ( !strcmp(pid3frame->id, "APIC") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
                     av_push( framedata, newSVuv( pid3frame->fields[i].binary.length ) );
                   }
                   else {
