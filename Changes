@@ -4,7 +4,8 @@ Revision history for Audio::Scan
         - If the AUDIO_SCAN_NO_ARTWORK environment variable is set, binary artwork tag
           data is instead replaced by the length of the artwork data.  This can save
           memory when scanning a lot of files with potentially large artwork.
-        - Changed method for determining file size to use stat instead of seek/tell.
+        - Changed method on non-Windows platforms for determining file size to use 
+          stat instead of seek/tell.
 
 0.46    2009-10-29 14:00:00
         - ID3: Change format of id3_version info field to list all versions of
