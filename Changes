@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.47
+0.47    2009-11-02 14:00:00
         - If the AUDIO_SCAN_NO_ARTWORK environment variable is set, binary artwork tag
           data is instead replaced by the length of the artwork data.  This can save
           memory when scanning a lot of files with potentially large artwork.
