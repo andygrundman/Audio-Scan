@@ -15,9 +15,9 @@
  */
  
 // Enable for debug output
-//#define DEBUG
+//#define AUDIO_SCAN_DEBUG
 
-#ifdef DEBUG
+#ifdef AUDIO_SCAN_DEBUG
 # define DEBUG_TRACE(...) PerlIO_printf(PerlIO_stderr(), __VA_ARGS__)
 #else
 # define DEBUG_TRACE(...)

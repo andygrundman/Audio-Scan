@@ -311,7 +311,7 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
     }
     
     if (value != NULL) {
-#ifdef DEBUG
+#ifdef AUDIO_SCAN_DEBUG
       if ( data_type == 0 ) {
         DEBUG_TRACE("  %s / type %d / %s\n", SvPVX(key), data_type, SvPVX(value));
       }
@@ -645,7 +645,7 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
     }
     
     if (value != NULL) {
-#ifdef DEBUG
+#ifdef AUDIO_SCAN_DEBUG
       if ( data_type == 0 ) {
         DEBUG_TRACE("    %s / type %d / stream_number %d / %s\n", SvPVX(key), data_type, stream_number, SvPVX(value));
       }
@@ -917,7 +917,7 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     uint16_t stream_number, name_len, data_type;
     uint32_t data_len;
     
-#ifdef DEBUG
+#ifdef AUDIO_SCAN_DEBUG
     uint16_t lang_index    = buffer_get_short_le(buf);
 #else
     buffer_consume(buf, 2);
@@ -974,7 +974,7 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     }
     
     if (value != NULL) {
-#ifdef DEBUG
+#ifdef AUDIO_SCAN_DEBUG
       if ( data_type == 0 || data_type == 6 ) {
         DEBUG_TRACE("    %s / type %d / lang_index %d / stream_number %d / %s\n", SvPVX(key), data_type, lang_index, stream_number, SvPVX(value));
       }
