@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 256;
+use Test::More tests => 257;
 
 use Audio::Scan;
 
@@ -24,6 +24,7 @@ eval {
     
     is( $info->{layer}, 2, 'MPEG1, Layer 2 ok' );
     is( $info->{bitrate}, 192000, 'MPEG1, Layer 2 bitrate ok' );
+    is( $info->{file_size}, 82756, 'MPEG1, Layer 2 file size ok' );
     is( $info->{samplerate}, 44100, 'MPEG1, Layer 2 samplerate ok' );
 }
 

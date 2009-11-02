@@ -54,18 +54,11 @@ int _ape_parse(ApeTag* tag) {
 int _ape_get_tag_info(ApeTag* tag) {
   int id3_length = 0;
   long data_size = 0;
-  long file_size = 0;
+  off_t file_size = 0;
   unsigned char compare[12];
   unsigned char *tmp_ptr;
   
-  /* Get file size */
-  if (PerlIO_seek(tag->fd, 0, SEEK_END) == -1) {
-    return _ape_error(tag, "Couldn't seek to end of file.", -1);
-  }
-
-  if ((file_size = PerlIO_tell(tag->fd)) == -1) {
-    return _ape_error(tag, "Couldn't tell file size.", -1);
-  } 
+  file_size = _file_size(tag->fd);
   
   /* No ape or id3 tag possible in this size */
   if (file_size < APE_MINIMUM_TAG_SIZE) {

@@ -53,9 +53,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   
   buffer_init(flac->buf, FLAC_BLOCK_SIZE);
   
-  PerlIO_seek(infile, 0, SEEK_END);
-  flac->file_size = PerlIO_tell(infile);
-  PerlIO_seek(infile, 0, SEEK_SET);
+  flac->file_size = _file_size(infile);
   
   if ( !_check_buf(infile, flac->buf, 10, FLAC_BLOCK_SIZE) ) {
     err = -1;

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 41;
+use Test::More tests => 42;
 
 use Audio::Scan;
 
@@ -32,6 +32,7 @@ eval {
 
     is($info->{bitrate_average}, 9887, 'Bitrate ok');
     is($info->{channels}, 2, 'Channels ok');
+    is($info->{file_size}, 4553, 'File size ok' );
     is($info->{stereo}, 1, 'Stereo ok');
     is($info->{samplerate}, 44100, 'Sample Rate ok');
     is($info->{song_length_ms}, 3684, 'Song length ok');

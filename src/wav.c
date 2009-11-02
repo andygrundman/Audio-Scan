@@ -24,9 +24,7 @@ get_wav_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   int err = 0;
   uint32_t chunk_size;
   
-  PerlIO_seek(infile, 0, SEEK_END);
-  file_size = PerlIO_tell(infile);
-  PerlIO_seek(infile, 0, SEEK_SET);
+  file_size = _file_size(infile);
   
   buffer_init(&buf, 0);
   

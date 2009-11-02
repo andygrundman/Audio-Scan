@@ -54,9 +54,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   buffer_init(&ogg_buf, OGG_BLOCK_SIZE);
   buffer_init(&vorbis_buf, 0);
   
-  PerlIO_seek(infile, 0, SEEK_END);
-  file_size = PerlIO_tell(infile);
-  PerlIO_seek(infile, 0, SEEK_SET);
+  file_size = _file_size(infile);
   
   if ( !_check_buf(infile, &ogg_buf, 10, OGG_BLOCK_SIZE) ) {
     err = -1;

@@ -140,9 +140,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
     si->sample_rate       = buffer_get_int_le(&header);
   }
 
-  PerlIO_seek(infile, 0, SEEK_END);
-
-  si->file_size = PerlIO_tell(infile);
+  si->file_size = _file_size(infile);
 
   if (si->sample_rate) {
     double total_samples = (double)(((si->blocks_per_frame * (si->total_frames - 1)) + si->final_frame));

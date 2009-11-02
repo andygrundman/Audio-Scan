@@ -72,3 +72,4 @@ extern int _check_buf(PerlIO *infile, Buffer *buf, int size, int min_size);
 extern void _split_vorbis_comment(char* comment, HV* tags);
 extern int32_t skip_id3v2(PerlIO *infile);
 extern uint32_t _bitrate(uint32_t audio_size, uint32_t song_length_ms);
+extern off_t _file_size(PerlIO *infile);

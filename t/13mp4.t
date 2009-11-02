@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 91;
+use Test::More tests => 92;
 
 use Audio::Scan;
 
@@ -19,6 +19,7 @@ use Audio::Scan;
     is( $info->{compatible_brands}->[1], 'mp42', 'Compatible brand 2 ok' );
     is( $info->{compatible_brands}->[2], 'isom', 'Compatible brand 3 ok' );
     is( $info->{leading_mdat}, undef, 'Leading MDAT flag is blank' );
+    is( $info->{file_size}, 6489, 'File size ok' );
     is( $info->{major_brand}, 'M4A ', 'Major brand ok' );
     is( $info->{minor_version}, 0, 'Minor version ok' );
     is( $info->{song_length_ms}, 69, 'Song length ok' );

@@ -172,3 +172,17 @@ _bitrate(uint32_t audio_size, uint32_t song_length_ms)
 {
   return ( (audio_size * 1.0) / song_length_ms ) * 8000;
 }
+
+off_t
+_file_size(PerlIO *infile)
+{
+  struct stat buf;
+  
+  if ( !fstat( PerlIO_fileno(infile), &buf ) ) {  
+    return buf.st_size;
+  }
+  
+  PerlIO_printf(PerlIO_stderr(), "Unable to stat: %s\n", strerror(errno));
+  
+  return 0;
+}

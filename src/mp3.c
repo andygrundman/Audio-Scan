@@ -523,9 +523,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
   
   buffer_init(mp3->buf, BLOCK_SIZE);
   
-  PerlIO_seek(infile, 0, SEEK_END);
-  file_size = PerlIO_tell(infile);
-  PerlIO_seek(infile, 0, SEEK_SET);
+  file_size = _file_size(infile);
   
   my_hv_store( info, "file_size", newSVuv(file_size) );
 
