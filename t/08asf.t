@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 140;
+use Test::More tests => 141;
 
 use Audio::Scan;
 
@@ -140,6 +140,17 @@ eval {
     is( $tags->{'WM/Picture'}->{image_type}, 3, 'WM/Picture type ok' );
     is( $tags->{'WM/Picture'}->{mime_type}, 'image/jpeg', 'WM/Picture MIME type ok' );
     is( length($tags->{'WM/Picture'}->{image}), 2103, 'WM/Picture length ok' );
+}
+
+# Test ignoring artwork
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('wma92-vbr.wma') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{'WM/Picture'}->{image}, 2103, 'WM/Picture with AUDIO_SCAN_NO_ARTWORK ok' );
 }
 
 # WMA Pro 10 file

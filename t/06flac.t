@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 58;
+use Test::More tests => 59;
 
 use Audio::Scan;
 
@@ -99,6 +99,19 @@ use Audio::Scan;
     is( $pic->{mime_type}, 'image/jpeg', 'MIME type ok' );
     is( $pic->{picture_type}, 3, 'Picture type ok' );
     is( $pic->{width}, 301, 'Width ok' );
+}
+
+# Test ignoring artwork
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('picture.flac') );
+    
+    my $tags = $s->{tags};
+    
+    my $pic = $tags->{ALLPICTURES}->[0];
+    
+    is( $pic->{image_data}, 37175, 'JPEG with AUDIO_SCAN_NO_ARTWORK ok ');
 }
 
 # File with very short duration, make sure bitrate is correct

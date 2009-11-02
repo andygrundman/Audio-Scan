@@ -1364,7 +1364,13 @@ _parse_picture(Buffer *buf)
   my_hv_store( picture, "description", desc );
   buffer_free(&utf8_buf);
   
-  my_hv_store( picture, "image", newSVpvn( buffer_ptr(buf), image_len ) );
+  if ( getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+    my_hv_store( picture, "image", newSVuv(image_len) );
+  }
+  else {
+    my_hv_store( picture, "image", newSVpvn( buffer_ptr(buf), image_len ) );
+  }
+  
   buffer_consume(buf, image_len);
   
   return newRV_noinc( (SV *)picture );

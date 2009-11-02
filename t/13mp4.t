@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 90;
+use Test::More tests => 91;
 
 use Audio::Scan;
 
@@ -140,6 +140,17 @@ use Audio::Scan;
 	my $tags = $s->{tags};
 	
 	is( length( $tags->{COVR} ), 2103, 'Multiple cover art reads first cover ok' );
+}
+
+# Test ignoring artwork
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('multiple-covers.m4a') );
+	
+	my $tags = $s->{tags};
+	
+	is( $tags->{COVR}, 2103, 'COVR with AUDIO_SCAN_NO_ARTWORK ok' );
 }
 
 # File with array keys that are integers, bug 14462

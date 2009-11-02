@@ -756,7 +756,13 @@ _flac_parse_picture(flacinfo *flac)
     goto out;
   }
   
-  my_hv_store( picture, "image_data", newSVpvn( buffer_ptr(flac->buf), pic_length ) );
+  if ( getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+    my_hv_store( picture, "image_data", newSVuv(pic_length) );
+  }
+  else {
+    my_hv_store( picture, "image_data", newSVpvn( buffer_ptr(flac->buf), pic_length ) );
+  }
+  
   buffer_consume(flac->buf, pic_length);
   
   DEBUG_TRACE("  found picture of length %d\n", pic_length);

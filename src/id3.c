@@ -452,8 +452,14 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
                   av_push( framedata, newSVpvf( "%f dB", peak ) );
                 }
                 else {
-                  SV *bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
-                  av_push( framedata, bin );
+                  // Avoid reading artwork into memory if requested
+                  if ( !strcmp(pid3frame->id, "APIC") && getenv("AUDIO_SCAN_NO_ARTWORK") ) {
+                    av_push( framedata, newSVuv( pid3frame->fields[i].binary.length ) );
+                  }
+                  else {
+                    SV *bin = newSVpvn( (char*)pid3frame->fields[i].binary.data, pid3frame->fields[i].binary.length );
+                    av_push( framedata, bin );
+                  }
                 }
 
               default:

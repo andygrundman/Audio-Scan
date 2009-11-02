@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 255;
+use Test::More tests => 256;
 
 use Audio::Scan;
 
@@ -579,6 +579,17 @@ eval {
     is( $tags->{APIC}->[3], 'This is the front cover description', 'ID3v2.4 APIC JPEG description ok' );
     is( length( $tags->{APIC}->[4] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
     is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
+}
+
+# Test AUDIO_SCAN_NO_ARTWORK
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('v2.4-apic-jpg.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{APIC}->[4], 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK ok ');
 }
 
 # ID3v2.4 with PNG APIC
