@@ -48,10 +48,6 @@ typedef struct _GUID {
 
 #include "buffer.h"
 
-#ifdef _MSC_VER
-# define stat _stat
-#endif
-
 /* strlen the length automatically */
 #define my_hv_store(a,b,c)     hv_store(a,b,strlen(b),c,0)
 #define my_hv_store_ent(a,b,c) hv_store_ent(a,b,c,0)
