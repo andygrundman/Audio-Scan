@@ -117,6 +117,7 @@ eval {
 # File with no audio frames, test is rejected properly
 {
     # Hide stderr
+    no strict 'subs';
     no warnings;
     open OLD_STDERR, '>&', STDERR;
     close STDERR;
