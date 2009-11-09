@@ -77,11 +77,11 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   if ( !IsEqualGUID(&hdr.ID, &ASF_Header_Object) ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF header: %s\n", file);
-    PerlIO_printf(PerlIO_stderr(),"  Expecting: ", );
+    PerlIO_printf(PerlIO_stderr(), "  Expecting: ");
       print_guid(ASF_Header_Object); 
-    PerlIO_printf(PerlIO_stderr(),"\n        Got: ");
+    PerlIO_printf(PerlIO_stderr(), "\n        Got: ");
       print_guid(hdr.ID);
-    PerlIO_printf(PerlIO_stderr(),"\n");
+    PerlIO_printf(PerlIO_stderr(), "\n");
     err = -1;
     goto out;
   }
