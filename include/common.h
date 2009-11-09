@@ -36,7 +36,7 @@ typedef struct _GUID {
   uint16_t Data2;
   uint16_t Data3;
   uint8_t  Data4[8];
-} GUID;
+} _PACKED GUID;
 #endif
 
 /* for PRIu64 */
