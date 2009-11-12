@@ -40,7 +40,6 @@ typedef struct mp4info {
   HV *info;
   HV *tags;
   uint32_t current_track;
-  uint8_t need_calc_bitrate;
   uint8_t seen_moov;
   
   // Data structures used to support seeking

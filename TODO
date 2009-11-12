@@ -38,7 +38,7 @@ Refactor a bit
 
 MP4/AAC
 -------
-HD-AAC bitrate is wrong?
+HD-AAC sample size is wrong for 24-bit files
 A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
 correct offsets, etc.  Possibly also rewrite duration info.
 
