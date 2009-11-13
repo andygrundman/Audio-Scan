@@ -26,8 +26,6 @@
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #endif
 
-#define BITCACHE_SIZE 32
-
 typedef struct {
   u_char  *buf;   /* Buffer for data. */
   u_int  alloc;   /* Number of bytes allocated for data. */
