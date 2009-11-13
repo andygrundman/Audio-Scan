@@ -203,7 +203,7 @@ _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   
   while ( (box_size = _mp4_read_box(mp4)) > 0 ) {
     mp4->audio_offset += box_size;
-    DEBUG_TRACE("read box of size %d / audio_offset %d\n", box_size, mp4->audio_offset);
+    DEBUG_TRACE("read box of size %d / audio_offset %llu\n", box_size, mp4->audio_offset);
     
     if (mp4->audio_offset >= file_size)
       break;
@@ -268,7 +268,7 @@ _mp4_read_box(mp4info *mp4)
   
   mp4->size = size;
   
-  DEBUG_TRACE("%s size %d\n", type, size);
+  DEBUG_TRACE("%s size %llu\n", type, size);
   
   if ( FOURCC_EQ(type, "ftyp") ) {
     if ( !_mp4_parse_ftyp(mp4) ) {
@@ -446,7 +446,7 @@ _mp4_read_box(mp4info *mp4)
       PerlIO_seek(mp4->infile, mp4->rsize - buffer_len(mp4->buf), SEEK_CUR);
       buffer_clear(mp4->buf);
       
-      DEBUG_TRACE("  seeked to %d\n", PerlIO_tell(mp4->infile));
+      DEBUG_TRACE("  seeked to %d\n", (int)PerlIO_tell(mp4->infile));
     }
   }
   
@@ -1054,7 +1054,7 @@ _mp4_parse_ilst(mp4info *mp4)
       return 0;
     }
     
-    DEBUG_TRACE("  ilst rsize %d\n", mp4->rsize);
+    DEBUG_TRACE("  ilst rsize %llu\n", mp4->rsize);
     
     // Read Apple annotation box
     size = buffer_get_int(mp4->buf);

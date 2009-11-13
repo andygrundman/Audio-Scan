@@ -135,7 +135,7 @@ _mpc_read_header_sv8(mpc_streaminfo *si)
     _mpc_bits_get_size(si->buf, &size);
     size -= 3;
     
-    DEBUG_TRACE("%c%c block, size %d\n", bptr[0], bptr[1], size);
+    DEBUG_TRACE("%c%c block, size %llu\n", bptr[0], bptr[1], size);
     
     if ( !_check_buf(si->infile, si->buf, size, MPC_BLOCK_SIZE) ) {
       return -1;

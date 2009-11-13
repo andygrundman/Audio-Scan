@@ -319,7 +319,7 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
         DEBUG_TRACE("  %s / type %d / %s\n", SvPVX(key), data_type, SvPVX(value));
       }
       else if ( data_type > 1 ) {
-        DEBUG_TRACE("  %s / type %d / %d\n", SvPVX(key), data_type, SvIV(value));
+        DEBUG_TRACE("  %s / type %d / %d\n", SvPVX(key), data_type, (int)SvIV(value));
       }
       else {
         DEBUG_TRACE("  %s / type %d / <binary>\n", SvPVX(key), data_type);
@@ -549,7 +549,7 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
       _parse_metadata(buf, info, tags);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Extended_Stream_Properties) ) {
-      DEBUG_TRACE("  Extended_Stream_Properties size %d\n", hdr_size);
+      DEBUG_TRACE("  Extended_Stream_Properties size %llu\n", hdr_size);
       _parse_extended_stream_properties(buf, hdr_size, info, tags);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Language_List) ) {
@@ -653,7 +653,7 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
         DEBUG_TRACE("    %s / type %d / stream_number %d / %s\n", SvPVX(key), data_type, stream_number, SvPVX(value));
       }
       else if ( data_type > 1 ) {
-        DEBUG_TRACE("    %s / type %d / stream_number %d / %d\n", SvPVX(key), data_type, stream_number, SvIV(value));
+        DEBUG_TRACE("    %s / type %d / stream_number %d / %d\n", SvPVX(key), data_type, stream_number, (int)SvIV(value));
       }
       else {
         DEBUG_TRACE("    %s / type %d / stream_number %d / <binary>\n", SvPVX(key), stream_number, data_type);
@@ -757,7 +757,7 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   
   if (len) {
     // Anything left over means we have an embedded Stream Properties Object
-    DEBUG_TRACE("      embedded Stream_Properties, size %d\n", len);
+    DEBUG_TRACE("      embedded Stream_Properties, size %llu\n", len);
     buffer_consume(buf, 24);
     _parse_stream_properties(buf, info, tags);
   }
@@ -982,7 +982,7 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
         DEBUG_TRACE("    %s / type %d / lang_index %d / stream_number %d / %s\n", SvPVX(key), data_type, lang_index, stream_number, SvPVX(value));
       }
       else if ( data_type > 1 ) {
-        DEBUG_TRACE("    %s / type %d / lang_index %d / stream_number %d / %d\n", SvPVX(key), data_type, lang_index, stream_number, SvIV(value));
+        DEBUG_TRACE("    %s / type %d / lang_index %d / stream_number %d / %d\n", SvPVX(key), data_type, lang_index, stream_number, (int)SvIV(value));
       }
       else {
         DEBUG_TRACE("    %s / type %d / lang_index %d / stream_number %d / <binary>\n", SvPVX(key), lang_index, stream_number, data_type);
@@ -1410,7 +1410,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
   
   // Double-check above packet, make sure we have the right one
   // with a timestamp within our desired range
-  DEBUG_TRACE("Looking for packet with timestamp %d (total packets %d)\n", offset, data_packets);
+  DEBUG_TRACE("Looking for packet with timestamp %d (total packets %llu)\n", offset, data_packets);
   
   while ( count < 10 ) {
     int time, duration;

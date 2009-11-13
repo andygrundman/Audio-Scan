@@ -250,7 +250,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
   
   // Determine target sample we're looking for
   target_sample = ((offset - 1) / 10) * (samplerate / 100);
-  DEBUG_TRACE("Looking for target sample %d\n", target_sample);
+  DEBUG_TRACE("Looking for target sample %llu\n", target_sample);
   
   if (flac->num_seekpoints) {
     // Use seektable to find seek point
@@ -330,7 +330,7 @@ _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, of
   while (low <= high) {
     mid = low + ((high - low) / 2);
   
-    DEBUG_TRACE("  Searching for sample %d between %d and %d (mid %d)\n", target_sample, low, high, mid);
+    DEBUG_TRACE("  Searching for sample %llu between %d and %d (mid %d)\n", target_sample, (int)low, (int)high, (int)mid);
   
     PerlIO_seek(flac->infile, mid, SEEK_SET);
       
@@ -355,7 +355,7 @@ _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, of
       break;
     }
     
-    DEBUG_TRACE("  first_sample %ld, last_sample %ld\n", first_sample, last_sample);
+    DEBUG_TRACE("  first_sample %llu, last_sample %llu\n", first_sample, last_sample);
     
     if (first_sample <= target_sample && last_sample >= target_sample) {
       // found frame
@@ -365,11 +365,11 @@ _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, of
   
     if (target_sample < first_sample) {
       high = mid - 1;
-      DEBUG_TRACE("  high = %d\n", high);
+      DEBUG_TRACE("  high = %d\n", (int)high);
     }
     else {
       low = mid + 1;
-      DEBUG_TRACE("  low = %d\n", low);
+      DEBUG_TRACE("  low = %d\n", (int)low);
     }
     
     buffer_clear(&buf);
@@ -586,7 +586,7 @@ _flac_parse_seektable(flacinfo *flac, int len)
     flac->seekpoints[i].frame_samples = buffer_get_short(flac->buf);
     
     DEBUG_TRACE(
-      "  sample_number %ld stream_offset %ld frame_samples %d\n",
+      "  sample_number %llu stream_offset %llu frame_samples %d\n",
       flac->seekpoints[i].sample_number,
       flac->seekpoints[i].stream_offset,
       flac->seekpoints[i].frame_samples
@@ -641,7 +641,7 @@ _flac_parse_cuesheet(flacinfo *flac)
     
     num_index = (uint8_t)buffer_get_char(flac->buf);
     
-    DEBUG_TRACE("    track %d: offset %ld, type %d, pre %d, num_index %d\n", tracknum, track_offset, type, pre, num_index);
+    DEBUG_TRACE("    track %d: offset %llu, type %d, pre %d, num_index %d\n", tracknum, track_offset, type, pre, num_index);
     
     if (tracknum > 0 && tracknum < 100) {
       av_push( cue, newSVpvf("  TRACK %02u %s\n",
@@ -664,7 +664,7 @@ _flac_parse_cuesheet(flacinfo *flac)
       uint8_t index_num = (uint8_t)buffer_get_char(flac->buf);
       buffer_consume(flac->buf, 3);
       
-      DEBUG_TRACE("      index %d, offset %ld\n", index_num, index_offset);
+      DEBUG_TRACE("      index %d, offset %llu\n", index_num, index_offset);
       
       index = newSVpvf("    INDEX %02u ", index_num);
       

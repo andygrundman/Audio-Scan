@@ -140,8 +140,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       PerlIO_printf(PerlIO_stderr(), "Missing page(s) in Ogg file: %s\n", file);
     }
     
-    DEBUG_TRACE("OggS page %d / packet %d at %d\n", pagenum, packets, audio_offset - 28);
-    DEBUG_TRACE("  granule_pos: %lu\n", granule_pos);
+    DEBUG_TRACE("OggS page %d / packet %d at %d\n", pagenum, packets, (int)(audio_offset - 28));
+    DEBUG_TRACE("  granule_pos: %llu\n", granule_pos);
     
     // If the granule_pos > 0, we have reached the end of headers and
     // this is the first audio page
@@ -256,11 +256,11 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   // calculate average bitrate and duration
   avg_buf_size = blocksize_0 * 2;
   if ( file_size > avg_buf_size ) {
-    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", file_size - avg_buf_size);
+    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", (int)(file_size - avg_buf_size));
     PerlIO_seek(infile, file_size - avg_buf_size, SEEK_SET);
   }
   else {
-    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", audio_offset - 28);
+    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", (int)(audio_offset - 28));
     PerlIO_seek(infile, audio_offset - 28, SEEK_SET);
   }
 

@@ -49,7 +49,7 @@ _has_ape(PerlIO *infile)
     goto out;
   }
   
-  DEBUG_TRACE("Seeked to %d looking for APE tag\n", PerlIO_tell(infile));
+  DEBUG_TRACE("Seeked to %d looking for APE tag\n", (int)PerlIO_tell(infile));
   
   // Bug 9942, read 136 bytes so we can check at -32 bytes in case file
   // does not have an ID3v1 tag
@@ -586,7 +586,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       bptr = buffer_ptr(mp3->buf);
     }
     
-    DEBUG_TRACE("Found FF sync at offset %d\n", audio_offset);
+    DEBUG_TRACE("Found FF sync at offset %d\n", (int)audio_offset);
     
     // Make sure we have 4 bytes
     if ( !_check_buf(mp3->infile, mp3->buf, 4, BLOCK_SIZE) ) {
@@ -663,7 +663,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
   if ( !bitrate ) {    
-    DEBUG_TRACE("Calculating average bitrate starting from %d...\n", audio_offset);
+    DEBUG_TRACE("Calculating average bitrate starting from %d...\n", (int)audio_offset);
     bitrate = _mp3_get_average_bitrate(mp3, audio_offset, audio_size);
 
     if (bitrate <= 0) {
