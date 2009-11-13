@@ -785,23 +785,47 @@ _mp4_parse_esds(mp4info *mp4)
   // 5 bits, if 0x1F, read 6 more bits
   len = _mp4_descr_length(mp4->buf);
   if (len > 0) {
-    uint32_t aot;
-    uint32_t tmp = buffer_get_char(mp4->buf);
-    len--;
+    len *= 8; // count the number of bits left
     
-    aot = (tmp >> 3) & 0x1F;
+    uint32_t aot = buffer_get_bits(mp4->buf, 5);
+    len -= 5;
     
-    if ( aot == 0x1F ) {
-      uint32_t tmp2 = (tmp << 8) | buffer_get_char(mp4->buf);
-      len--;
+    if ( aot == 0x1F ) {      
+      aot = 32 + buffer_get_bits(mp4->buf, 6);
+      len -= 6;
+    }
+    
+    // samplerate: 4 bits
+    //   if 0xF, samplerate is next 24 bits
+    //   else lookup in samplerate table
+    {
+      uint32_t samplerate = buffer_get_bits(mp4->buf, 4);
+      len -= 4;
       
-      aot = 32 + ( (tmp2 >> 5) & 0x3F );
+      if ( samplerate != 0xF ) {
+        // Don't worry about the extended samplerate (24 bits) for now
+        samplerate = samplerate_table[samplerate];
+        my_hv_store( trackinfo, "samplerate", newSVuv(samplerate) );
+        
+        // skip channel configuration (4 bits)
+        buffer_get_bits(mp4->buf, 4);
+        len -= 4;
+        
+        if ( aot == 37 ) {
+          // Read some SLS-specific config
+          // bits per sample (3 bits) { 8, 16, 20, 24 }
+          uint8_t bps = buffer_get_bits(mp4->buf, 3);
+          len -= 3;
+          
+          my_hv_store( trackinfo, "bits_per_sample", newSVuv( bps_table[bps] ) );
+        }
+      }
     }
     
     my_hv_store( trackinfo, "audio_object_type", newSVuv(aot) );
     
     // Skip rest of box
-    buffer_consume(mp4->buf, len);
+    buffer_get_bits(mp4->buf, len);
   }
   
   // verify SL config descriptor type tag

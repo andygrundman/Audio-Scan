@@ -35,6 +35,8 @@ buffer_init(Buffer *buffer, uint32_t len)
   buffer->alloc = len;
   buffer->offset = 0;
   buffer->end = 0;
+  buffer->cache = 0;
+  buffer->ncached = 0;
 }
 
 /* Frees any memory used for the buffer. */
@@ -59,6 +61,8 @@ buffer_clear(Buffer *buffer)
 {
   buffer->offset = 0;
   buffer->end = 0;
+  buffer->cache = 0;
+  buffer->ncached = 0;
 }
 
 /* Appends data to the buffer, expanding it if necessary. */
@@ -747,3 +751,32 @@ buffer_get_ieee_float(Buffer *buffer)
   else
     return f;
 }
+
+// Warnings:
+// Do not request more than 32 bits at a time.
+// Be careful if using other buffer functions without reading a multiple of 8 bits.
+uint32_t
+buffer_get_bits(Buffer *buffer, uint32_t bits)
+{
+  uint32_t mask = CacheMask[bits];
+  
+  //PerlIO_printf(PerlIO_stderr(), "get_bits(%d), in cache %d\n", bits, buffer->ncached);
+  
+  while (buffer->ncached < bits) {
+    // Need to read more data
+     
+    //PerlIO_printf(PerlIO_stderr(), "reading: ");
+    //buffer_dump(buffer, 1);
+    
+    buffer->cache = (buffer->cache << 8) | buffer_get_char(buffer);
+    buffer->ncached += 8;
+  }
+  
+  buffer->ncached -= bits;
+  
+  //PerlIO_printf(PerlIO_stderr(), "cache %x, ncached %d\n", buffer->cache, buffer->ncached);
+  //PerlIO_printf(PerlIO_stderr(), "return %x\n", (buffer->cache >> buffer->ncached) & mask);
+  
+  return (buffer->cache >> buffer->ncached) & mask;
+}
+  

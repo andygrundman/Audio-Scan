@@ -3,6 +3,7 @@ General
 5.11 support
 5.6 support?
 Large buffers will still be allocated with artwork disabled, possible to fix any of these cases?
+Clean up various code by using buffer_get_bits
 
 MP3
 ---

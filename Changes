@@ -4,6 +4,7 @@ Revision history for Audio::Scan
         - MP4: API change, avg_bitrate is now returned in the top-level info hash, not
           on a per-track basis.  This fixes some issues where tracks do not have an
           average bitrate value.
+        - MP4: Read correct bits_per_sample value for secondary SLS track.
 
 0.49    2009-11-09 09:00:00
         - Bug 15074, Fixed ASF GUID struct issues on some platforms.
