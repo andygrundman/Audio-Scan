@@ -785,9 +785,11 @@ _mp4_parse_esds(mp4info *mp4)
   // 5 bits, if 0x1F, read 6 more bits
   len = _mp4_descr_length(mp4->buf);
   if (len > 0) {
+    uint32_t aot;
+    
     len *= 8; // count the number of bits left
     
-    uint32_t aot = buffer_get_bits(mp4->buf, 5);
+    aot = buffer_get_bits(mp4->buf, 5);
     len -= 5;
     
     if ( aot == 0x1F ) {      
