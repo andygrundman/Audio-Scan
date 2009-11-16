@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.51    2009-11-16 15:10:00
+        - Fixed compilation error under Windows.
+
 0.50    2009-11-12 22:00:00
         - MP4: API change, avg_bitrate is now returned in the top-level info hash, not
           on a per-track basis.  This fixes some issues where tracks do not have an
