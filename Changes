@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.52
+        - Bug 15115, ignore ID3 LINK frame data in latin1 list type.
+
 0.51    2009-11-16 15:10:00
         - Fixed compilation error under Windows.
 

@@ -363,15 +363,18 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
             
               // ID3_FIELD_TYPE_LATIN1FULL - not used
             
-              case ID3_FIELD_TYPE_LATIN1LIST: // XXX untested, LINK frame
-                nstrings = id3_field_getnstrings(&pid3frame->fields[i]);
+              case ID3_FIELD_TYPE_LATIN1LIST: // LINK frame, skipped for now
+                DEBUG_TRACE("    skipping, latin1list not supported\n");
+                /*
+                nstrings = pid3frame->fields[i].latin1list.nstrings;
                 if (nstrings > 1) {
                   // XXX, turn into an arrayref
                   PerlIO_printf(PerlIO_stderr(), "LATIN1LIST, %d strings\n", nstrings );
                 }
                 else {
-                  av_push( framedata, newSVpv( (char*)pid3frame->fields[i].latin1list.strings[0], 0 ) );
+                  av_push( framedata, newSVpv( (char *)pid3frame->fields[i].latin1list.strings[0], 0 ) );
                 }
+                */
                 break;
             
               case ID3_FIELD_TYPE_STRING:

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 258;
+use Test::More tests => 261;
 
 use Audio::Scan;
 
@@ -849,6 +849,17 @@ eval {
     
     is( $tags->{TPE1}, 'AC/DC', 'v2-v1 ID3v1 TPE1 ok' );
     is( $tags->{REPLAYGAIN_TRACK_GAIN}, '-9.15 dB', 'v2-v1 ID3v2 TXXX ok' );
+}
+
+# Bug 15115, LINK frame, data will be wrong but shouldn't crash
+{
+    my $s = Audio::Scan->scan( _f('v2.3-link-frame.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TALB}, 'Bob Marley & Peter Tosh', 'ID3v2.3 LINK frame TALB ok' );
+    is( ref $tags->{LINK}, 'ARRAY', 'ID3v2.3 LINK frame is array' );
+    is( $tags->{LINK}->[0], 'WCOh', 'ID3v2.3 LINK frame string ok' );
 }
 
 # Test for 
