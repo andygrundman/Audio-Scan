@@ -66,7 +66,7 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   file_size = _file_size(infile);
   
-  buffer_init(&asf_buf, 0);
+  buffer_init(&asf_buf, ASF_BLOCK_SIZE);
   
   if ( !_check_buf(infile, &asf_buf, 30, ASF_BLOCK_SIZE) ) {
     err = -1;
@@ -1471,7 +1471,7 @@ _timestamp(PerlIO *infile, int offset, int *duration)
   
   PerlIO_seek(infile, offset, SEEK_SET);
   
-  buffer_init(&asf_buf, 0);
+  buffer_init(&asf_buf, 64);
   
   if ( !_check_buf(infile, &asf_buf, 64, 64) ) {
     goto out;

@@ -26,7 +26,7 @@ get_wav_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   file_size = _file_size(infile);
   
-  buffer_init(&buf, 0);
+  buffer_init(&buf, WAV_BLOCK_SIZE);
   
   if ( !_check_buf(infile, &buf, 12, WAV_BLOCK_SIZE) ) {
     err = -1;
