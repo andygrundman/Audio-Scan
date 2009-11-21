@@ -36,6 +36,10 @@ buffer_init(Buffer *buffer, uint32_t len)
   buffer->end = 0;
   buffer->cache = 0;
   buffer->ncached = 0;
+
+#ifdef AUDIO_SCAN_DEBUG
+  fprintf(stderr, "Buffer allocated with %d bytes\n", len);
+#endif
 }
 
 /* Frees any memory used for the buffer. */
@@ -45,7 +49,7 @@ buffer_free(Buffer *buffer)
 {
   if (buffer->alloc > 0) {
 #ifdef AUDIO_SCAN_DEBUG
-    fprintf(stderr, "** Buffer high water mark: %d\n", buffer->alloc);
+    fprintf(stderr, "Buffer high water mark: %d\n", buffer->alloc);
 #endif
     memset(buffer->buf, 0, buffer->alloc);
     buffer->alloc = 0;
@@ -117,7 +121,7 @@ buffer_append_space(Buffer *buffer, uint32_t len)
 
 restart:
   /* If there is enough space to store all data, store it now. */
-  if (buffer->end + len < buffer->alloc) {
+  if (buffer->end + len <= buffer->alloc) {
     p = buffer->buf + buffer->end;
     buffer->end += len;
     return p;
