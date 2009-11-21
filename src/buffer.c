@@ -89,6 +89,9 @@ buffer_compact(Buffer *buffer)
    * data to the beginning.
    */
   if (buffer->offset > MIN(buffer->alloc, BUFFER_MAX_CHUNK)) {
+#ifdef AUDIO_SCAN_DEBUG
+    fprintf(stderr, "Buffer compacting (%d -> %d)\n", buffer->offset + buffer_len(buffer), buffer_len(buffer));
+#endif
     Move(buffer->buf + buffer->offset, buffer->buf, (int)(buffer->end - buffer->offset), u_char);
     buffer->end -= buffer->offset;
     buffer->offset = 0;

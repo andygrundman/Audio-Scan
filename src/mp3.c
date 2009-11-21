@@ -43,8 +43,6 @@ _has_ape(PerlIO *infile)
   uint8_t ret = 0;
   char *bptr;
   
-  buffer_init(&buf, 8);
-  
   if ( (PerlIO_seek(infile, -160, SEEK_END)) == -1 ) {
     goto out;
   }
@@ -53,6 +51,7 @@ _has_ape(PerlIO *infile)
   
   // Bug 9942, read 136 bytes so we can check at -32 bytes in case file
   // does not have an ID3v1 tag
+  buffer_init(&buf, 136);
   if ( !_check_buf(infile, &buf, 136, 136) ) {
     goto out;
   }
@@ -234,7 +233,8 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
   PerlIO_seek(mp3->infile, offset, SEEK_SET);
   
   while ( done < audio_size - 4 ) {
-    if ( !_check_buf(mp3->infile, mp3->buf, 4, 65536) ) {
+    // Buffer size is optimized for a possible common case: 20 frames of 192kbps CBR
+    if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE * 3) ) {
       err = -1;
       goto out;
     }
@@ -319,7 +319,7 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
   int xing_flags;
   unsigned char *bptr;
   
-  if ( !_check_buf(mp3->infile, mp3->buf, 160 + pfi->xing_offset, BLOCK_SIZE) ) {
+  if ( !_check_buf(mp3->infile, mp3->buf, 160 + pfi->xing_offset, MP3_BLOCK_SIZE) ) {
     return 0;
   }
   
@@ -521,7 +521,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
   mp3->file   = file;
   mp3->info   = info;
   
-  buffer_init(mp3->buf, BLOCK_SIZE);
+  buffer_init(mp3->buf, MP3_BLOCK_SIZE);
   
   file_size = _file_size(infile);
   
@@ -529,7 +529,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
 
   memset((void*)&fi, 0, sizeof(fi));
   
-  if ( !_check_buf(mp3->infile, mp3->buf, 10, BLOCK_SIZE) ) {
+  if ( !_check_buf(mp3->infile, mp3->buf, 10, MP3_BLOCK_SIZE) ) {
     err = -1;
     goto out;
   }
@@ -556,7 +556,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
     
     PerlIO_seek(infile, id3_size, SEEK_SET);
     
-    if ( !_check_buf(mp3->infile, mp3->buf, 4, BLOCK_SIZE) ) {
+    if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
       err = -1;
       goto out;
     }
@@ -576,7 +576,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       audio_offset++;
 
       if ( !buffer_len(mp3->buf) ) {
-        if ( !_check_buf(mp3->infile, mp3->buf, 4, BLOCK_SIZE) ) {
+        if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
           PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
           err = -1;
           goto out;
@@ -589,7 +589,7 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
     DEBUG_TRACE("Found FF sync at offset %d\n", (int)audio_offset);
     
     // Make sure we have 4 bytes
-    if ( !_check_buf(mp3->infile, mp3->buf, 4, BLOCK_SIZE) ) {
+    if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
       err = -1;
       goto out;
     }
@@ -805,7 +805,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   off_t audio_offset;
   HV *info = newHV();
   
-  buffer_init(&mp3_buf, BLOCK_SIZE);
+  buffer_init(&mp3_buf, MP3_BLOCK_SIZE);
   
   if ( (get_mp3fileinfo(infile, file, info)) != 0 ) {
     goto out;
@@ -849,7 +849,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   
   PerlIO_seek(infile, offset, SEEK_SET);
 
-  if ( !_check_buf(infile, &mp3_buf, 4, BLOCK_SIZE) ) {
+  if ( !_check_buf(infile, &mp3_buf, 4, MP3_BLOCK_SIZE) ) {
     goto out;
   }
   
@@ -871,7 +871,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   }
   
   if (buf_size >= 4) {
-    frame_offset = offset + BLOCK_SIZE - buf_size;
+    frame_offset = offset + MP3_BLOCK_SIZE - buf_size;
     DEBUG_TRACE("find_frame: frame_offset: %d\n", frame_offset);
   }
 

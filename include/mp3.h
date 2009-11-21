@@ -19,7 +19,7 @@
 #define free(ptr) Safefree(ptr)
 #endif
 
-#define BLOCK_SIZE   4096
+#define MP3_BLOCK_SIZE 4096
 
 #define XING_FRAMES  0x01
 #define XING_BYTES   0x02
