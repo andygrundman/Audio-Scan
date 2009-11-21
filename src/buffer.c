@@ -27,8 +27,7 @@
 void
 buffer_init(Buffer *buffer, uint32_t len)
 {
-  if (!len)
-    len = 4096;
+  if (!len) len = BUFFER_ALLOCSZ;
 
   buffer->alloc = 0;
   New(0, buffer->buf, (int)len, u_char);
