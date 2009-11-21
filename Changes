@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.53
+        - Fixed Win32 compile issue.
+
 0.52    2009-11-20 23:30:00
         - Bug 15115, ignore ID3 LINK frame data in latin1 list type.
         - libid3tag: Avoid wasting memory when AUDIO_SCAN_NO_ARTWORK is set and we're

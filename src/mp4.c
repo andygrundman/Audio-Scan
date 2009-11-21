@@ -1069,13 +1069,15 @@ _mp4_parse_ilst(mp4info *mp4)
       }
     }
     else {
+      uint32_t bsize;
+      
       // Ensure we have 8 bytes
       if ( !_check_buf(mp4->infile, mp4->buf, 8, MP4_BLOCK_SIZE) ) {
         return 0;
       }
       
       // Verify data box
-      uint32_t bsize = buffer_get_int(mp4->buf);
+      bsize = buffer_get_int(mp4->buf);
       
       DEBUG_TRACE("    box size %d\n", bsize);
       
