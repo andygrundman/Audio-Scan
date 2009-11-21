@@ -260,7 +260,7 @@ int parse_data(struct id3_frame *frame,
   end = data + length;
 
   for (i = 0; i < frame->nfields; ++i) {
-    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding) == -1)
+    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding, frame) == -1)
       return -1;
   }
 

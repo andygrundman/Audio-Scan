@@ -151,7 +151,7 @@ int translate_TCON(struct id3_frame *frame, char const *oldid,
 
   end = data + length;
 
-  if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding) == -1)
+  if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding, frame) == -1)
     goto fail;
 
   string = id3_parse_string(&data, end - data, encoding, 0);
@@ -214,7 +214,7 @@ int translate_APIC(struct id3_frame *frame, char const *oldid,
       frame->fields[i].type = ID3_FIELD_TYPE_LANGUAGE;
     }
 
-    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding) == -1)
+    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding, frame) == -1)
       return -1;
   }
   

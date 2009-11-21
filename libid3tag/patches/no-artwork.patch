@@ -1,0 +1,121 @@
+=== compat.c
+==================================================================
+--- compat.c	(revision 60405)
++++ compat.c	(local)
+@@ -357,7 +357,7 @@
+ 
+   end = data + length;
+ 
+-  if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding) == -1)
++  if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding, frame) == -1)
+     goto fail;
+ 
+   string = id3_parse_string(&data, end - data, encoding, 0);
+@@ -420,7 +420,7 @@
+       frame->fields[i].type = ID3_FIELD_TYPE_LANGUAGE;
+     }
+ 
+-    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding) == -1)
++    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding, frame) == -1)
+       return -1;
+   }
+   
+=== compat.gperf
+==================================================================
+--- compat.gperf	(revision 60405)
++++ compat.gperf	(local)
+@@ -151,7 +151,7 @@
+ 
+   end = data + length;
+ 
+-  if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding) == -1)
++  if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding, frame) == -1)
+     goto fail;
+ 
+   string = id3_parse_string(&data, end - data, encoding, 0);
+@@ -214,7 +214,7 @@
+       frame->fields[i].type = ID3_FIELD_TYPE_LANGUAGE;
+     }
+ 
+-    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding) == -1)
++    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding, frame) == -1)
+       return -1;
+   }
+   
+=== field.c
+==================================================================
+--- field.c	(revision 60405)
++++ field.c	(local)
+@@ -179,7 +179,7 @@
+  * DESCRIPTION:	parse a field value
+  */
+ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
+-		    id3_length_t length, enum id3_field_textencoding *encoding)
++		    id3_length_t length, enum id3_field_textencoding *encoding, struct id3_frame *frame)
+ {
+   assert(field);
+ 
+@@ -329,12 +329,32 @@
+   case ID3_FIELD_TYPE_BINARYDATA:
+     {
+       id3_byte_t *data;
++      id3_byte_t skip = 0;
++      
++      // Optimization: avoid reading APIC artwork data if AUDIO_SCAN_NO_ARTWORK variable is true
++      // The length field will be correct, data will be 0
++      if ( !strcmp(frame->id, "APIC") ) {
++        char *env = getenv("AUDIO_SCAN_NO_ARTWORK");
++        if ( env != NULL && env[0] != '0' ) {
++          // env is true, skip art
++          skip = 1;
++        }
++      }
++      
++      if (skip) {
++        // Skip past binary data
++        *ptr += length;
++        field->binary.data = 0;
++      }
++      else {
++        // Parse binary data
++        data = id3_parse_binary(ptr, length);
++        if (data == 0)
++  	      goto fail;
++  	    
++  	    field->binary.data = data;
++  	  }
+ 
+-      data = id3_parse_binary(ptr, length);
+-      if (data == 0)
+-	goto fail;
+-
+-      field->binary.data   = data;
+       field->binary.length = length;
+     }
+     break;
+=== field.h
+==================================================================
+--- field.h	(revision 60405)
++++ field.h	(local)
+@@ -28,7 +28,7 @@
+ void id3_field_finish(union id3_field *);
+ 
+ int id3_field_parse(union id3_field *, id3_byte_t const **,
+-		    id3_length_t, enum id3_field_textencoding *);
++		    id3_length_t, enum id3_field_textencoding *, struct id3_frame *);
+ 
+ id3_length_t id3_field_render(union id3_field const *, id3_byte_t **,
+ 			      enum id3_field_textencoding *, int);
+=== frame.c
+==================================================================
+--- frame.c	(revision 60405)
++++ frame.c	(local)
+@@ -260,7 +260,7 @@
+   end = data + length;
+ 
+   for (i = 0; i < frame->nfields; ++i) {
+-    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding) == -1)
++    if (id3_field_parse(&frame->fields[i], &data, end - data, &encoding, frame) == -1)
+       return -1;
+   }
+ 

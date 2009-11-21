@@ -179,7 +179,7 @@ enum id3_field_type id3_field_type(union id3_field const *field)
  * DESCRIPTION:	parse a field value
  */
 int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
-		    id3_length_t length, enum id3_field_textencoding *encoding)
+		    id3_length_t length, enum id3_field_textencoding *encoding, struct id3_frame *frame)
 {
   assert(field);
 
@@ -329,12 +329,32 @@ int id3_field_parse(union id3_field *field, id3_byte_t const **ptr,
   case ID3_FIELD_TYPE_BINARYDATA:
     {
       id3_byte_t *data;
+      id3_byte_t skip = 0;
+      
+      // Optimization: avoid reading APIC artwork data if AUDIO_SCAN_NO_ARTWORK variable is true
+      // The length field will be correct, data will be 0
+      if ( !strcmp(frame->id, "APIC") ) {
+        char *env = getenv("AUDIO_SCAN_NO_ARTWORK");
+        if ( env != NULL && env[0] != '0' ) {
+          // env is true, skip art
+          skip = 1;
+        }
+      }
+      
+      if (skip) {
+        // Skip past binary data
+        *ptr += length;
+        field->binary.data = 0;
+      }
+      else {
+        // Parse binary data
+        data = id3_parse_binary(ptr, length);
+        if (data == 0)
+  	      goto fail;
+  	    
+  	    field->binary.data = data;
+  	  }
 
-      data = id3_parse_binary(ptr, length);
-      if (data == 0)
-	goto fail;
-
-      field->binary.data   = data;
       field->binary.length = length;
     }
     break;
