@@ -58,7 +58,9 @@ void buffer_consume(Buffer *buffer, uint32_t bytes);
 int buffer_consume_end_ret(Buffer *buffer, uint32_t bytes);
 void buffer_consume_end(Buffer *buffer, uint32_t bytes);
 void * buffer_ptr(Buffer *buffer);
+#ifdef AUDIO_SCAN_DEBUG
 void buffer_dump(Buffer *buffer, uint32_t len);
+#endif
 int buffer_get_char_ret(char *ret, Buffer *buffer);
 int buffer_get_char(Buffer *buffer);
 uint32_t get_u32le(const void *vp);

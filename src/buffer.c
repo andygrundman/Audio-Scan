@@ -18,7 +18,7 @@
 
 #define  BUFFER_MAX_CHUNK  0x1400000
 #define  BUFFER_MAX_LEN    0x1400000
-#define  BUFFER_ALLOCSZ    0x008000
+#define  BUFFER_ALLOCSZ    0x002000
 
 #define UnsignedToFloat(u) (((double)((long)(u - 2147483647L - 1))) + 2147483648.0)
 
@@ -45,6 +45,9 @@ void
 buffer_free(Buffer *buffer)
 {
   if (buffer->alloc > 0) {
+#ifdef AUDIO_SCAN_DEBUG
+    fprintf(stderr, "** Buffer high water mark: %d\n", buffer->alloc);
+#endif
     memset(buffer->buf, 0, buffer->alloc);
     buffer->alloc = 0;
     Safefree(buffer->buf);
@@ -130,6 +133,9 @@ restart:
   if (newlen > BUFFER_MAX_LEN)
     croak("buffer_append_space: alloc %u too large (max %u)",
         newlen, BUFFER_MAX_LEN);
+#ifdef AUDIO_SCAN_DEBUG
+  fprintf(stderr, "Buffer extended to %d\n", newlen);
+#endif
   Renew(buffer->buf, (int)newlen, u_char);
   buffer->alloc = newlen;
   goto restart;
@@ -236,7 +242,7 @@ buffer_ptr(Buffer *buffer)
 }
 
 /* Dumps the contents of the buffer to stderr. */
-
+#ifdef AUDIO_SCAN_DEBUG
 void
 buffer_dump(Buffer *buffer, uint32_t len)
 {
@@ -256,6 +262,7 @@ buffer_dump(Buffer *buffer, uint32_t len)
 
   fprintf(stderr, "\r\n");
 }
+#endif
 
 // Useful functions from bufaux.c
 
