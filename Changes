@@ -6,6 +6,7 @@ Revision history for Audio::Scan
           reading an APIC frame.
         - MP4: Refactored tag parser to avoid wasting memory on COVR tags when not
           reading artwork.
+        - Various minor buffer optimizations to slightly reduce memory usage.
 
 0.51    2009-11-16 15:10:00
         - Fixed compilation error under Windows.
