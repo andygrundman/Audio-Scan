@@ -96,3 +96,4 @@ uint8_t _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key);
 uint8_t _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size);
 HV * _mp4_get_current_trackinfo(mp4info *mp4);
 uint32_t _mp4_descr_length(Buffer *buf);
+void _mp4_skip(mp4info *mp4, uint32_t size);

@@ -438,16 +438,7 @@ _mp4_read_box(mp4info *mp4)
   }
   
   if (skip) {
-    if ( buffer_len(mp4->buf) >= mp4->rsize ) {
-      //buffer_dump(mp4->buf, mp4->rsize);
-      buffer_consume(mp4->buf, mp4->rsize);
-    }
-    else {
-      PerlIO_seek(mp4->infile, mp4->rsize - buffer_len(mp4->buf), SEEK_CUR);
-      buffer_clear(mp4->buf);
-      
-      DEBUG_TRACE("  seeked to %d\n", (int)PerlIO_tell(mp4->infile));
-    }
+    _mp4_skip(mp4, mp4->rsize);
   }
   
   return size;
@@ -1066,9 +1057,8 @@ _mp4_parse_ilst(mp4info *mp4)
     
     DEBUG_TRACE("  %s size %d\n", key, size);
     
-    if ( !_check_buf(mp4->infile, mp4->buf, size - 8, MP4_BLOCK_SIZE) ) {
-      return 0;
-    }
+    // Note: extra _check_buf calls in this function and other ilst functions
+    // are to avoid reading in the full size of ilst in the case of large artwork
     
     upcase(key);
     
@@ -1079,6 +1069,11 @@ _mp4_parse_ilst(mp4info *mp4)
       }
     }
     else {
+      // Ensure we have 8 bytes
+      if ( !_check_buf(mp4->infile, mp4->buf, 8, MP4_BLOCK_SIZE) ) {
+        return 0;
+      }
+      
       // Verify data box
       uint32_t bsize = buffer_get_int(mp4->buf);
       
@@ -1107,13 +1102,12 @@ _mp4_parse_ilst(mp4info *mp4)
         // XXX: bug 14476, files with multiple COVR images aren't handled here, just skipped for now
         if ( bsize < size - 8 ) {
           DEBUG_TRACE("    skipping rest of box, %d\n", size - 8 - bsize );
-          buffer_consume(mp4->buf, size - 8 - bsize);
+          _mp4_skip(mp4, size - 8 - bsize);
         }
       }
       else {
         DEBUG_TRACE("    invalid data size %d, skipping value\n", bsize);
-        
-        buffer_consume(mp4->buf, size - 12);
+        _mp4_skip(mp4, size - 12);
       }
     }
     
@@ -1127,134 +1121,124 @@ uint8_t
 _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
 {
   uint32_t flags;
-
-  // Version(0) + Flags
-  flags = buffer_get_int(mp4->buf);
-
-  // Skip reserved
-  buffer_consume(mp4->buf, 4);
-
-  DEBUG_TRACE("      flags %d\n", flags);
+  unsigned char *ckey;
+  SV *value;
   
-  if ( !flags || flags == 21 ) {
-    if ( FOURCC_EQ( SvPVX(key), "TRKN" ) || FOURCC_EQ( SvPVX(key), "DISK" ) ) {
-      // Special case trkn, disk (pair of 16-bit ints)
-      uint16_t num = 0;
-      uint16_t total = 0;
-      
-      buffer_consume(mp4->buf, 2); // padding
-    
-      num = buffer_get_short(mp4->buf);
-      
-      // Total may not always be present
-      if (size > 12) {
-        total = buffer_get_short(mp4->buf);  
-        buffer_consume(mp4->buf, size - 14); // optional padding
-      }
-      
-      DEBUG_TRACE("      %d/%d\n", num, total);
-    
-      if (total) {
-        my_hv_store_ent( mp4->tags, key, newSVpvf( "%d/%d", num, total ) );
-      }
-      else if (num) {
-        my_hv_store_ent( mp4->tags, key, newSVuv(num) );
-      }
+  ckey = (unsigned char *)SvPVX(key);
+  if ( FOURCC_EQ(ckey, "COVR") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
+    // Skip artwork if requested and avoid the memory cost
+    value = newSVuv(size - 8);
+    _mp4_skip(mp4, size);
+  }
+  else {
+    // Read the full ilst value
+    if ( !_check_buf(mp4->infile, mp4->buf, size, MP4_BLOCK_SIZE) ) {
+      return 0;
     }
-    else if ( FOURCC_EQ( SvPVX(key), "GNRE" ) ) {
-      // Special case genre, 16-bit int as id3 genre code
-      char *genre_string;
-      uint16_t genre_num = buffer_get_short(mp4->buf);
     
-      if (genre_num > 0 && genre_num < 148) {
-        genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num - 1) );
-        my_hv_store_ent( mp4->tags, key, newSVpv( genre_string, 0 ) );
-        free(genre_string);
-      }
-    }
-    else {
-      // Other binary type, try to guess type based on size
-      SV *data;
-      uint32_t dsize = size - 8;
+    // Version(0) + Flags
+    flags = buffer_get_int(mp4->buf);
+
+    // Skip reserved
+    buffer_consume(mp4->buf, 4);
+
+    DEBUG_TRACE("      flags %d\n", flags);
+    
+    if ( !flags || flags == 21 ) {
+      if ( FOURCC_EQ( SvPVX(key), "TRKN" ) || FOURCC_EQ( SvPVX(key), "DISK" ) ) {
+        // Special case trkn, disk (pair of 16-bit ints)
+        uint16_t num = 0;
+        uint16_t total = 0;
       
-      if (dsize == 1) {
-        data = newSVuv( buffer_get_char(mp4->buf) );
+        buffer_consume(mp4->buf, 2); // padding
+    
+        num = buffer_get_short(mp4->buf);
+      
+        // Total may not always be present
+        if (size > 12) {
+          total = buffer_get_short(mp4->buf);  
+          buffer_consume(mp4->buf, size - 14); // optional padding
+        }
+      
+        DEBUG_TRACE("      %d/%d\n", num, total);
+    
+        if (total) {
+          my_hv_store_ent( mp4->tags, key, newSVpvf( "%d/%d", num, total ) );
+        }
+        else if (num) {
+          my_hv_store_ent( mp4->tags, key, newSVuv(num) );
+        }
+        
+        return 1;
       }
-      else if (dsize == 2) {
-        data = newSVuv( buffer_get_short(mp4->buf) );
-      }
-      else if (dsize == 4) {
-        data = newSVuv( buffer_get_int(mp4->buf) );
-      }
-      else if (dsize == 8) {
-        data = newSVuv( buffer_get_int64(mp4->buf) );
+      else if ( FOURCC_EQ( SvPVX(key), "GNRE" ) ) {
+        // Special case genre, 16-bit int as id3 genre code
+        char *genre_string;
+        uint16_t genre_num = buffer_get_short(mp4->buf);
+    
+        if (genre_num > 0 && genre_num < 148) {
+          genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num - 1) );
+          my_hv_store_ent( mp4->tags, key, newSVpv( genre_string, 0 ) );
+          free(genre_string);
+        }
+        
+        return 1;
       }
       else {
-        data = newSVpvn( buffer_ptr(mp4->buf), dsize );
-        buffer_consume(mp4->buf, dsize);
-      }
+        // Other binary type, try to guess type based on size
+        uint32_t dsize = size - 8;
       
-      // if key exists, create array
-      if ( my_hv_exists_ent( mp4->tags, key ) ) {
-        SV **entry = my_hv_fetch( mp4->tags, SvPVX(key) );
-        if (entry != NULL) {
-          if ( SvROK(*entry) && SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
-            av_push( (AV *)SvRV(*entry), data );
-          }
-          else {
-            // A non-array entry, convert to array.
-            AV *ref = newAV();
-            av_push( ref, newSVsv(*entry) );
-            av_push( ref, data );
-            my_hv_store_ent( mp4->tags, key, newRV_noinc( (SV*)ref ) );
-          }
+        if (dsize == 1) {
+          value = newSVuv( buffer_get_char(mp4->buf) );
+        }
+        else if (dsize == 2) {
+          value = newSVuv( buffer_get_short(mp4->buf) );
+        }
+        else if (dsize == 4) {
+          value = newSVuv( buffer_get_int(mp4->buf) );
+        }
+        else if (dsize == 8) {
+          value = newSVuv( buffer_get_int64(mp4->buf) );
+        }
+        else {
+          value = newSVpvn( buffer_ptr(mp4->buf), dsize );
+          buffer_consume(mp4->buf, dsize);
         }
       }
-      else {
-        my_hv_store_ent( mp4->tags, key, data );
-      }
     }
-  }
-  else { // text data
-    unsigned char *ckey = (unsigned char *)SvPVX(key);
-    SV *value;
-    
-    if ( FOURCC_EQ(ckey, "COVR") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
-      value = newSVuv(size - 8);
-    }
-    else {
+    else { // text data
       value = newSVpvn( buffer_ptr(mp4->buf), size - 8 );
       sv_utf8_decode(value);
-      
+    
       // strip copyright symbol 0xA9 out of key
       if ( ckey[0] == 0xA9 ) {
         ckey++;
       }
 
       DEBUG_TRACE("      %s = %s\n", ckey, SvPVX(value));
-    }
     
-    // if key exists, create array
-    if ( my_hv_exists( mp4->tags, (char *)ckey ) ) {
-      SV **entry = my_hv_fetch( mp4->tags, (char *)ckey );
-      if (entry != NULL) {
-        if ( SvROK(*entry) && SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
-          av_push( (AV *)SvRV(*entry), value );
-        }
-        else {
-          // A non-array entry, convert to array.
-          AV *ref = newAV();
-          av_push( ref, newSVsv(*entry) );
-          av_push( ref, value );
-          my_hv_store( mp4->tags, (char *)ckey, newRV_noinc( (SV*)ref ) );
-        }
+      buffer_consume(mp4->buf, size - 8);
+    }
+  }
+    
+  // if key exists, create array
+  if ( my_hv_exists( mp4->tags, (char *)ckey ) ) {
+    SV **entry = my_hv_fetch( mp4->tags, (char *)ckey );
+    if (entry != NULL) {
+      if ( SvROK(*entry) && SvTYPE(SvRV(*entry)) == SVt_PVAV ) {
+        av_push( (AV *)SvRV(*entry), value );
+      }
+      else {
+        // A non-array entry, convert to array.
+        AV *ref = newAV();
+        av_push( ref, newSVsv(*entry) );
+        av_push( ref, value );
+        my_hv_store( mp4->tags, (char *)ckey, newRV_noinc( (SV*)ref ) );
       }
     }
-    else {
-      my_hv_store( mp4->tags, (char *)ckey, value );  
-    }
-    
-    buffer_consume(mp4->buf, size - 8);
+  }
+  else {
+    my_hv_store( mp4->tags, (char *)ckey, value );
   }
   
   return 1;
@@ -1269,6 +1253,11 @@ _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size)
     char type[5];
     uint32_t bsize;
     
+    // Ensure we have 8 bytes to get the size and type
+    if ( !_check_buf(mp4->infile, mp4->buf, 8, MP4_BLOCK_SIZE) ) {
+      return 0;
+    }
+    
     // Read box
     bsize = buffer_get_int(mp4->buf);
     strncpy( type, (char *)buffer_ptr(mp4->buf), 4 );
@@ -1278,6 +1267,11 @@ _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size)
     DEBUG_TRACE("    %s size %d\n", type, bsize);
     
     if ( FOURCC_EQ(type, "name") ) {
+      // Ensure we have bsize bytes
+      if ( !_check_buf(mp4->infile, mp4->buf, bsize, MP4_BLOCK_SIZE) ) {
+        return 0;
+      }
+      
       buffer_consume(mp4->buf, 4); // padding
       key = newSVpvn( buffer_ptr(mp4->buf), bsize - 12);
       sv_utf8_decode(key);
@@ -1299,6 +1293,10 @@ _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size)
     }
     else {
       // skip (mean, or other boxes)
+      if ( !_check_buf(mp4->infile, mp4->buf, bsize - 8, MP4_BLOCK_SIZE) ) {
+        return 0;
+      }
+      
       buffer_consume(mp4->buf, bsize - 8);
     }
     
@@ -1359,4 +1357,21 @@ _mp4_descr_length(Buffer *buf)
   } while ( (b & 0x80) && num_bytes < 4 );
   
   return length;
+}
+
+void
+_mp4_skip(mp4info *mp4, uint32_t size)
+{
+  if ( buffer_len(mp4->buf) >= size ) {
+    //buffer_dump(mp4->buf, size);
+    buffer_consume(mp4->buf, size);
+    
+    DEBUG_TRACE("  skipped buffer data size %d\n", size);
+  }
+  else {
+    PerlIO_seek(mp4->infile, size - buffer_len(mp4->buf), SEEK_CUR);
+    buffer_clear(mp4->buf);
+    
+    DEBUG_TRACE("  seeked past %d bytes to %d\n", size, (int)PerlIO_tell(mp4->infile));
+  }
 }
