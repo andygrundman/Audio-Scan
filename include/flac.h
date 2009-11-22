@@ -60,3 +60,4 @@ int _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *las
 uint8_t _flac_crc8(const unsigned char *buf, unsigned len);
 int _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen);
 int _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen);
+void _flac_skip(flacinfo *flac, uint32_t size);

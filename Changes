@@ -1,6 +1,8 @@
 Revision history for Audio::Scan
 
 0.53
+        - FLAC: Avoid wasting memory when reading picture block when
+          AUDIO_SCAN_NO_ARTWORK is set.
         - Fixed Win32 compile issue.
 
 0.52    2009-11-20 23:30:00

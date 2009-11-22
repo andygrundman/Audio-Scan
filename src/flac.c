@@ -139,9 +139,12 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       goto out;
     }
     
-    if ( !_check_buf(infile, flac->buf, len, len) ) {
-      err = -1;
-      goto out;
+    // Don't read in the full picture in case we aren't reading artwork
+    if ( type != FLAC_TYPE_PICTURE ) {
+      if ( !_check_buf(infile, flac->buf, len, len) ) {
+        err = -1;
+        goto out;
+      }
     }
     
     flac->audio_offset += 4 + len;
@@ -715,12 +718,24 @@ _flac_parse_picture(flacinfo *flac)
   uint32_t pic_length;
   SV *desc;
   
+  // Check we have enough for picture_type and mime_length
+  if ( !_check_buf(flac->infile, flac->buf, 8, FLAC_BLOCK_SIZE) ) {
+    ret = 0;
+    goto out;
+  }
+  
   my_hv_store( picture, "picture_type", newSVuv( buffer_get_int(flac->buf) ) );
   
   mime_length = buffer_get_int(flac->buf);
   DEBUG_TRACE("  mime_length: %d\n", mime_length);
   if (mime_length > buffer_len(flac->buf)) {
     PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
+    ret = 0;
+    goto out;
+  }
+  
+  // Check we have enough for mime_type and desc_length
+  if ( !_check_buf(flac->infile, flac->buf, mime_length + 4, FLAC_BLOCK_SIZE) ) {
     ret = 0;
     goto out;
   }
@@ -732,6 +747,12 @@ _flac_parse_picture(flacinfo *flac)
   DEBUG_TRACE("  desc_length: %d\n", mime_length);
   if (desc_length > buffer_len(flac->buf)) {
     PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
+    ret = 0;
+    goto out;
+  }
+  
+  // Check we have enough for desc_length, width, height, depth, color_index, pic_length
+  if ( !_check_buf(flac->infile, flac->buf, desc_length + 20, FLAC_BLOCK_SIZE) ) {
     ret = 0;
     goto out;
   }
@@ -748,20 +769,20 @@ _flac_parse_picture(flacinfo *flac)
   
   pic_length = buffer_get_int(flac->buf);
   DEBUG_TRACE("  pic_length: %d\n", pic_length);
-  if (pic_length > buffer_len(flac->buf)) {
-    PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
-    ret = 0;
-    goto out;
-  }
   
   if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
     my_hv_store( picture, "image_data", newSVuv(pic_length) );
+    _flac_skip(flac, pic_length);
   }
   else {
+    if ( !_check_buf(flac->infile, flac->buf, pic_length, pic_length) ) {
+      ret = 0;
+      goto out;
+    }
+    
     my_hv_store( picture, "image_data", newSVpvn( buffer_ptr(flac->buf), pic_length ) );
+    buffer_consume(flac->buf, pic_length);
   }
-  
-  buffer_consume(flac->buf, pic_length);
   
   DEBUG_TRACE("  found picture of length %d\n", pic_length);
   
@@ -936,4 +957,20 @@ _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen)
   }
   *val = v;
   return 1;
+}
+
+void
+_flac_skip(flacinfo *flac, uint32_t size)
+{
+  if ( buffer_len(flac->buf) >= size ) {
+    buffer_consume(flac->buf, size);
+    
+    DEBUG_TRACE("  skipped buffer data size %d\n", size);
+  }
+  else {
+    PerlIO_seek(flac->infile, size - buffer_len(flac->buf), SEEK_CUR);
+    buffer_clear(flac->buf);
+    
+    DEBUG_TRACE("  seeked past %d bytes to %d\n", size, (int)PerlIO_tell(flac->infile));
+  }
 }
