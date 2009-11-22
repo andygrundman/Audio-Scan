@@ -3,7 +3,8 @@ General
 5.11 support
 5.6 support?
 Large buffers will still be allocated with artwork disabled:
-  FLAC, ASF, Ogg
+  ASF, Ogg
+  libid3tag still reads the entire tag into memory, hard to fix this
 Clean up various code by using buffer_get_bits
 
 MP3
@@ -40,7 +41,6 @@ Refactor a bit
 
 MP4/AAC
 -------
-HD-AAC sample size is wrong for 24-bit files
 A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
 correct offsets, etc.  Possibly also rewrite duration info.
 
