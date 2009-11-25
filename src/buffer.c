@@ -792,4 +792,4 @@ buffer_get_bits(Buffer *buffer, uint32_t bits)
   
   return (buffer->cache >> buffer->ncached) & mask;
 }
-  
+
