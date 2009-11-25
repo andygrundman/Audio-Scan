@@ -140,7 +140,8 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     }
     
     // Don't read in the full picture in case we aren't reading artwork
-    if ( type != FLAC_TYPE_PICTURE ) {
+    // Do the same for padding, as it can be quite large in some files
+    if ( type != FLAC_TYPE_PICTURE && type != FLAC_TYPE_PADDING ) {
       if ( !_check_buf(infile, flac->buf, len, len) ) {
         err = -1;
         goto out;
@@ -203,14 +204,14 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
         }
         else {
           DEBUG_TRACE("  seeking, skipping picture\n");
-          buffer_consume(flac->buf, len);
+          _flac_skip(flac, len);
         }
         break;
       
       case FLAC_TYPE_PADDING:
       default:
         DEBUG_TRACE("  unhandled or padding, skipping\n");
-        buffer_consume(flac->buf, len);
+        _flac_skip(flac, len);
     } 
   }
   

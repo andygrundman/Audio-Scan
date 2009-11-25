@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 59;
+use Test::More tests => 60;
 
 use Audio::Scan;
 
@@ -163,6 +163,12 @@ use Audio::Scan;
     close $fh;
 
     is( $offset, 50005, 'Find frame via filehandle ok' );
+}
+
+# Find frame in file with picture tag
+{
+    my $offset = Audio::Scan->find_frame( _f('picture-large.flac'), 1000 );
+    is( $offset, 337723, 'Find frame in picture file ok' );
 }
 
 sub _f {

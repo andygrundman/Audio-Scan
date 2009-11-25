@@ -165,6 +165,7 @@ t/flac/empty.flac
 t/flac/id3tagged.flac
 t/flac/md5.flac
 t/flac/picture.flac
+t/flac/picture-large.flac
 t/flac/short-duration.flac
 t/flac/test.flac
 t/flac/tiny.flac

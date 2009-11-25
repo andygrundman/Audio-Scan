@@ -25,6 +25,7 @@ Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/p
   4th value: length in samples of original track
 Support iTunNORM, translate into replay gain values
 ID3v1 comment + COMM are not merged but stacked
+RGAD frame: http://www.id3.org/Replay_Gain_Adjustment
 
 FLAC
 ----
