@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.55    2009-11-26 17:00:00
+        - ID3: Bug 15196, fixed reading multiple TCON genre values.
+
 0.54    2009-11-25 15:30:00
         - FLAC: Fixed bug when seeking in a file containing artwork.
         - FLAC: Save memory by not buffering padding data.

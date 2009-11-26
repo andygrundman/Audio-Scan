@@ -137,34 +137,63 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
 
       // Special handling for TCON genre frame, lookup the genre string
       else if ( !strcmp(pid3frame->id, "TCON") ) {
+        AV *atmp = NULL;    // used if we have multiple genres
         char *genre_string;
+        int j;
+        
+        nstrings = id3_field_getnstrings(&pid3frame->fields[1]);
+        
+        if (nstrings > 1) {
+          atmp = newAV();
+        }
+        
+        for (j = 0; j < nstrings; j++) {
+          value = id3_field_getstrings(&pid3frame->fields[1], j);
+          if (value) {
+            utf8_value = (char *)id3_ucs4_utf8duplicate(value);
 
-        value = id3_field_getstrings(&pid3frame->fields[1], 0);
-        if (value) {
-          utf8_value = (char *)id3_ucs4_utf8duplicate(value);
-
-          if ( isdigit(utf8_value[0]) ) {
-            // Convert to genre string
-            genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(value) );
-            my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
-            free(genre_string);
-          }
-          else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
-            // handle '(26)Ambient'
-            int genre_num = (int)strtol( (char *)&utf8_value[1], NULL, 0 );
-            if (genre_num > 0 && genre_num < 148) {
-              genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num) );
-              my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
+            if ( isdigit(utf8_value[0]) ) {
+              // Convert to genre string
+              genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_name(value) );
+              if (atmp) {
+                av_push( atmp, newSVpv( genre_string, 0 ) );
+              }
+              else {
+                my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
+              }
               free(genre_string);
             }
-          }
-          else {
-            SV *tmp = newSVpv( utf8_value, 0 );
-            sv_utf8_decode(tmp);
-            my_hv_store( tags, pid3frame->id, tmp );
-          }
+            else if ( utf8_value[0] == '(' && isdigit(utf8_value[1]) ) {
+              // handle '(26)Ambient'
+              int genre_num = (int)strtol( (char *)&utf8_value[1], NULL, 0 );
+              if (genre_num > 0 && genre_num < 148) {
+                genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num) );
+                if (atmp) {
+                  av_push( atmp, newSVpv( genre_string, 0 ) );
+                }
+                else {
+                  my_hv_store( tags, pid3frame->id, newSVpv( genre_string, 0 ) );
+                }
+                free(genre_string);
+              }
+            }
+            else {
+              SV *tmp = newSVpv( utf8_value, 0 );
+              sv_utf8_decode(tmp);
+              if (atmp) {
+                av_push( atmp, tmp );
+              }
+              else {
+                my_hv_store( tags, pid3frame->id, tmp );
+              }
+            }
 
-          free(utf8_value);
+            free(utf8_value);
+          }
+        }
+
+        if (atmp) {
+          my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)atmp ) );
         }
       }
 
