@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 264;
+use Test::More tests => 267;
 
 use Audio::Scan;
 
@@ -871,6 +871,17 @@ eval {
     is( ref $tags->{TCON}, 'ARRAY', 'ID3v2.4 multiple TCON is array' );
     is( $tags->{TCON}->[0], 'Rock', 'ID3v2.4 multiple TCON value 1 ok' );
     is( $tags->{TCON}->[1], 'Live', 'ID3v2.4 multiple TCON value 2 ok' );
+}
+
+# Bug 15197, MPEG-2 Layer 3 bitrate calculation
+{
+    my $s = Audio::Scan->scan( _f('v2.3-mp2l3-64k-22khz.mp3') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{bitrate}, 64000, 'MPEG-2 Layer 3 bitrate ok' );
+    is( $info->{samplerate}, 22050, 'MPEG-2 Layer 3 sample rate ok' );
+    is( $info->{song_length_ms}, 364, 'MPEG-2 Layer 3 duration ok' );
 }
 
 # Test for 

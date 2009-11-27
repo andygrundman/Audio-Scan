@@ -196,14 +196,28 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
       pfi->xing_offset = 13;
   }
 
-  if (pfi->layer == 1)
-    pfi->frame_length = (12 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding) * 4;
-  else
+  if (pfi->layer == 3) {
+    if (pfi->mpeg_version == 0x10)
+      pfi->frame_length = (144 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding);
+    else
+      pfi->frame_length = (72 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding);
+  }
+  else if (pfi->layer == 2)
     pfi->frame_length = 144 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding;
+  else
+    pfi->frame_length = (12 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding) * 4;
 
   if ((pfi->frame_length > 2880) || (pfi->frame_length <= 0)) {
     return -1;
   }
+  
+  DEBUG_TRACE("frame: len %d, ver: 0x%x, layer %d, bitrate, %d, samplerate %d\n",
+    pfi->frame_length,
+    pfi->mpeg_version,
+    pfi->layer,
+    pfi->bitrate,
+    pfi->samplerate
+  );
 
   return 0;
 }
