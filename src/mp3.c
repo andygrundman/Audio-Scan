@@ -44,7 +44,7 @@ _has_ape(PerlIO *infile)
   char *bptr;
   
   if ( (PerlIO_seek(infile, -160, SEEK_END)) == -1 ) {
-    goto out;
+    return 0;
   }
   
   DEBUG_TRACE("Seeked to %d looking for APE tag\n", (int)PerlIO_tell(infile));

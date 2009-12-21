@@ -1,7 +1,8 @@
 Revision history for Audio::Scan
 
 0.56
-        - MP3: Bug 15197, fixed bitrate calculation of MPEG-2 Layer 3 files.
+        - MP3: Bug 15197, fixed bitrate/duration calculation of MPEG-2 Layer 3 files.
+        - MP3: RT 52932, fixed crash if seek fails while looking for APE tag.
 
 0.55    2009-11-26 17:00:00
         - ID3: Bug 15196, fixed reading multiple TCON genre values.
