@@ -3,7 +3,7 @@ General
 5.11 support
 5.6 support?
 Large buffers will still be allocated with artwork disabled:
-  ASF, Ogg
+  ASF, Ogg (hard to fix these)
   libid3tag still reads the entire tag into memory, hard to fix this
 Clean up various code by using buffer_get_bits
 
