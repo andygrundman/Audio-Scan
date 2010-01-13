@@ -247,6 +247,7 @@ t/ogg/bug803.ogg
 t/ogg/bug905.ogg
 t/ogg/empty.ogg
 t/ogg/equals-char.ogg
+t/ogg/large-page-segments.ogg
 t/ogg/large-pagesize.ogg
 t/ogg/multiple.ogg
 t/ogg/old1.ogg

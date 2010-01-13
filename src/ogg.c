@@ -32,7 +32,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   char header_type;
   int serialno;
   int pagenum;
-  char num_segments;
+  uint8_t num_segments;
   int pagelen;
   int page = 0;
   int packets = 0;

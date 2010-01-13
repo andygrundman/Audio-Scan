@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 42;
+use Test::More tests => 44;
 
 use Audio::Scan;
 
@@ -179,6 +179,17 @@ eval {
     is( $info->{audio_offset}, 3970, 'Bug 12615 aoTuV offset ok' );
     
     like( $tags->{VENDOR}, qr/aoTuV/, 'Bug 12615 aoTuV tags ok' );
+}
+
+# Test file with page segments > 128
+{
+    my $s = Audio::Scan->scan( _f('large-page-segments.ogg') );
+    
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{audio_offset}, 41740, 'Large page segments audio offset ok' );
+    is( $tags->{ARTIST}, 'Led Zeppelin', 'Large page segments comments ok' );
 }
 
 sub _f {

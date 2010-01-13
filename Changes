@@ -1,6 +1,8 @@
 Revision history for Audio::Scan
 
 0.57
+        - Vorbis: Fixed parsing of files with large comment headers containing >128
+          page segments.
         - Removed leading numbers from most tests, Schwern is right. :)
           http://use.perl.org/~schwern/journal/40054
 
