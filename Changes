@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.58
+0.58    2010-01-28 12:30:00
         - MP4: Bug 15262, Don't overwrite song_length_ms from individual tracks if it was
           found in the mvhd box.
 
