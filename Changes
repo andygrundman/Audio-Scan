@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.58
+        - MP4: Bug 15262, Don't overwrite song_length_ms from individual tracks if it was
+          found in the mvhd box.
+
 0.57    2010-01-12 21:40:00
         - Vorbis: Fixed parsing of files with large comment headers containing >128
           page segments.

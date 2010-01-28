@@ -234,6 +234,7 @@ t/mp4/alac.m4a
 t/mp4/array-keys.m4a
 t/mp4/array-keys-int.m4a
 t/mp4/hd-aac.m4a
+t/mp4/hint-track.m4a
 t/mp4/itunes811.m4a
 t/mp4/leading-mdat.m4a
 t/mp4/multiple-covers.m4a

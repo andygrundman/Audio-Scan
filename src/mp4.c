@@ -610,7 +610,13 @@ _mp4_parse_mdhd(mp4info *mp4)
     timescale = buffer_get_int(mp4->buf);
     my_hv_store( mp4->info, "samplerate", newSVuv(timescale) );
     
-    my_hv_store( mp4->info, "song_length_ms", newSVuv( (buffer_get_int(mp4->buf) * 1.0 / timescale ) * 1000 ) );
+    // Skip duration, if have song_length_ms from mvhd
+    if ( my_hv_exists( mp4->info, "song_length_ms" ) ) {
+      buffer_consume(mp4->buf, 4);
+    }
+    else {
+      my_hv_store( mp4->info, "song_length_ms", newSVuv( (buffer_get_int(mp4->buf) * 1.0 / timescale ) * 1000 ) );
+    }
   }
   else if (version == 1) { // 64-bit values
     // Skip ctime and mtime
@@ -619,7 +625,13 @@ _mp4_parse_mdhd(mp4info *mp4)
     timescale = buffer_get_int(mp4->buf);
     my_hv_store( mp4->info, "samplerate", newSVuv(timescale) );
     
-    my_hv_store( mp4->info, "song_length_ms", newSVuv( (buffer_get_int64(mp4->buf) * 1.0 / timescale ) * 1000 ) );
+    // Skip duration, if have song_length_ms from mvhd
+    if ( my_hv_exists( mp4->info, "song_length_ms" ) ) {
+      buffer_consume(mp4->buf, 8);
+    }
+    else {
+      my_hv_store( mp4->info, "song_length_ms", newSVuv( (buffer_get_int64(mp4->buf) * 1.0 / timescale ) * 1000 ) );
+    }
   }
   else {
     return 0;

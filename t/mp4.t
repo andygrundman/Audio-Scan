@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 97;
+use Test::More tests => 100;
 
 use Audio::Scan;
 
@@ -198,6 +198,17 @@ use Audio::Scan;
     is( $track2->{audio_object_type}, 37, 'HD-AAC SLS track ok' );
     is( $track2->{samplerate}, 96000, 'HD-AAC SLS track samplerate ok' );
     is( $track2->{bits_per_sample}, 24, 'HD-AAC SLS track bps ok' );
+}
+
+# Bug 15262, secondary hint track with 0 duration, caused bad song_length_ms value
+{
+    my $s = Audio::Scan->scan( _f('hint-track.m4a') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{song_length_ms}, 263433, 'MP4 hint track song_length_ms ok' );
+    is( $info->{tracks}->[0]->{duration}, 263433, 'MP4 hint track track 1 duration ok' );
+    is( $info->{tracks}->[1]->{duration}, 0, 'MP4 hint track track 2 duration ok' );
 }
 
 # Find frame
