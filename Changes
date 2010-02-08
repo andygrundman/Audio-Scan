@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.59
+0.59    2010-02-08 15:30:00
         - MP4: Bug 15656, read channels and bits_per_sample for ALAC files.
         - APE: Bug 15324, read APEv2 tags that don't contain a header.
         - APE: Fixed reading of binary tag data.
