@@ -240,6 +240,7 @@ t/mp4/leading-mdat.m4a
 t/mp4/multiple-covers.m4a
 t/mp4/short-trkn.m4a
 t/musepack/apev2.mpc
+t/musepack/apev2-cover.mpc
 t/musepack/sv8.mpc
 t/ogg/bug1155-1.ogg
 t/ogg/bug1155-2.ogg

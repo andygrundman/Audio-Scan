@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 24;
+use Test::More tests => 31;
 
 use Audio::Scan;
 
@@ -46,6 +46,29 @@ use Audio::Scan;
     is( $info->{gapless}, 1, 'SV8 gapless ok' );
     is( $info->{track_gain}, '4.16 dB', 'SV8 track gain ok' );
     is( $info->{album_gain}, '4.16 dB', 'SV8 album gain ok' );
+}
+
+# File with binary cover in APEv2 tag, and no header
+{
+    my $s = Audio::Scan->scan( _f('apev2-cover.mpc') );
+    
+    my $tags = $s->{tags};
+    is( $tags->{ALBUM}, 'Cover Art Test', 'APEv2 with cover album ok' );
+    is( $tags->{ARTIST}, 'Kraftwerk', 'APEv2 with cover artist ok' );
+    is( length( $tags->{'COVER ART (FRONT)'} ), 1761, 'APEv2 with cover binary cover ok' );
+    is( unpack( 'H*', substr( $tags->{'COVER ART (FRONT)'}, 0, 4 ) ), 'ffd8ffe0', 'APEv2 with cover JPEG picture data ok ');
+}
+
+# Test cover handling with no artwork var
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('apev2-cover.mpc') );
+    
+    my $tags = $s->{tags};
+    is( $tags->{ALBUM}, 'Cover Art Test', 'APEv2 AUDIO_SCAN_NO_ARTWORK album ok' );
+    is( $tags->{ARTIST}, 'Kraftwerk', 'APEv2 AUDIO_SCAN_NO_ARTWORK artist ok' );
+    is( $tags->{'COVER ART (FRONT)'}, 1761, 'APEv2 AUDIO_SCAN_NO_ARTWORK cover length ok' );
 }
 
 sub _f {
