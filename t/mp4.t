@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 100;
+use Test::More tests => 102;
 
 use Audio::Scan;
 
@@ -84,6 +84,8 @@ use Audio::Scan;
     
     is( $track->{duration}, 10, 'ALAC duration ok' );
     is( $track->{encoding}, 'alac', 'ALAC encoding ok' );
+    is( $track->{bits_per_sample}, 16, 'ALAC bits_per_sample ok' );
+    is( $track->{channels}, 2, 'ALAC channels ok' );
     
     is( $tags->{CPIL}, 0, 'ALAC CPIL ok' );
     is( $tags->{DISK}, '1/2', 'ALAC DISK ok' );
