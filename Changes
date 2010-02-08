@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.59
+        - MP4: Bug 15656, read channels and bits_per_sample for ALAC files.
+
 0.58    2010-01-28 12:30:00
         - MP4: Bug 15262, Don't overwrite song_length_ms from individual tracks if it was
           found in the mvhd box.

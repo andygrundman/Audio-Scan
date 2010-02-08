@@ -335,12 +335,13 @@ _mp4_read_box(mp4info *mp4)
     size = 28 + mp4->hsize;
   }
   else if ( FOURCC_EQ(type, "alac") ) {
-    // Mark encoding
-    HV *trackinfo = _mp4_get_current_trackinfo(mp4);
-    
-    my_hv_store( trackinfo, "encoding", newSVpvn("alac", 4) );
+    if ( !_mp4_parse_alac(mp4) ) {
+      PerlIO_printf(PerlIO_stderr(), "Invalid MP4 file (bad alac box): %s\n", mp4->file);
+      return 0;
+    }
         
-    // Skip rest
+    // skip rest (alac description)
+    mp4->rsize -= 28;
     skip = 1;
   }
   else if ( FOURCC_EQ(type, "drms") ) {
@@ -844,6 +845,35 @@ _mp4_parse_esds(mp4info *mp4)
   if (buffer_get_char(mp4->buf) != 0x02) {
     return 0;
   }
+  
+  return 1;
+}
+
+uint8_t
+_mp4_parse_alac(mp4info *mp4)
+{
+  HV *trackinfo = _mp4_get_current_trackinfo(mp4);
+  
+  if ( !_check_buf(mp4->infile, mp4->buf, 28, MP4_BLOCK_SIZE) ) {
+    return 0;
+  }
+  
+  my_hv_store( trackinfo, "encoding", newSVpvn("alac", 4) );
+  
+  // Skip reserved
+  buffer_consume(mp4->buf, 16);
+  
+  my_hv_store( trackinfo, "channels", newSVuv( buffer_get_short(mp4->buf) ) );
+  my_hv_store( trackinfo, "bits_per_sample", newSVuv( buffer_get_short(mp4->buf) ) );
+  
+  // Skip reserved
+  buffer_consume(mp4->buf, 4);
+  
+  // Skip bogus samplerate
+  buffer_consume(mp4->buf, 2);
+  
+  // Skip reserved
+  buffer_consume(mp4->buf, 2);
   
   return 1;
 }

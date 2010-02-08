@@ -86,6 +86,7 @@ uint8_t _mp4_parse_hdlr(mp4info *mp4);
 uint8_t _mp4_parse_stsd(mp4info *mp4);
 uint8_t _mp4_parse_mp4a(mp4info *mp4);
 uint8_t _mp4_parse_esds(mp4info *mp4);
+uint8_t _mp4_parse_alac(mp4info *mp4);
 uint8_t _mp4_parse_stts(mp4info *mp4);
 uint8_t _mp4_parse_stsc(mp4info *mp4);
 uint8_t _mp4_parse_stsz(mp4info *mp4);
