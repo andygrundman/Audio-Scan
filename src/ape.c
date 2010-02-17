@@ -292,7 +292,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
   }
   else if (val_length >= size - 1) {
     // Single item
-    value = newSVpvn( buffer_ptr(&tag->tag_data), size );
+    value = newSVpvn( buffer_ptr(&tag->tag_data), val_length < size ? val_length : size );
     
     buffer_consume(&tag->tag_data, size);
     

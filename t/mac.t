@@ -39,8 +39,8 @@ use Audio::Scan;
     
     is( $info->{ape_version}, 'APEv1', 'APEv1 version ok' );
     
-    is( $tags->{GENRE}, "\xFF\0", 'APEv1 genre ok' );
-    is( $tags->{YEAR}, "2004\0", 'APEv1 year ok' );
+    is( $tags->{GENRE}, "\xFF", 'APEv1 genre ok' );
+    is( $tags->{YEAR}, "2004", 'APEv1 year ok' );
 }
 
 sub _f {

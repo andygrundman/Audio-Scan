@@ -58,7 +58,6 @@ Uses APE tags.
 
 APE
 ---
-Strip nulls from end of tags, bug 3769
 
 Monkey's Audio Codec
 ---
