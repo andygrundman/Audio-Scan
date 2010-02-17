@@ -360,30 +360,32 @@ int translate_TCON(struct id3_frame *frame, char const *oldid,
   if (id3_field_parse(&frame->fields[0], &data, end - data, &encoding, frame) == -1)
     goto fail;
 
-  string = id3_parse_string(&data, end - data, encoding, 0);
-  if (string == 0)
-    goto fail;
-
-  ptr = string;
-  while (*ptr == '(') {
-    if (*++ptr == '(')
-      break;
-
-    endptr = ptr;
-    while (*endptr && *endptr != ')')
-      ++endptr;
-
-    if (*endptr)
-      *endptr++ = 0;
-
-    if (id3_field_addstring(&frame->fields[1], ptr) == -1)
+  while (end - data > 0 && (encoding == ID3_FIELD_TEXTENCODING_UTF_16BE || *data != '\0')) {
+    string = id3_parse_string(&data, end - data, encoding, 0);
+    if (string == 0)
       goto fail;
 
-    ptr = endptr;
-  }
+    ptr = string;
+    while (*ptr == '(') {
+      if (*++ptr == '(')
+        break;
 
-  if (*ptr && id3_field_addstring(&frame->fields[1], ptr) == -1)
-    goto fail;
+      endptr = ptr;
+      while (*endptr && *endptr != ')')
+        ++endptr;
+
+      if (*endptr)
+        *endptr++ = 0;
+
+      if (id3_field_addstring(&frame->fields[1], ptr) == -1)
+        goto fail;
+
+      ptr = endptr;
+    }
+
+    if (*ptr && id3_field_addstring(&frame->fields[1], ptr) == -1)
+      goto fail;
+  }
 
   if (0) {
   fail:

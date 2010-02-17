@@ -32,3 +32,4 @@ Patches only in this version:
                           ignoring the whole tag.
     public-file-api.patch - Allow use of filetag and id3_file types. 
     no-artwork.patch - Don't allocate memory for binary artwork data when AUDIO_SCAN_NO_ARTWORK is set.
+    v2.3-compat-multiple-tcon.patch - Support multiple TCON strings from v2.2/v2.3.

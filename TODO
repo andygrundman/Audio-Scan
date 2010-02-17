@@ -16,7 +16,6 @@ APE tags from files with Lyric tags not read properly (apev2-lyricsv2.mp3)
 Free-format support (not reading Xing/LAME tag properly)
 Support VBRI mono file with wrong offset?
 Refactor to remove use of mp3_frameinfo
-Bug 3998, multiple values in TCON not supported
 
 ID3
 ---

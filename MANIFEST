@@ -85,6 +85,7 @@ libid3tag/patches/read-no-seek.patch
 libid3tag/patches/seek-after-fdopen.patch
 libid3tag/patches/translate-pic.patch
 libid3tag/patches/utf16-le-default.patch
+libid3tag/patches/v2.3-compat-multiple-tcon.patch
 libid3tag/patches/v2.3-xsop.patch
 libid3tag/README
 libid3tag/README.patches
@@ -204,6 +205,7 @@ t/mp3/v2.3-itunes81.mp3
 t/mp3/v2.3-link-frame.mp3
 t/mp3/v2.3-mp2l3-64k-22khz.mp3
 t/mp3/v2.3-mp3HD.mp3
+t/mp3/v2.3-multiple-tcon.mp3
 t/mp3/v2.3-no-audio-frames.mp3
 t/mp3/v2.3-null-bytes.mp3
 t/mp3/v2.3-rgad.mp3
