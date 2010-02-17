@@ -202,7 +202,18 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
         }
       }
       else {
-        PerlIO_printf(PerlIO_stderr(), "Unhandled WAV chunk %s size %d (skipped)\n", chunk_id, chunk_size);
+        if ( 
+             !strcmp(chunk_id, "SAUR") // Wavosour data chunk
+          || !strcmp(chunk_id, "otom") // Wavosaur?
+          || !strcmp(chunk_id, "PAD ") // Padding
+        ) {
+          // Known chunks to skip
+        }
+        else {
+          // Warn about unknown chunks so we can investigate them
+          PerlIO_printf(PerlIO_stderr(), "Unhandled WAV chunk %s size %d (skipped)\n", chunk_id, chunk_size);
+        }
+        
         buffer_consume(buf, chunk_size);
       }
     }
