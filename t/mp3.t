@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 267;
+use Test::More tests => 273;
 
 use Audio::Scan;
 
@@ -882,6 +882,20 @@ eval {
     is( $info->{bitrate}, 64000, 'MPEG-2 Layer 3 bitrate ok' );
     is( $info->{samplerate}, 22050, 'MPEG-2 Layer 3 sample rate ok' );
     is( $info->{song_length_ms}, 364, 'MPEG-2 Layer 3 duration ok' );
+}
+
+# RGAD frame parsing
+{
+    my $s = Audio::Scan->scan( _f('v2.3-rgad.mp3') );
+    
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{RGAD}, 'HASH', 'RGAD frame is a hash' );
+    is( $tags->{RGAD}->{peak}, '0.999020', 'RGAD peak ok' );
+    is( $tags->{RGAD}->{track_originator}, 3, 'RGAD track originator ok' );
+    is( $tags->{RGAD}->{track_gain}, '-5.700000 dB', 'RGAD track gain ok' );
+    is( $tags->{RGAD}->{album_originator}, 3, 'RGAD album originator ok' );
+    is( $tags->{RGAD}->{album_gain}, '-5.600000 dB', 'RGAD album gain ok' );
 }
 
 # Test for 

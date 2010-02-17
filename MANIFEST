@@ -206,6 +206,7 @@ t/mp3/v2.3-mp2l3-64k-22khz.mp3
 t/mp3/v2.3-mp3HD.mp3
 t/mp3/v2.3-no-audio-frames.mp3
 t/mp3/v2.3-null-bytes.mp3
+t/mp3/v2.3-rgad.mp3
 t/mp3/v2.3-utf16any.mp3
 t/mp3/v2.3-utf16be.mp3
 t/mp3/v2.3-utf16le.mp3

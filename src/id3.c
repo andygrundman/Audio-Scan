@@ -347,6 +347,63 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
 
                 my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)framedata ) );
               }
+              // Special handling for RGAD
+              // Based on some code found at http://getid3.sourceforge.net/source/module.tag.id3v2.phps
+              else if ( !strcmp(pid3frame->id, "RGAD") ) {
+                const id3_byte_t *rgad;
+                id3_length_t len;
+                float radio = 0.0;
+                float audiophile = 0.0;
+                uint8_t sign = 0;
+                HV *framedata = newHV();
+                Buffer rgad_buf;
+                
+                rgad = id3_field_getbinarydata(&pid3frame->fields[i], &len);
+                
+                // Peak (32-bit float)
+                my_hv_store( framedata, "peak", newSVpvf( "%f", (float)get_f32(rgad) ) );
+                
+                // Radio (16 bits)
+                buffer_init(&rgad_buf, 2);
+                buffer_append(&rgad_buf, rgad + 4, 2);
+                
+                // Radio Name code (3 bits, should always be 1)
+                buffer_get_bits(&rgad_buf, 3);
+                  
+                my_hv_store( framedata, "track_originator", newSVuv( buffer_get_bits(&rgad_buf, 3) ) );
+                
+                // Sign bit (1 bit)
+                sign = buffer_get_bits(&rgad_buf, 1);
+                
+                // Gain value (9 bits)
+                radio = (float)buffer_get_bits(&rgad_buf, 9);
+                radio /= 10.0;
+                if (sign == 1) radio *= -1.0;
+                my_hv_store( framedata, "track_gain", newSVpvf( "%f dB", radio ) );
+                
+                // Audiophile (16 bits)
+                buffer_clear(&rgad_buf);
+                buffer_append(&rgad_buf, rgad + 6, 2);
+                
+                // Audiophile Name code (3 bits, should always be 2)
+                buffer_get_bits(&rgad_buf, 3);
+                
+                // Audiophile Originator code (3 bits)
+                my_hv_store( framedata, "album_originator", newSVuv( buffer_get_bits(&rgad_buf, 3) ) );
+                
+                // Sign bit (1 bit)
+                sign = buffer_get_bits(&rgad_buf, 1);
+                
+                // Gain value (9 bits)
+                audiophile = (float)buffer_get_bits(&rgad_buf, 9);
+                audiophile /= 10.0;
+                if (sign == 1) audiophile *= -1.0;
+                my_hv_store( framedata, "album_gain", newSVpvf( "%f dB", audiophile ) );
+                
+                buffer_free(&rgad_buf);
+                
+                my_hv_store( tags, pid3frame->id, newRV_noinc( (SV *)framedata ) );                
+              }
               else {
                 char *data = (char*)pid3frame->fields[0].binary.data;
                 unsigned int len = pid3frame->fields[0].binary.length;

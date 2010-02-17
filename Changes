@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.60
+        - ID3: Parse RGAD frame (replay gain adjustment).
         - WAV: Ignore chunks SAUR, PAD, and otom.
 
 0.59    2010-02-08 15:30:00

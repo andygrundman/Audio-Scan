@@ -6,6 +6,7 @@ Large buffers will still be allocated with artwork disabled:
   ASF, Ogg (hard to fix these)
   libid3tag still reads the entire tag into memory, hard to fix this
 Clean up various code by using buffer_get_bits
+Handle stuff done by expensive SC Unicode regexes
 
 MP3
 ---
@@ -15,20 +16,25 @@ APE tags from files with Lyric tags not read properly (apev2-lyricsv2.mp3)
 Free-format support (not reading Xing/LAME tag properly)
 Support VBRI mono file with wrong offset?
 Refactor to remove use of mp3_frameinfo
+Bug 3998, multiple values in TCON not supported
 
 ID3
 ---
 Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/padding
+(would also need a way to send this info to player via slimproto)
   http://www.hydrogenaudio.org/forums/index.php?showtopic=48231&st=136
   2nd value: encoder delay (usually 528)
   3rd value: encoder padding
   4th value: length in samples of original track
 Support iTunNORM, translate into replay gain values
+  This would be useful
 ID3v1 comment + COMM are not merged but stacked
-RGAD frame: http://www.id3.org/Replay_Gain_Adjustment
 
 FLAC
 ----
+
+WAV
+---
 
 Ogg
 ---
@@ -52,6 +58,7 @@ Uses APE tags.
 
 APE
 ---
+Strip nulls from end of tags, bug 3769
 
 Monkey's Audio Codec
 ---
