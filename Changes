@@ -5,6 +5,8 @@ Revision history for Audio::Scan
           versions.
         - ID3: Parse RGAD frame (replay gain adjustment).
         - APE: Fixed bug where a trailing null could be read from tags.
+        - FLAC: Calculate correct duration/bitrate for files with bad header
+          information.
         - WAV: Ignore chunks SAUR, PAD, and otom.
 
 0.59    2010-02-08 15:30:00

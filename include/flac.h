@@ -17,6 +17,10 @@
 #define FLAC_BLOCK_SIZE 4096
 #define FLAC_FRAME_MAX_HEADER 22
 
+/* frame header size (16 bytes) + 4608 stereo 16-bit samples (higher than 4608 is possible, but not done) */
+#define FLAC_MAX_FRAMESIZE 18448
+#define FLAC_HEADER_LEN 16
+
 enum flac_types {
   FLAC_TYPE_STREAMINFO,
   FLAC_TYPE_PADDING,
@@ -41,6 +45,7 @@ typedef struct flacinfo {
   HV *tags;
   off_t file_size;
   off_t audio_offset;
+  uint32_t max_framesize;
   
   uint8_t seeking; // flag if we're seeking
   
@@ -57,6 +62,7 @@ void _flac_parse_cuesheet(flacinfo *flac);
 int _flac_parse_picture(flacinfo *flac);
 int _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, off_t high);
 int _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample);
+int _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, uint64_t *first_sample, uint64_t *last_sample);
 uint8_t _flac_crc8(const unsigned char *buf, unsigned len);
 int _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen);
 int _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen);

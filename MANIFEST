@@ -159,6 +159,7 @@ t/asf/wmv92-with-audio.wmv
 t/asf/wmv92.wmv
 t/flac/appId.flac
 t/flac/audio-data.flac
+t/flac/bad-streaminfo.flac
 t/flac/CVE-2007-4619-1.flac
 t/flac/CVE-2007-4619-12.flac
 t/flac/CVE-2007-4619-2.flac

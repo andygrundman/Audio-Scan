@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 60;
+use Test::More tests => 67;
 
 use Audio::Scan;
 
@@ -169,6 +169,23 @@ use Audio::Scan;
 {
     my $offset = Audio::Scan->find_frame( _f('picture-large.flac'), 1000 );
     is( $offset, 337723, 'Find frame in picture file ok' );
+}
+
+# Calc duration/bitrate when missing header information
+{
+    my $s = Audio::Scan->scan( _f('bad-streaminfo.flac') );
+    
+    my $info = $s->{info};
+    is( $info->{audio_offset}, 350, 'Bad streaminfo audio offset ok' );
+    is( $info->{bitrate}, 268415, 'Bad streaminfo bitrate ok' );
+    is( $info->{maximum_framesize}, 0, 'Bad streaminfo has no max framesize' );
+    is( $info->{md5}, '0' x 32, 'Bad streaminfo has no md5' );
+    is( $info->{minimum_framesize}, 0, 'Bad streaminfo has no min framesize' );
+    
+    # XXX These values are slightly short because we aren't reading
+    # backwards from the end to find the actual last frame
+    is( $info->{song_length_ms}, 1462, 'Bad streaminfo duration ok' );
+    is( $info->{total_samples}, 64512, 'Bad streaminfo total_samples ok' );
 }
 
 sub _f {

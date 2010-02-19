@@ -16,10 +16,6 @@
 
 #include "flac.h"
 
-/* frame header size (16 bytes) + 4608 stereo 16-bit samples (higher than 4608 is possible, but not done) */
-#define FLAC_FRAME_MAX_BLOCK 18448
-#define FLAC_HEADER_LEN 16
-
 int
 get_flac_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 {
@@ -220,6 +216,36 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   if (song_length_ms > 0) {
     my_hv_store( info, "bitrate", newSVuv( _bitrate(flac->file_size - flac->audio_offset, song_length_ms) ) );
   }
+  else {
+    if (!seeking) {
+      // Find the first/last frames and manually calculate duration and bitrate
+      off_t frame_offset;
+      uint64_t first_sample;
+      uint64_t last_sample;
+      uint64_t tmp;
+    
+      DEBUG_TRACE("Manually determining duration/bitrate\n");
+    
+      if ( _flac_first_last_sample(flac, flac->audio_offset, &frame_offset, &first_sample, &tmp) ) {
+        DEBUG_TRACE("  First sample: %llu (offset %llu)\n", first_sample, frame_offset);
+        
+        // XXX This last sample isn't really correct, seeking back max_framesize will most likely be several frames
+        // from the end, resulting in a slightly shortened duration. Reading backwards through the file
+        // would provide a more accurate result
+        if ( _flac_first_last_sample(flac, flac->file_size - flac->max_framesize, &frame_offset, &tmp, &last_sample) ) {
+          SV **samplerate = my_hv_fetch( info, "samplerate" );
+          if (samplerate != NULL) {
+            song_length_ms = ( ((last_sample - first_sample) * 1.0) / SvIV(*samplerate)) * 1000;
+            my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
+            my_hv_store( info, "bitrate", newSVuv( _bitrate(flac->file_size - flac->audio_offset, song_length_ms) ) );
+            my_hv_store( info, "total_samples", newSVuv( last_sample - first_sample ) );
+          }
+          
+          DEBUG_TRACE("  Last sample: %llu (offset %llu)\n", last_sample, frame_offset);
+        }
+      }
+    }
+  }
   
   my_hv_store( info, "file_size", newSVuv(flac->file_size) );
   my_hv_store( info, "audio_offset", newSVuv(flac->audio_offset) );
@@ -321,49 +347,24 @@ int
 _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, off_t high)
 {
   off_t mid;
-  Buffer buf;
-  unsigned char *bptr;
-  unsigned int buf_size;
-  int frame_offset = -1;
+  off_t frame_offset = -1;
   uint64_t first_sample;
   uint64_t last_sample;
-  int i;
-  
-  buffer_init(&buf, FLAC_FRAME_MAX_BLOCK);
   
   while (low <= high) {
     mid = low + ((high - low) / 2);
   
     DEBUG_TRACE("  Searching for sample %llu between %d and %d (mid %d)\n", target_sample, (int)low, (int)high, (int)mid);
-  
-    PerlIO_seek(flac->infile, mid, SEEK_SET);
-      
-    if ( !_check_buf(flac->infile, &buf, FLAC_FRAME_MAX_HEADER, FLAC_FRAME_MAX_BLOCK) ) {
+    
+    if ( !_flac_first_last_sample(flac, mid, &frame_offset, &first_sample, &last_sample) ) {
       goto out;
     }
-  
-    bptr = buffer_ptr(&buf);
-    buf_size = buffer_len(&buf);
-  
-    for (i = 0; i != buf_size - FLAC_HEADER_LEN; i++) {
-      if (bptr[i] != 0xFF)
-        continue;
-      
-      // Verify we have a valid FLAC frame header
-      // and get the first/last sample numbers in the frame if it's valid
-      if ( !_flac_first_sample( &bptr[i], &first_sample, &last_sample ) )
-        continue;
-      
-      frame_offset = mid + i;
-      
-      break;
-    }
     
-    DEBUG_TRACE("  first_sample %llu, last_sample %llu\n", first_sample, last_sample);
+    DEBUG_TRACE("  frame offset: %llu, first_sample %llu, last_sample %llu\n", frame_offset, first_sample, last_sample);
     
     if (first_sample <= target_sample && last_sample >= target_sample) {
       // found frame
-      DEBUG_TRACE("  found frame at %d\n", frame_offset);
+      DEBUG_TRACE("  found frame at %llu\n", frame_offset);
       goto out;
     }
   
@@ -375,14 +376,54 @@ _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, of
       low = mid + 1;
       DEBUG_TRACE("  low = %d\n", (int)low);
     }
+  }
+  
+out:
+  return frame_offset;
+}
+
+int
+_flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, uint64_t *first_sample, uint64_t *last_sample)
+{
+  Buffer buf;
+  unsigned char *bptr;
+  unsigned int buf_size;
+  int ret = 1;
+  int i;
+  
+  buffer_init(&buf, flac->max_framesize);
+  
+  if ( (PerlIO_seek(flac->infile, seek_offset, SEEK_SET)) == -1 ) {
+    ret = 0;
+    goto out;
+  }
     
-    buffer_clear(&buf);
+  if ( !_check_buf(flac->infile, &buf, FLAC_FRAME_MAX_HEADER, flac->max_framesize) ) {
+    ret = 0;
+    goto out;
+  }
+
+  bptr = buffer_ptr(&buf);
+  buf_size = buffer_len(&buf);
+
+  for (i = 0; i != buf_size - FLAC_HEADER_LEN; i++) {
+    if (bptr[i] != 0xFF)
+      continue;
+    
+    // Verify we have a valid FLAC frame header
+    // and get the first/last sample numbers in the frame if it's valid
+    if ( !_flac_first_sample( &bptr[i], first_sample, last_sample ) )
+      continue;
+    
+    *frame_offset = seek_offset + i;
+    
+    break;
   }
   
 out:
   buffer_free(&buf);
-
-  return frame_offset;
+  
+  return ret;
 }
 
 int
@@ -448,7 +489,7 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
     if ( xx == 0xFFFFFFFFFFFFFFFFLL )
       return 0;
       
-    //DEBUG_TRACE("  variable blocksize, first sample %ld\n", xx);
+    //DEBUG_TRACE("  variable blocksize, first sample %llu\n", xx);
     
     *first_sample = xx;
   }
@@ -496,6 +537,9 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
   if (frame_number) {
     *first_sample = frame_number * blocksize;
   }
+  else {
+    *first_sample = 0;
+  }
   
   *last_sample = *first_sample + blocksize;
   
@@ -517,7 +561,13 @@ _flac_parse_streaminfo(flacinfo *flac)
   my_hv_store( flac->info, "maximum_blocksize", newSVuv( buffer_get_short(flac->buf) ) );
   
   my_hv_store( flac->info, "minimum_framesize", newSVuv( buffer_get_int24(flac->buf) ) );
-  my_hv_store( flac->info, "maximum_framesize", newSVuv( buffer_get_int24(flac->buf) ) );
+  
+  flac->max_framesize = buffer_get_int24(flac->buf);
+  my_hv_store( flac->info, "maximum_framesize", newSVuv(flac->max_framesize) );
+  
+  if ( !flac->max_framesize ) {
+    flac->max_framesize = FLAC_MAX_FRAMESIZE;
+  }
   
   tmp = buffer_get_int64(flac->buf);
   
