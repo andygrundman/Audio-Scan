@@ -173,7 +173,6 @@ int _ape_get_tag_info(ApeTag* tag) {
 
     /* Check tag header for validity */
     if (memcmp(APE_PREAMBLE, &compare, 8) || 
-       (memcmp(APE_HEADER_FLAGS, (tmp_ptr+9), 3) != 0) || 
        (tmp_ptr[8] != '\0' && tmp_ptr[8] != '\1')) {
       return _ape_error(tag, "Bad tag header flags", -3);
     }
