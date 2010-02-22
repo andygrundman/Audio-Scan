@@ -17,6 +17,7 @@
 #include "ogg.c"
 #include "wav.c"
 #include "flac.c"
+#include "wavpack.c"
 
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02
@@ -43,6 +44,7 @@ struct _types audio_types[] = {
   {"flc", {"flc", "flac", "fla", 0}},
   {"asf", {"wma", "asf", "wmv", 0}},
   {"wav", {"wav", "aif", "aiff", 0}},
+  {"wvp", {"wv", 0}},
   {0, {0, 0}}
 };
 
@@ -56,6 +58,7 @@ static taghandler taghandlers[] = {
   { "flc", get_flac_metadata, 0, flac_find_frame },
   { "asf", get_asf_metadata, 0, asf_find_frame },
   { "wav", get_wav_metadata, 0, 0 },
+  { "wvp", get_ape_metadata, get_wavpack_info, 0 },
   { NULL, 0, 0, 0 }
 };
 

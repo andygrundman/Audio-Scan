@@ -403,6 +403,41 @@ buffer_get_int24(Buffer *buffer)
   return (ret);
 }
 
+uint32_t
+get_u24le(const void *vp)
+{
+  const u_char *p = (const u_char *)vp;
+  uint32_t v;
+
+  v  = (uint32_t)p[2] << 16;
+  v |= (uint32_t)p[1] << 8;
+  v |= (uint32_t)p[0];
+
+  return (v);
+}
+
+int
+buffer_get_int24_le_ret(uint32_t *ret, Buffer *buffer)
+{
+  u_char buf[3];
+
+  if (buffer_get_ret(buffer, (char *) buf, 3) == -1)
+    return (-1);
+  *ret = get_u24le(buf);
+  return (0);
+}
+
+uint32_t
+buffer_get_int24_le(Buffer *buffer)
+{
+  uint32_t ret;
+
+  if (buffer_get_int24_le_ret(&ret, buffer) == -1)
+    croak("buffer_get_int24_le: buffer error");
+
+  return (ret);
+}
+
 uint64_t
 get_u64le(const void *vp)
 {

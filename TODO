@@ -52,8 +52,9 @@ correct offsets, etc.  Possibly also rewrite duration info.
 
 Wavpack
 ---
-Need implementation for stream info.
-Uses APE tags.
+Support seeking
+Support versions < 4 (see unpack3.c source)
+Get test files for rare cases such as ID_SAMPLE_RATE, ID_CHANNEL_INFO, empty blocks at start
 
 APE
 ---
