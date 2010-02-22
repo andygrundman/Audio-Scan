@@ -17,6 +17,7 @@ include/pinttypes.h
 include/ppport.h
 include/pstdint.h
 include/wav.h
+include/wavpack.h
 lib/Audio/Scan.pm
 libid3tag/aclocal.m4
 libid3tag/CHANGES
@@ -122,6 +123,7 @@ src/mp4.c
 src/mpc.c
 src/ogg.c
 src/wav.c
+src/wavpack.c
 t/01use.t
 t/02pod.t
 t/03podcoverage.t

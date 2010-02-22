@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.60
+0.60    2010-02-22 17:45:00
         - WavPack 4.x support.
         - ID3: Bug 3998, Fixed parsing of multiple TCON genre values in older tag
           versions.
