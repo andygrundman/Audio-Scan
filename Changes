@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.61
+0.61    2010-02-23 22:50:00
         - RT 53118: Fixed crash under Perl 5.11.
         - Updated Mac hints file to be more compatible with non-Apple Perl builds.
 
