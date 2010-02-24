@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.61
+        - RT 53118: Fixed crash under Perl 5.11.
+        - Updated Mac hints file to be more compatible with non-Apple Perl builds.
+
 0.60    2010-02-22 17:45:00
         - WavPack 4.x support.
         - ID3: Bug 3998, Fixed parsing of multiple TCON genre values in older tag

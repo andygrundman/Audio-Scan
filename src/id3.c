@@ -570,9 +570,8 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
               }
               else if ( SvTYPE( SvRV(*entry) ) == SVt_PVAV ) {
                 // If type of first item is array, add new item to entry
-                SV **first = av_fetch( (AV *)SvRV(*entry), 0, 0 );
-                // XXX: something wrong with SvTYPE( SvRV(*first) ) that causes a segfault in Perl 5.11+
-                if ( first == NULL || ( SvTYPE(*first) == SVt_RV && SvTYPE( SvRV(*first) ) == SVt_PVAV ) ) {
+                SV **first = av_fetch( (AV *)SvRV(*entry), 0, 0 );                
+                if ( first == NULL || ( SvROK(*first) && SvTYPE( SvRV(*first) ) == SVt_PVAV ) ) {
                   av_push( (AV *)SvRV(*entry), newRV_noinc( (SV *)framedata ) );
                 }
                 else {
