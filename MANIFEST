@@ -269,7 +269,6 @@ t/wav/id3.wav
 t/wav/wav32-info-badchunk.wav
 t/wav/wav32-info-nulls.wav
 t/wav/wav32.wav
-t/wavpack
 t/wavpack/24-bit.wv
 t/wavpack/hybrid-24kbps.wv
 t/wavpack/silence-44-s.wv
