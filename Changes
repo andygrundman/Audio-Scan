@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.62
+0.62    2010-03-02 12:00:00
         - INCOMPATIBLE CHANGE: Ogg Vorbis COVERART tags are now translated to an
           ALLPICTURES block and are base64-decoded.
         - Added support for new Ogg Vorbis cover art tag, METADATA_BLOCK_PICTURE. Data
