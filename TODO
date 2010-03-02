@@ -31,6 +31,7 @@ ID3v1 comment + COMM are not merged but stacked
 
 FLAC
 ----
+Test for invalid picture data
 
 WAV
 ---
@@ -39,6 +40,7 @@ Ogg
 ---
 More accurate seeking?
 bug-8922-3707.ogg - does not parse correctly
+Test invalid picture data
 
 ASF
 ---

@@ -6,6 +6,8 @@ use strict;
 use Audio::Scan;
 use Benchmark qw(cmpthese);
 
+$ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+
 my $file = shift || die "Usage: $0 [file]\n\n";
 
 if ( $file =~ /\.mp(2|3)$/i ) {

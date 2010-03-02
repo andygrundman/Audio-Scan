@@ -146,7 +146,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     // If the granule_pos > 0, we have reached the end of headers and
     // this is the first audio page
     if (granule_pos > 0 && granule_pos != -1) {
-      _parse_vorbis_comments(&vorbis_buf, tags, 1);
+      _parse_vorbis_comments(infile, &vorbis_buf, tags, 1);
 
       DEBUG_TRACE("  parsed vorbis comments\n");
 
@@ -330,7 +330,7 @@ out:
 }
 
 void
-_parse_vorbis_comments(Buffer *vorbis_buf, HV *tags, int has_framing)
+_parse_vorbis_comments(PerlIO *infile, Buffer *vorbis_buf, HV *tags, int has_framing)
 {
   unsigned int len;
   unsigned int num_comments;
@@ -355,18 +355,102 @@ _parse_vorbis_comments(Buffer *vorbis_buf, HV *tags, int has_framing)
     
     if (
 #ifdef _MSC_VER
+      !strnicmp(bptr, "METADATA_BLOCK_PICTURE=", 23)
+#else
+      !strncasecmp(bptr, "METADATA_BLOCK_PICTURE=", 23)
+#endif
+    ) {
+      // parse METADATA_BLOCK_PICTURE according to http://wiki.xiph.org/VorbisComment#METADATA_BLOCK_PICTURE
+      AV *pictures;
+      HV *picture;
+      Buffer pic_buf; 
+      uint32_t pic_length;
+      
+      buffer_consume(vorbis_buf, 23);
+      
+      // Copy picture into new buffer and base64 decode it
+      buffer_init(&pic_buf, len - 23);
+      buffer_append( &pic_buf, buffer_ptr(vorbis_buf), len - 23 );
+      buffer_consume(vorbis_buf, len - 23);
+      
+      _decode_base64( buffer_ptr(&pic_buf) );
+      
+      picture = _decode_flac_picture(infile, &pic_buf, &pic_length);
+      if ( !picture ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid Vorbis METADATA_BLOCK_PICTURE comment\n");
+      }
+      else {
+        DEBUG_TRACE("  found picture of length %d\n", pic_length);
+        
+        if ( my_hv_exists(tags, "ALLPICTURES") ) {
+          SV **entry = my_hv_fetch(tags, "ALLPICTURES");
+          if (entry != NULL) {
+            pictures = (AV *)SvRV(*entry);
+            av_push( pictures, newRV_noinc( (SV *)picture ) );
+          }
+        }
+        else {
+          pictures = newAV();
+
+          av_push( pictures, newRV_noinc( (SV *)picture ) );
+
+          my_hv_store( tags, "ALLPICTURES", newRV_noinc( (SV *)pictures ) );
+        }
+      }
+      
+      buffer_free(&pic_buf);
+    }
+    else if (
+#ifdef _MSC_VER
       !strnicmp(bptr, "COVERART=", 9)
 #else
       !strncasecmp(bptr, "COVERART=", 9)
 #endif
-      &&
-      _env_true("AUDIO_SCAN_NO_ARTWORK")
     ) {
-      my_hv_store_ent( tags, newSVpvn("COVERART", 8), newSVuv(len - 9) );
+      // decode COVERART into ALLPICTURES
+      AV *pictures;
+      HV *picture = newHV();
       
-      buffer_consume(vorbis_buf, len);
+      // Fill in recommended default values for most of the picture hash
+      my_hv_store( picture, "color_index", newSVuv(0) );
+      my_hv_store( picture, "depth", newSVuv(0) );
+      my_hv_store( picture, "description", newSVpvn("", 0) );
+      my_hv_store( picture, "height", newSVuv(0) );
+      my_hv_store( picture, "width", newSVuv(0) );
+      my_hv_store( picture, "mime_type", newSVpvn("image/", 6) ); // As recommended, real mime should be in COVERARTMIME
+      my_hv_store( picture, "picture_type", newSVuv(0) ); // Other
+      
+      if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
+        my_hv_store( picture, "image_data", newSVuv(len - 9) );
+        buffer_consume(vorbis_buf, len);
+      }
+      else {
+        int pic_length;
+
+        buffer_consume(vorbis_buf, 9);
+        pic_length = _decode_base64( buffer_ptr(vorbis_buf) );
+        DEBUG_TRACE("  found picture of length %d\n", pic_length);
+        
+        my_hv_store( picture, "image_data", newSVpvn( buffer_ptr(vorbis_buf), pic_length ) );
+        buffer_consume(vorbis_buf, len - 9);
+      }
+      
+      if ( my_hv_exists(tags, "ALLPICTURES") ) {
+        SV **entry = my_hv_fetch(tags, "ALLPICTURES");
+        if (entry != NULL) {
+          pictures = (AV *)SvRV(*entry);
+          av_push( pictures, newRV_noinc( (SV *)picture ) );
+        }
+      }
+      else {
+        pictures = newAV();
+
+        av_push( pictures, newRV_noinc( (SV *)picture ) );
+
+        my_hv_store( tags, "ALLPICTURES", newRV_noinc( (SV *)pictures ) );
+      }
     }
-    else {    
+    else {
       New(0, tmp, (int)len + 1, char);
       buffer_get(vorbis_buf, tmp, len);
       tmp[len] = '\0';

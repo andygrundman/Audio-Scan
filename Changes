@@ -1,5 +1,11 @@
 Revision history for Audio::Scan
 
+0.62
+        - INCOMPATIBLE CHANGE: Ogg Vorbis COVERART tags are now translated to an
+          ALLPICTURES block and are base64-decoded.
+        - Added support for new Ogg Vorbis cover art tag, METADATA_BLOCK_PICTURE. Data
+          is returned in the same ALLPICTURES array as for FLAC.
+
 0.61    2010-02-23 22:50:00
         - RT 53118: Fixed crash under Perl 5.11.
         - Updated Mac hints file to be more compatible with non-Apple Perl builds.

@@ -154,7 +154,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       case FLAC_TYPE_VORBIS_COMMENT:
         if ( !flac->seeking ) {
           // Vorbis comment parsing code from ogg.c
-          _parse_vorbis_comments(flac->buf, tags, 0);
+          _parse_vorbis_comments(flac->infile, flac->buf, tags, 0);
         }
         else {
           DEBUG_TRACE("  seeking, not parsing comments\n");
@@ -762,83 +762,28 @@ int
 _flac_parse_picture(flacinfo *flac)
 {
   AV *pictures;
-  HV *picture = newHV();
+  HV *picture;
   int ret = 1;
-  uint32_t mime_length;
-  uint32_t desc_length;
   uint32_t pic_length;
-  SV *desc;
   
-  // Check we have enough for picture_type and mime_length
-  if ( !_check_buf(flac->infile, flac->buf, 8, FLAC_BLOCK_SIZE) ) {
-    ret = 0;
-    goto out;
-  }
-  
-  my_hv_store( picture, "picture_type", newSVuv( buffer_get_int(flac->buf) ) );
-  
-  mime_length = buffer_get_int(flac->buf);
-  DEBUG_TRACE("  mime_length: %d\n", mime_length);
-  if (mime_length > buffer_len(flac->buf)) {
+  picture = _decode_flac_picture(flac->infile, flac->buf, &pic_length);
+  if ( !picture ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
     ret = 0;
     goto out;
   }
   
-  // Check we have enough for mime_type and desc_length
-  if ( !_check_buf(flac->infile, flac->buf, mime_length + 4, FLAC_BLOCK_SIZE) ) {
-    ret = 0;
-    goto out;
-  }
-  
-  my_hv_store( picture, "mime_type", newSVpvn( buffer_ptr(flac->buf), mime_length ) );
-  buffer_consume(flac->buf, mime_length);
-  
-  desc_length = buffer_get_int(flac->buf);
-  DEBUG_TRACE("  desc_length: %d\n", mime_length);
-  if (desc_length > buffer_len(flac->buf)) {
-    PerlIO_printf(PerlIO_stderr(), "Invalid FLAC file: %s, bad picture block\n", flac->file);
-    ret = 0;
-    goto out;
-  }
-  
-  // Check we have enough for desc_length, width, height, depth, color_index, pic_length
-  if ( !_check_buf(flac->infile, flac->buf, desc_length + 20, FLAC_BLOCK_SIZE) ) {
-    ret = 0;
-    goto out;
-  }
-  
-  desc = newSVpvn( buffer_ptr(flac->buf), desc_length );
-  sv_utf8_decode(desc); // XXX needs test with utf8 desc
-  my_hv_store( picture, "description", desc );
-  buffer_consume(flac->buf, desc_length);
-  
-  my_hv_store( picture, "width", newSVuv( buffer_get_int(flac->buf) ) );
-  my_hv_store( picture, "height", newSVuv( buffer_get_int(flac->buf) ) );
-  my_hv_store( picture, "depth", newSVuv( buffer_get_int(flac->buf) ) );
-  my_hv_store( picture, "color_index", newSVuv( buffer_get_int(flac->buf) ) );
-  
-  pic_length = buffer_get_int(flac->buf);
-  DEBUG_TRACE("  pic_length: %d\n", pic_length);
-  
+  // Skip past pic data if necessary
   if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
-    my_hv_store( picture, "image_data", newSVuv(pic_length) );
     _flac_skip(flac, pic_length);
   }
   else {
-    if ( !_check_buf(flac->infile, flac->buf, pic_length, pic_length) ) {
-      ret = 0;
-      goto out;
-    }
-    
-    my_hv_store( picture, "image_data", newSVpvn( buffer_ptr(flac->buf), pic_length ) );
     buffer_consume(flac->buf, pic_length);
   }
   
   DEBUG_TRACE("  found picture of length %d\n", pic_length);
   
   if ( my_hv_exists(flac->tags, "ALLPICTURES") ) {
-    // XXX needs test
     SV **entry = my_hv_fetch(flac->tags, "ALLPICTURES");
     if (entry != NULL) {
       pictures = (AV *)SvRV(*entry);

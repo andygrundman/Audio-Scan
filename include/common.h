@@ -29,6 +29,8 @@
 # define _PACKED
 #endif
 
+#define DEFAULT_BLOCK_SIZE 4096
+
 #ifndef _MSC_VER
 // We use the built-in GUID type on Windows
 typedef struct _GUID {
@@ -64,10 +66,11 @@ typedef struct _GUID {
 #define CONVERT_INT32LE(b) \
 (i = (b[3] << 24) | (b[2] << 16) | b[1] << 8 | b[0], i)
 
-extern int _check_buf(PerlIO *infile, Buffer *buf, int size, int min_size);
-extern void _split_vorbis_comment(char* comment, HV* tags);
-extern int32_t skip_id3v2(PerlIO *infile);
-extern uint32_t _bitrate(uint32_t audio_size, uint32_t song_length_ms);
-extern off_t _file_size(PerlIO *infile);
-extern int _env_true(const char *name);
-
+int _check_buf(PerlIO *infile, Buffer *buf, int size, int min_size);
+void _split_vorbis_comment(char* comment, HV* tags);
+int32_t skip_id3v2(PerlIO *infile);
+uint32_t _bitrate(uint32_t audio_size, uint32_t song_length_ms);
+off_t _file_size(PerlIO *infile);
+int _env_true(const char *name);
+int _decode_base64(char *s);
+HV * _decode_flac_picture(PerlIO *infile, Buffer *buf, uint32_t *pic_length);

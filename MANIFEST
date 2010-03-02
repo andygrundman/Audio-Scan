@@ -258,6 +258,7 @@ t/ogg/empty.ogg
 t/ogg/equals-char.ogg
 t/ogg/large-page-segments.ogg
 t/ogg/large-pagesize.ogg
+t/ogg/metadata-block-picture.ogg
 t/ogg/multiple.ogg
 t/ogg/old1.ogg
 t/ogg/old2.ogg

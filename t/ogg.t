@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 44;
+use Test::More tests => 65;
 
 use Audio::Scan;
 
@@ -70,18 +70,73 @@ eval {
     is($tags->{TITLE}, 'Deadzy', 'Large page title tag ok');
     is($tags->{ARTIST}, 'Medeski Scofield Martin & Wood', 'Large page artist tag ok');
     is($tags->{ALBUM}, 'Out Louder (bonus disc)', 'Large page album tag ok');
-    is(length($tags->{COVERART}), 104704, 'Cover art ok');
 }
 
-# Test ignoring artwork
+# Test COVERART
 {
     local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
     
     my $s = Audio::Scan->scan( _f('large-pagesize.ogg') );
     
     my $tags = $s->{tags};
+    my $pic = $tags->{ALLPICTURES}->[0];
     
-    is( $tags->{COVERART}, 104704, 'Cover art with AUDIO_SCAN_NO_ARTWORK ok');
+    is( $pic->{color_index}, 0, 'COVERART color_index ok' );
+    is( $pic->{depth}, 0, 'COVERART depth ok' );
+    is( $pic->{description}, '', 'COVERART description ok' );
+    is( $pic->{height}, 0, 'COVERART height ok' );
+    is( $pic->{image_data}, 104704, 'COVERART length ok' ); # this is the base64-encoded length
+    is( $pic->{mime_type}, 'image/', 'COVERART mime_type ok' );
+    is( $pic->{picture_type}, 0, 'COVERART picture_type ok' );
+    is( $pic->{width}, 0, 'COVERART width ok' );
+}
+
+# Test COVERART data
+{
+    my $s = Audio::Scan->scan( _f('large-pagesize.ogg') );
+    
+    my $tags = $s->{tags};
+    my $pic = $tags->{ALLPICTURES}->[0];
+    
+    is( length( $pic->{image_data} ), 78527, 'COVERART real length ok' ); # without base64 encoding
+    is( unpack( 'H*', substr( $pic->{image_data}, 0, 4 ) ), 'ffd8ffe0', 'COVERART JPEG picture data ok ');
+}
+
+# Test METADATA_BLOCK_PICTURE
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('metadata-block-picture.ogg') );
+    
+    my $tags = $s->{tags};
+    my $pic  = $tags->{ALLPICTURES}->[0];
+    my $pic2 = $tags->{ALLPICTURES}->[1];
+    
+    is( $pic->{color_index}, 0, 'METADATA_BLOCK_PICTURE color_index ok' );
+    is( $pic->{depth}, 0, 'METADATA_BLOCK_PICTURE depth ok' );
+    is( $pic->{description}, '', 'METADATA_BLOCK_PICTURE description ok' );
+    is( $pic->{height}, 0, 'METADATA_BLOCK_PICTURE height ok' );
+    is( $pic->{image_data}, 25078, 'METADATA_BLOCK_PICTURE length ok' );
+    is( $pic->{mime_type}, 'image/jpeg', 'METADATA_BLOCK_PICTURE mime_type ok' );
+    is( $pic->{picture_type}, 3, 'METADATA_BLOCK_PICTURE picture_type ok' );
+    is( $pic->{width}, 0, 'METADATA_BLOCK_PICTURE width ok' );
+    
+    is( $pic2->{image_data}, 1761, 'METADATA_BLOCK_PICTURE pic2 length ok' );
+}
+
+# Test METADATA_BLOCK_PICTURE data
+{
+    my $s = Audio::Scan->scan( _f('metadata-block-picture.ogg') );
+    
+    my $tags = $s->{tags};
+    my $pic  = $tags->{ALLPICTURES}->[0];
+    my $pic2 = $tags->{ALLPICTURES}->[1];
+    
+    is( length( $pic->{image_data} ), 25078, 'METADATA_BLOCK_PICTURE real length ok' );
+    is( unpack( 'H*', substr( $pic->{image_data}, 0, 4 ) ), 'ffd8ffe0', 'METADATA_BLOCK_PICTURE JPEG picture data ok ');
+    
+    is( length( $pic2->{image_data} ), 1761, 'METADATA_BLOCK_PICTURE pic2 real length ok' );
+    is( unpack( 'H*', substr( $pic2->{image_data}, 0, 4 ) ), 'ffd8ffe0', 'METADATA_BLOCK_PICTURE JPEG pic2 data ok ');
 }
 
 # Old encoder files.
