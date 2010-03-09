@@ -2,7 +2,7 @@ package Audio::Scan;
 
 use strict;
 
-our $VERSION = '0.62';
+our $VERSION = '0.63';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -96,27 +96,23 @@ If you only need the tags and don't care about the metadata, use this method.
 Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or "ogg".
 Note that FLAC does not support reading from a filehandle.
 
-=head2 find_frame( $path, $offset )
+=head2 find_frame( $path, $timestamp_in_ms )
 
-Returns the byte offset to the first audio frame starting from $offset.
-
-The offset value is different depending on the file type:
+Returns the byte offset to the first audio frame starting from the given timestamp
+(in milliseconds).
 
 =over 4
 
-=item MP3, Ogg
+=item MP3, Ogg, FLAC, ASF, MP4
 
-Offset is the byte offset to start searching from.  The byte offset to the first
-audio packet/frame past this point will be returned.
-
-=item FLAC, ASF, MP4
-
-Offset is a timestamp in milliseconds.  The byte offset to the data packet
-containing this timestamp will be returned.
+The byte offset to the data packet containing this timestamp will be returned. For
+file formats that don't provide timestamp information such as MP3, the best estimate for
+the location of the timestamp will be returned.  This will be more accurate if the
+file has a Xing header or is CBR for example.
 
 =item WAV, AIFF, Musepack, Monkey's Audio, WavPack
 
-Not supported by find_frame.
+Not yet supported by find_frame.
 
 =back
 

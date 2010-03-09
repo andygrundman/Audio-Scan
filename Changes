@@ -1,5 +1,10 @@
 Revision history for Audio::Scan
 
+0.63
+        - INCOMPATIBLE CHANGE: find_frame for both MP3 and Ogg Vorbis now take a
+          timestamp in milliseconds.  Seeking using a file offset is too ambiguous
+          because of non-audio tag data.
+
 0.62    2010-03-02 12:00:00
         - INCOMPATIBLE CHANGE: Ogg Vorbis COVERART tags are now translated to an
           ALLPICTURES block and are base64-decoded.
