@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 276;
+use Test::More tests => 277;
 
 use Audio::Scan;
 
@@ -756,24 +756,33 @@ eval {
 
 # Find frame offset
 {
-    my $offset = Audio::Scan->find_frame( _f('no-tags-no-xing-vbr.mp3'), 17005 );
+    my $offset = Audio::Scan->find_frame( _f('no-tags-no-xing-vbr.mp3'), 1000 );
     
-    is( $offset, 17151, 'Find frame ok' );
+    is( $offset, 27504, 'Find frame non-Xing ok' );
     
-    # Find first frame past Xing tag
-    $offset = Audio::Scan->find_frame( _f('no-tags-mp1l3-vbr.mp3'), 1 );
+    # Find first frame past Xing tag using special absolute byte offset support
+    # via negative number
+    $offset = Audio::Scan->find_frame( _f('no-tags-mp1l3-vbr.mp3'), -1 );
     
     is( $offset, 576, 'Find frame past Xing tag ok' );
 }
 
+# Test very close to the end of the file
 {
     open my $fh, '<', _f('no-tags-no-xing-vbr.mp3');
     
-    my $offset = Audio::Scan->find_frame_fh( mp3 => $fh, 42000 );
+    my $offset = Audio::Scan->find_frame_fh( mp3 => $fh, 4950 );
     
-    is( $offset, 42641, 'Find frame via filehandle ok' );
+    is( $offset, 132860, 'Find frame via filehandle ok' );
     
     close $fh;
+}
+
+# Seeking with Xing TOC
+{
+    # Xing TOC will be used @ 47.8%
+    my $offset = Audio::Scan->find_frame( _f('v2.3-itunes81.mp3' ), 600 );
+    is( $offset, 15403, 'Find frame with Xing TOC ok' );
 }
 
 # Bug 12409, file with just enough junk data before first audio frame

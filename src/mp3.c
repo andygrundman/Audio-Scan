@@ -816,7 +816,9 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   unsigned int buf_size;
   struct mp3_frameinfo fi;
   int frame_offset = -1;
+  off_t file_size;
   off_t audio_offset;
+  uint32_t song_length_ms;
   HV *info = newHV();
   
   buffer_init(&mp3_buf, MP3_BLOCK_SIZE);
@@ -825,45 +827,92 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
     goto out;
   }
   
-  audio_offset = SvIV( *(my_hv_fetch(info, "audio_offset")) );
+  file_size      = SvIV( *(my_hv_fetch(info, "file_size")) );
+  audio_offset   = SvIV( *(my_hv_fetch(info, "audio_offset")) );
+  song_length_ms = SvIV( *(my_hv_fetch(info, "song_length_ms")) );
   
-  // Use Xing TOC if available
-  if ( my_hv_exists(info, "xing_toc") ) {
-    // Don't use Xing TOC if trying to seek to audio_offset + 1, which is special
-    if ( offset != audio_offset + 1 ) {
-      uint8_t percent;
-      uint16_t tv;
-      off_t file_size     = SvIV( *(my_hv_fetch(info, "file_size")) );
+  // (undocumented) If offset is negative, treat it as an absolute file offset in bytes
+  // This is a bit ugly but avoids the need to write an entirely new method
+  if (offset < 0) {
+    frame_offset = abs(offset);
+    if (frame_offset < audio_offset) {
+      // Force offset to be at least audio_offset, so we don't end up in an ID3 tag
+      frame_offset = audio_offset;
+    }
+    DEBUG_TRACE("find_frame: using absolute offset value %d\n", frame_offset);
+  }
+  else {
+    if (offset >= song_length_ms) {
+      goto out;
+    }
+    
+    // Use Xing TOC if available
+    if ( my_hv_exists(info, "xing_toc") ) {
+      float percent;
+      uint8_t ipercent;
+      uint16_t tva;
+      uint16_t tvb;
+      float tvx;
+    
       AV *xing_toc        = (AV *)SvRV( *(my_hv_fetch(info, "xing_toc")) );
       uint32_t xing_bytes = SvIV( *(my_hv_fetch(info, "xing_bytes")) );
-    
-      if (offset >= file_size) {
-        goto out;
+  
+      percent = (offset * 1.0 / song_length_ms) * 100;
+      ipercent = (int)percent;
+  
+      if (ipercent > 99)
+        ipercent = 99;
+      
+      // Interpolate between 2 TOC points
+      tva = SvIV( *(av_fetch(xing_toc, ipercent, 0)) );
+      if (ipercent < 99) {
+        tvb = SvIV( *(av_fetch(xing_toc, ipercent + 1, 0)) );
+      }
+      else {
+        tvb = 256;
       }
     
-      percent = (int)((offset * 1.0 / file_size) * 100 + 0.5);
-    
-      if (percent > 99)
-        percent = 99;
-    
-      tv = SvIV( *(av_fetch(xing_toc, percent, 0)) );
-    
-      offset = (tv / 256.0) * xing_bytes;
-    
-      offset += audio_offset;
-    
+      tvx = tva + (tvb - tva) * (percent - ipercent);
+  
+      frame_offset = (int)((1.0/256.0) * tvx * xing_bytes);
+  
+      frame_offset += audio_offset;
+  
       // Don't return offset == audio_offset, because that would be the Xing frame
-      if (offset == audio_offset) {
-        offset += 1;
+      if (frame_offset == audio_offset) {
+        DEBUG_TRACE("find_frame: frame_offset == audio_offset, skipping to next frame\n");
+        frame_offset += 1;
       }
+  
+      DEBUG_TRACE("find_frame: using Xing TOC, song_length_ms: %d, percent: %f, tva: %d, tvb: %d, tvx: %f, frame offset: %d\n",
+        song_length_ms, percent, tva, tvb, tvx, frame_offset
+      );
+    }
+    else {
+      // calculate offset using bitrate
+      uint32_t bitrate = SvIV( *(my_hv_fetch(info, "bitrate")) );
+      float bytes_per_ms = bitrate / 8000.0;
     
-      DEBUG_TRACE("find_frame: using Xing TOC, percent: %d, tv: %d, new offset: %d\n", percent, tv, offset);
+      frame_offset = (int)(bytes_per_ms * offset);
+    
+      frame_offset += audio_offset;
+    
+      DEBUG_TRACE("find_frame: using bitrate %d, bytes_per_ms: %f, frame offset: %d\n", bitrate, bytes_per_ms, frame_offset);
     }
   }
   
-  PerlIO_seek(infile, offset, SEEK_SET);
+  // If frame_offset is too near the end of the file we won't find a valid frame
+  // so require offset to be at least 1000 bytes from the end of the file
+  // XXX this would be more accurate if we determined max_frame_len
+  if ((file_size - frame_offset) < 1000) {
+    frame_offset -= 1000 - (file_size - frame_offset);
+    DEBUG_TRACE("find_frame: offset too close to end of file, adjusted to %d\n", frame_offset);
+  }
+  
+  PerlIO_seek(infile, frame_offset, SEEK_SET);
 
   if ( !_check_buf(infile, &mp3_buf, 4, MP3_BLOCK_SIZE) ) {
+    frame_offset = -1;
     goto out;
   }
   
@@ -885,8 +934,13 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   }
   
   if (buf_size >= 4) {
-    frame_offset = offset + MP3_BLOCK_SIZE - buf_size;
+    frame_offset += buffer_len(&mp3_buf) - buf_size;
     DEBUG_TRACE("find_frame: frame_offset: %d\n", frame_offset);
+  }
+  else {
+    // Didn't find a valid frame, probably too near the end of the file
+    DEBUG_TRACE("find_frame: did not find a valid frame\n");
+    frame_offset = -1;
   }
 
 out:
