@@ -32,6 +32,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   unsigned char ogghdr[28];
   char header_type;
   int serialno;
+  int final_serialno;
   int pagenum;
   uint8_t num_segments;
   int pagelen;
@@ -138,7 +139,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     }
     else {
       page = -1;
-      PerlIO_printf(PerlIO_stderr(), "Missing page(s) in Ogg file: %s\n", file);
+      DEBUG_TRACE("Missing page(s) in Ogg file: %s\n", file);
     }
     
     DEBUG_TRACE("OggS page %d / packet %d at %d\n", pagenum, packets, (int)(audio_offset - 28));
@@ -311,14 +312,19 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   granule_pos = (uint64_t)CONVERT_INT32LE(bptr);
   bptr += 4;
   granule_pos |= (uint64_t)CONVERT_INT32LE(bptr) << 32;
+  bptr += 4;
+  
+  // Get serial number of this page, if the serial doesn't match the beginning of the file
+  // we have changed logical bitstreams and can't use the granule_pos for bitrate
+  final_serialno = CONVERT_INT32LE((bptr));
 
-  if ( granule_pos && samplerate ) {
+  if ( granule_pos && samplerate && serialno == final_serialno ) {
     // XXX: needs to adjust for initial granule value if file does not start at 0 samples
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
     my_hv_store( info, "song_length_ms", newSVuv(length) );
     my_hv_store( info, "bitrate_average", newSVuv( _bitrate(audio_size, length) ) );
     
-    DEBUG_TRACE("Using granule_pos/samplerate to calculate bitrate/duration\n");
+    DEBUG_TRACE("Using granule_pos %llu / samplerate %d to calculate bitrate/duration\n", granule_pos, samplerate);
   }
   else {
     // Use nominal bitrate

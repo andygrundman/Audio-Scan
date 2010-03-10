@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 65;
+use Test::More tests => 67;
 
 use Audio::Scan;
 
@@ -245,6 +245,16 @@ eval {
     
     is( $info->{audio_offset}, 41740, 'Large page segments audio offset ok' );
     is( $tags->{ARTIST}, 'Led Zeppelin', 'Large page segments comments ok' );
+}
+
+# Test file with multiple logical bitstreams
+{
+    my $s = Audio::Scan->scan( _f('multiple-bitstreams.ogg') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{bitrate_average}, 128000, 'Multiple bitstreams bitrate ok' );
+    is( $info->{song_length_ms}, 0, 'Multiple bitstreams length ok' );
 }
 
 sub _f {

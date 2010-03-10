@@ -6,6 +6,8 @@ Revision history for Audio::Scan
           because of non-audio tag data.
         - Fixed minor bug in Ogg Vorbis bitrate calculation, it was not ignoring the
           size of the leading tag data when calculating average bitrate.
+        - Improved Ogg Vorbis bitrate/duration calculation when file contains multiple
+          logical bitstreams.
 
 0.62    2010-03-02 12:00:00
         - INCOMPATIBLE CHANGE: Ogg Vorbis COVERART tags are now translated to an
