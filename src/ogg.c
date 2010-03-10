@@ -26,6 +26,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   unsigned int id3_size = 0; // size of leading ID3 data
 
   off_t file_size;           // total file size
+  off_t audio_size;          // total size of audio without tags
   off_t audio_offset = 0;    // offset to audio
   
   unsigned char ogghdr[28];
@@ -149,6 +150,9 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       _parse_vorbis_comments(infile, &vorbis_buf, tags, 1);
 
       DEBUG_TRACE("  parsed vorbis comments\n");
+      
+      // Save sample number of first audio page
+      my_hv_store( info, "first_granule", newSVuv(granule_pos) );
 
       buffer_clear(&vorbis_buf);
       
@@ -250,8 +254,13 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   buffer_clear(&ogg_buf);
   
   // audio_offset is 28 less because we read the Ogg header
+  audio_offset -= 28;
+  
   // from the first packet past the comments
-  my_hv_store( info, "audio_offset", newSViv(audio_offset - 28) );
+  my_hv_store( info, "audio_offset", newSViv(audio_offset) );
+  
+  audio_size = file_size - audio_offset;
+  my_hv_store( info, "audio_size", newSVuv(audio_size) );
   
   // calculate average bitrate and duration
   avg_buf_size = blocksize_0 * 2;
@@ -260,8 +269,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     PerlIO_seek(infile, file_size - avg_buf_size, SEEK_SET);
   }
   else {
-    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", (int)(audio_offset - 28));
-    PerlIO_seek(infile, audio_offset - 28, SEEK_SET);
+    DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", (int)audio_offset);
+    PerlIO_seek(infile, audio_offset, SEEK_SET);
   }
 
   if ( PerlIO_read(infile, buffer_append_space(&ogg_buf, avg_buf_size), avg_buf_size) == 0 ) {
@@ -290,7 +299,7 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       // Give up, use less accurate bitrate for length
       DEBUG_TRACE("buf_size %d, using less accurate bitrate for length\n", buf_size);
       
-      my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
+      my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((audio_size * 8) / bitrate_nominal) * 1000) );
       my_hv_store( info, "bitrate_average", newSViv(bitrate_nominal) );
 
       goto out;
@@ -304,15 +313,16 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   granule_pos |= (uint64_t)CONVERT_INT32LE(bptr) << 32;
 
   if ( granule_pos && samplerate ) {
+    // XXX: needs to adjust for initial granule value if file does not start at 0 samples
     int length = (int)((granule_pos * 1.0 / samplerate) * 1000);
     my_hv_store( info, "song_length_ms", newSVuv(length) );
-    my_hv_store( info, "bitrate_average", newSVuv( _bitrate(file_size, length) ) );
+    my_hv_store( info, "bitrate_average", newSVuv( _bitrate(audio_size, length) ) );
     
     DEBUG_TRACE("Using granule_pos/samplerate to calculate bitrate/duration\n");
   }
   else {
     // Use nominal bitrate
-    my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((file_size * 8) / bitrate_nominal) * 1000) );
+    my_hv_store( info, "song_length_ms", newSVpvf( "%d", (int)((audio_size * 8) / bitrate_nominal) * 1000) );
     my_hv_store( info, "bitrate_average", newSVuv(bitrate_nominal) );
     
     DEBUG_TRACE("Using nominal bitrate for average\n");
