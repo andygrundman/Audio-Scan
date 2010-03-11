@@ -261,6 +261,7 @@ t/ogg/large-pagesize.ogg
 t/ogg/metadata-block-picture.ogg
 t/ogg/multiple.ogg
 t/ogg/multiple-bitstreams.ogg
+t/ogg/normal.ogg
 t/ogg/old1.ogg
 t/ogg/old2.ogg
 t/ogg/test.ogg

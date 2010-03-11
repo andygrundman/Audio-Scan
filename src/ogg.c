@@ -16,8 +16,14 @@
 
 #include "ogg.h"
 
-static int
+int
 get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
+{
+  return _ogg_parse(infile, file, info, tags, 0);
+}
+
+int
+_ogg_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
 {
   Buffer ogg_buf, vorbis_buf;
   unsigned char *bptr;
@@ -151,9 +157,6 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       _parse_vorbis_comments(infile, &vorbis_buf, tags, 1);
 
       DEBUG_TRACE("  parsed vorbis comments\n");
-      
-      // Save sample number of first audio page
-      my_hv_store( info, "first_granule", newSVuv(granule_pos) );
 
       buffer_clear(&vorbis_buf);
       
@@ -262,6 +265,8 @@ get_ogg_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   audio_size = file_size - audio_offset;
   my_hv_store( info, "audio_size", newSVuv(audio_size) );
+  
+  my_hv_store( info, "serial_number", newSVuv(serialno) );
   
   // calculate average bitrate and duration
   avg_buf_size = blocksize_0 * 2;
@@ -486,36 +491,183 @@ _parse_vorbis_comments(PerlIO *infile, Buffer *vorbis_buf, HV *tags, int has_fra
 static int
 ogg_find_frame(PerlIO *infile, char *file, int offset)
 {
-  Buffer ogg_buf;
-  unsigned char *bptr;
-  unsigned int buf_size;
   int frame_offset = -1;
+  uint32_t samplerate;
+  uint32_t song_length_ms;
+  uint64_t target_sample;
   
-  PerlIO_seek(infile, offset, SEEK_SET);
-  
-  buffer_init(&ogg_buf, OGG_BLOCK_SIZE);
-  
-  if ( !_check_buf(infile, &ogg_buf, 512, OGG_BLOCK_SIZE) ) {
+  // We need to read all metadata first to get some data we need to calculate
+  HV *info = newHV();
+  HV *tags = newHV();
+  if ( _ogg_parse(infile, file, info, tags, 1) != 0 ) {
     goto out;
   }
   
-  bptr = (unsigned char *)buffer_ptr(&ogg_buf);
-  buf_size = buffer_len(&ogg_buf);
-  
-  while (
-    buf_size >= 4
-    && (bptr[0] != 'O' || bptr[1] != 'g' || bptr[2] != 'g' || bptr[3] != 'S')
-  ) {
-    bptr++;
-    buf_size--;
+  song_length_ms = SvIV( *(my_hv_fetch( info, "song_length_ms" )) );
+  if (offset >= song_length_ms) {
+    goto out;
   }
   
-  if (buf_size >= 4) {
-    frame_offset = offset + OGG_BLOCK_SIZE - buf_size;
+  samplerate = SvIV( *(my_hv_fetch( info, "samplerate" )) );
+  
+  // Determine target sample we're looking for
+  target_sample = ((offset - 1) / 10) * (samplerate / 100);
+  DEBUG_TRACE("Looking for target sample %llu\n", target_sample);
+  
+  frame_offset = _ogg_binary_search_sample(infile, file, info, target_sample);
+
+out:  
+  // Don't leak
+  SvREFCNT_dec(info);
+  SvREFCNT_dec(tags);
+
+  return frame_offset;
+}
+
+int
+_ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_sample)
+{
+  Buffer buf;
+  unsigned char *bptr;
+  unsigned int buf_size;
+  int frame_offset = -1;
+  int prev_frame_offset = -1;
+  uint64_t granule_pos = 0;
+  uint64_t prev_granule_pos = 0;
+  uint32_t cur_serialno;
+  off_t low;
+  off_t high;
+  off_t mid;
+  int i;
+  
+  off_t audio_offset = SvIV( *(my_hv_fetch( info, "audio_offset" )) );
+  off_t file_size    = SvIV( *(my_hv_fetch( info, "file_size" )) );
+  uint32_t serialno  = SvIV( *(my_hv_fetch( info, "serial_number" )) );
+  
+  // Binary search the entire file
+  low  = audio_offset;
+  high = file_size;
+  
+  // We need enough for at least 2 packets
+  buffer_init(&buf, OGG_BLOCK_SIZE * 2);
+  
+  while (low <= high) {
+    off_t packet_offset;
+    
+    mid = low + ((high - low) / 2);
+    
+    DEBUG_TRACE("  Searching for sample %llu between %d and %d (mid %d)\n", target_sample, (int)low, (int)high, (int)mid);
+    
+    if ( (PerlIO_seek(infile, mid, SEEK_SET)) == -1 ) {
+      frame_offset = -1;
+      goto out;
+    }
+    
+    if ( !_check_buf(infile, &buf, 28, OGG_BLOCK_SIZE * 2) ) {
+      frame_offset = -1;
+      goto out;
+    }
+  
+    bptr = buffer_ptr(&buf);
+    buf_size = buffer_len(&buf);
+    
+    // Find all packets within this buffer, we need at least 2 packets
+    // to figure out what samples we have
+    while (buf_size >= 4) {
+      // Save info from previous packet
+      prev_frame_offset = frame_offset;
+      prev_granule_pos  = granule_pos;
+      
+      while (
+        buf_size >= 4
+        &&
+        (bptr[0] != 'O' || bptr[1] != 'g' || bptr[2] != 'g' || bptr[3] != 'S')
+      ) {
+        bptr++;
+        buf_size--;
+      }
+      
+      if (buf_size < 4) {
+        // No more packets found in buffer
+        break;
+      }
+      
+      // Remember how far into the buffer this packet is
+      packet_offset = buffer_len(&buf) - buf_size;
+    
+      frame_offset = mid + packet_offset;
+          
+      // Make sure we have at least the Ogg header
+      if ( !_check_buf(infile, &buf, 28, 28) ) {
+        frame_offset = -1;
+        goto out;
+      }
+
+      // Read granule_pos for this packet
+      bptr = buffer_ptr(&buf);
+      bptr += packet_offset + 6;
+      granule_pos = (uint64_t)CONVERT_INT32LE(bptr);
+      bptr += 4;
+      granule_pos |= (uint64_t)CONVERT_INT32LE(bptr) << 32;
+      bptr += 4;
+      buf_size -= 14;
+      
+      // Also read serial number, if this ever changes within a file it is a chained
+      // file and we can't seek
+      cur_serialno = CONVERT_INT32LE(bptr);
+      
+      if (serialno != cur_serialno) {
+        DEBUG_TRACE("  serial number changed to %x, aborting seek\n", cur_serialno);
+        frame_offset = -1;
+        goto out;
+      }
+    
+      DEBUG_TRACE("  frame offset: %d, prev_frame_offset: %d, granule_pos: %llu, prev_granule_pos %llu\n",
+        frame_offset, prev_frame_offset, granule_pos, prev_granule_pos
+      );
+      
+      // Break out after reading 2 packets
+      if (granule_pos && prev_granule_pos) {
+        break;
+      }
+    }
+    
+    // Now, we know the first (prev_granule_pos + 1) and last (granule_pos) samples
+    // in the packet starting at frame_offset
+    
+    if ((prev_granule_pos + 1) <= target_sample && granule_pos >= target_sample) {
+      // found frame
+      DEBUG_TRACE("  found frame at %d\n", frame_offset);
+      goto out;
+    }
+    
+    if (target_sample < (prev_granule_pos + 1)) {
+      // Special case when very first frame has the sample
+      if (prev_frame_offset == audio_offset) {
+        DEBUG_TRACE("  first frame has target sample\n");
+        frame_offset = prev_frame_offset;
+        break;
+      }
+      
+      high = mid - 1;
+      DEBUG_TRACE("  high = %d\n", (int)high);
+    }
+    else {
+      low = mid + 1;
+      DEBUG_TRACE("  low = %d\n", (int)low);
+    }
+    
+    // XXX this can be pretty inefficient in some cases
+    
+    // Reset and binary search again
+    buffer_clear(&buf);
+    
+    frame_offset = -1;
+    granule_pos = 0;
   }
 
 out:
-  buffer_free(&ogg_buf);
-
+  buffer_free(&buf);
+  
   return frame_offset;
 }

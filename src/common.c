@@ -55,7 +55,9 @@ _check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
       goto out;
     }
 
-    DEBUG_TRACE("Buffered %d bytes from file (min_wanted %d, max_wanted %d)\n", read, min_wanted, max_wanted);
+    DEBUG_TRACE("Buffered %d bytes from file @ %d (min_wanted %d, max_wanted %d)\n",
+      read, (int)PerlIO_tell(infile) - read, min_wanted, max_wanted
+    );
 
 out:
     Safefree(tmp);

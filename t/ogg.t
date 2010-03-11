@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 67;
+use Test::More tests => 68;
 
 use Audio::Scan;
 
@@ -209,17 +209,24 @@ eval {
 
 # Find frame offset
 {
-    my $offset = Audio::Scan->find_frame( _f('bug1155-1.ogg'), 17005 );
+    my $offset = Audio::Scan->find_frame( _f('normal.ogg'), 800 );
     
-    is( $offset, 21351, 'Find frame ok' );
+    is( $offset, 12439, 'Find frame ok' );
+}
+
+# Test special case where target sample is in the first frame
+{
+    my $offset = Audio::Scan->find_frame( _f('normal.ogg'), 300 );
+    
+    is( $offset, 3979, 'Find sample in first frame ok' );
 }
 
 {
-    open my $fh, '<', _f('bug1155-1.ogg');
+    open my $fh, '<', _f('normal.ogg');
     
-    my $offset = Audio::Scan->find_frame_fh( ogg => $fh, 16600 );
+    my $offset = Audio::Scan->find_frame_fh( ogg => $fh, 600 );
     
-    is( $offset, 17004, 'Find frame via filehandle ok' );
+    is( $offset, 8259, 'Find frame via filehandle ok' );
     
     close $fh;
 }
