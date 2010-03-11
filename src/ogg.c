@@ -154,6 +154,11 @@ _ogg_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     // If the granule_pos > 0, we have reached the end of headers and
     // this is the first audio page
     if (granule_pos > 0 && granule_pos != -1) {
+      // If seeking, don't waste time on comments
+      if (seeking) {
+        break;
+      }
+      
       _parse_vorbis_comments(infile, &vorbis_buf, tags, 1);
 
       DEBUG_TRACE("  parsed vorbis comments\n");
