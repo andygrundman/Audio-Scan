@@ -277,6 +277,7 @@ t/wavpack/hybrid-24kbps.wv
 t/wavpack/silence-44-s.wv
 t/wavpack/v3.wv
 t/wavpack/win-executable.wv
+t/wavpack/zero-first-block.wv
 tools/bench.pl
 tools/leak.c
 tools/leak.pl

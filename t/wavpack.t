@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 26;
+use Test::More tests => 31;
 
 use Audio::Scan;
 
@@ -57,6 +57,18 @@ use Audio::Scan;
     is( $info->{bits_per_sample}, 24, '24-bit bits_per_sample ok' );
     is( $info->{channels}, 2, '24-bit channels ok' );
     is( $info->{samplerate}, 44100, '24-bit samplerate ok' );
+}
+
+# File with initial block containing 0 block_samples (bug 8601)
+{
+    my $s = Audio::Scan->scan_info( _f('zero-first-block.wv') );
+    my $info = $s->{info};
+    
+    is( $info->{bits_per_sample}, 16, 'Zero first block bits_per_sample ok' );
+    is( $info->{channels}, 2, 'Zero first block channels ok' );
+    is( $info->{samplerate}, 44100, 'Zero first block samplerate ok' );
+    is( $info->{song_length_ms}, 36506, 'Zero first block song_length_ms ok' );
+    is( $info->{total_samples}, 1609944, 'Zero first block total_samples ok' );
 }
 
 # unsupported v3 file
