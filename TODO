@@ -38,7 +38,6 @@ WAV
 
 Ogg
 ---
-More accurate seeking?
 bug-8922-3707.ogg - does not parse correctly
 Test invalid picture data
 
@@ -52,11 +51,16 @@ MP4/AAC
 A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
 correct offsets, etc.  Possibly also rewrite duration info.
 
+ALAC
+----
+Audio offset/bitrate are wrong when multiple mdat boxes are present (bug 15875)
+
 Wavpack
 ---
 Support seeking
 Support versions < 4 (see unpack3.c source)
 Get test files for rare cases such as ID_SAMPLE_RATE, ID_CHANNEL_INFO, empty blocks at start
+Get test files for versions < 3
 
 APE
 ---

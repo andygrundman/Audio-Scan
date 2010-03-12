@@ -17,7 +17,7 @@
 #define WAVPACK_BLOCK_SIZE 4096
 
 typedef struct {
-  char ckID [4];              // "wvpk"
+//  char ckID [4];              // "wvpk"
   uint32_t ckSize;            // size of entire block (minus 8, of course)
   uint16_t version;           // 0x402 to 0x410 are currently valid for decode
   u_char track_no;            // track number (0 if not used, like now)
@@ -32,6 +32,22 @@ typedef struct {
   uint32_t flags;             // various flags for id and decoding
   uint32_t crc;               // crc for actual decoded data
 } WavpackHeader;
+
+typedef struct {
+  unsigned short FormatTag, NumChannels;
+  uint32_t SampleRate, BytesPerSecond;
+  unsigned short BlockAlign, BitsPerSample;
+} WaveHeader3;
+
+typedef struct {
+//  char ckID [4];
+  int32_t ckSize;
+  short version;
+  short bits;                 // added for version 2.00
+  short flags, shift;         // added for version 3.00
+  int32_t total_samples; //, crc, crc2;
+//  char extension [4], extra_bc, extras [3];
+} WavpackHeader3;
 
 typedef struct wvpinfo {
   PerlIO *infile;
@@ -85,3 +101,4 @@ int _wavpack_parse_block(wvpinfo *wvp);
 int _wavpack_parse_sample_rate(wvpinfo *wvp, uint32_t size);
 int _wavpack_parse_channel_info(wvpinfo *wvp, uint32_t size);
 void _wavpack_skip(wvpinfo *wvp, uint32_t size);
+int _wavpack_parse_old(wvpinfo *wvp);

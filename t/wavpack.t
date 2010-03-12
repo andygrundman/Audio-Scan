@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 31;
+use Test::More tests => 37;
 
 use Audio::Scan;
 
@@ -71,23 +71,20 @@ use Audio::Scan;
     is( $info->{total_samples}, 1609944, 'Zero first block total_samples ok' );
 }
 
-# unsupported v3 file
+# v3 file
 {
-    # Hide stderr
-    no strict 'subs';
-    no warnings;
-    open OLD_STDERR, '>&', STDERR;
-    close STDERR;
-    
     my $s = Audio::Scan->scan_info( _f('v3.wv') );
     my $info = $s->{info};
     
-    is( $info->{audio_offset}, 44, 'v3 audio_offset ok' );
+    is( $info->{audio_offset}, 0, 'v3 audio_offset ok' );
+    is( $info->{bitrate}, 4, 'v3 bitrate ok' );
+    is( $info->{bits_per_sample}, 16, 'v3 bits_per_sample ok' );
+    is( $info->{channels}, 2, 'v3 channels ok' );
     is( $info->{encoder_version}, 3, 'v3 encoder_version ok' );
-    ok( !exists $info->{samplerate}, 'v3 no samplerate ok' );
-    
-    # Restore stderr
-    open STDERR, '>&', OLD_STDERR;
+    is( $info->{file_size}, 176, 'v3 file_size ok' );
+    is( $info->{samplerate}, 44100, 'v3 samplerate ok' );
+    is( $info->{song_length_ms}, 329280, 'v3 song_length_ms ok' );
+    is( $info->{total_samples}, 14521248, 'v3 total_samples ok' );
 }
 
 sub _f {    

@@ -8,6 +8,7 @@ Revision history for Audio::Scan
           size of the leading tag data when calculating average bitrate.
         - Improved Ogg Vorbis bitrate/duration calculation when file contains multiple
           logical bitstreams.
+        - Added support for WavPack versions < 4.
 
 0.62    2010-03-02 12:00:00
         - INCOMPATIBLE CHANGE: Ogg Vorbis COVERART tags are now translated to an
