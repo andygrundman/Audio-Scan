@@ -1,10 +1,9 @@
 General
 -------
-5.11 support
 5.6 support?
 Large buffers will still be allocated with artwork disabled:
   ASF, Ogg (hard to fix these)
-  libid3tag still reads the entire tag into memory, hard to fix this
+  libid3tag reads the entire tag into memory, needs to be replaced
 Clean up various code by using buffer_get_bits
 Handle stuff done by expensive SC Unicode regexes
 
@@ -58,7 +57,6 @@ Audio offset/bitrate are wrong when multiple mdat boxes are present (bug 15875)
 Wavpack
 ---
 Support seeking
-Support versions < 4 (see unpack3.c source)
 Get test files for rare cases such as ID_SAMPLE_RATE, ID_CHANNEL_INFO, empty blocks at start
 Get test files for versions < 3
 

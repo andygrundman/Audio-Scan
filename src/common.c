@@ -39,7 +39,7 @@ _check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
         PerlIO_printf(PerlIO_stderr(), "Error reading: %s (wanted %d)\n", strerror(errno), max_wanted);
       }
       else {
-        PerlIO_printf(PerlIO_stderr(), "Error: Unable to read %d bytes from file.\n", max_wanted);
+        PerlIO_printf(PerlIO_stderr(), "Error: Unable to read at least %d bytes from file.\n", min_wanted);
       }
 
       ret = 0;

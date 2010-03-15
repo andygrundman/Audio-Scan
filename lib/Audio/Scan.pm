@@ -579,9 +579,6 @@ Musepack uses APEv2 tags.  They are returned as a hash of key/value pairs.
 
 =head2
 
-Currently only WavPack encoder version 4.x files are supported. Support for older versions
-may be added in a future release.
-
 The following metadata about a file may be returned.
 
     audio_offset
@@ -590,8 +587,8 @@ The following metadata about a file may be returned.
     channels
     encoder_version
     file_size
-    hybrid (1 if file is lossy)
-    lossless (1 if file is lossless)
+    hybrid (1 if file is lossy) (v4 only)
+    lossless (1 if file is lossless) (v4 only)
     samplerate
     song_length_ms
     total_samples

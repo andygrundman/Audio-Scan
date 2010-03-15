@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 37;
+use Test::More tests => 67;
 
 use Audio::Scan;
 
@@ -40,13 +40,14 @@ use Audio::Scan;
 
 # Hybrid (lossy) file
 {
-    my $s = Audio::Scan->scan_info( _f('hybrid-24kbps.wv') );
+    my $s = Audio::Scan->scan_info( _f('hybrid.wv') );
     my $info = $s->{info};
     
-    is( $info->{channels}, 1, 'hybrid-24 channels ok' );
-    is( $info->{hybrid}, 1, 'hybrid-24 hybrid flag ok' );
-    is( $info->{samplerate}, 8000, 'hybrid-24 samplerate ok' );
-    is( $info->{song_length_ms}, 25000, 'hybrid-24 song_length_ms ok' );
+    is( $info->{bitrate}, 199913, 'hybrid bitrate ok' );
+    is( $info->{channels}, 2, 'hybrid channels ok' );
+    is( $info->{hybrid}, 1, 'hybrid hybrid flag ok' );
+    is( $info->{samplerate}, 44100, 'hybrid samplerate ok' );
+    is( $info->{song_length_ms}, 1019, 'hybrid song_length_ms ok' );
 }
 
 # 24-bit file
@@ -56,7 +57,9 @@ use Audio::Scan;
     
     is( $info->{bits_per_sample}, 24, '24-bit bits_per_sample ok' );
     is( $info->{channels}, 2, '24-bit channels ok' );
-    is( $info->{samplerate}, 44100, '24-bit samplerate ok' );
+    is( $info->{samplerate}, 88200, '24-bit samplerate ok' );
+    is( $info->{song_length_ms}, 147101, '24-bit song_length_ms ok' );
+    is( $info->{total_samples}, 12974320, '24-bit total_samples ok' );
 }
 
 # File with initial block containing 0 block_samples (bug 8601)
@@ -85,6 +88,54 @@ use Audio::Scan;
     is( $info->{samplerate}, 44100, 'v3 samplerate ok' );
     is( $info->{song_length_ms}, 329280, 'v3 song_length_ms ok' );
     is( $info->{total_samples}, 14521248, 'v3 total_samples ok' );
+}
+
+# v2 file
+{
+    my $s = Audio::Scan->scan_info( _f('v2.wv') );
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 0, 'v2 audio_offset ok' );
+    is( $info->{bitrate}, 80, 'v2 bitrate ok' );
+    is( $info->{bits_per_sample}, 16, 'v2 bits_per_sample ok' );
+    is( $info->{channels}, 2, 'v2 channels ok' );
+    is( $info->{encoder_version}, 2, 'v2 encoder_version ok' );
+    is( $info->{file_size}, 368, 'v2 file_size ok' );
+    is( $info->{samplerate}, 44100, 'v2 samplerate ok' );
+    is( $info->{song_length_ms}, 36506, 'v2 song_length_ms ok' );
+    is( $info->{total_samples}, 1609944, 'v2 total_samples ok' );
+}
+
+# Custom samplerate
+{
+    my $s = Audio::Scan->scan_info( _f('custom-samplerate.wv') );
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 0, 'custom-samplerate audio_offset ok' );
+    is( $info->{bitrate}, 149, 'custom-samplerate bitrate ok' );
+    is( $info->{bits_per_sample}, 16, 'custom-samplerate bits_per_sample ok' );
+    is( $info->{channels}, 2, 'custom-samplerate channels ok' );
+    is( $info->{encoder_version}, 0x407, 'custom-samplerate encoder_version ok' );
+    is( $info->{file_size}, 560, 'custom-samplerate file_size ok' );
+    is( $info->{samplerate}, 40000, 'custom-samplerate samplerate ok' );
+    is( $info->{song_length_ms}, 30000, 'custom-samplerate song_length_ms ok' );
+    is( $info->{total_samples}, 1200001, 'custom-samplerate total_samples ok' );
+}
+
+# Multi-channel file
+{
+    my $s = Audio::Scan->scan_info( _f('6channel.wv') );
+    my $info = $s->{info};
+    
+    is( $info->{audio_offset}, 0, '6channel audio_offset ok' );
+    is( $info->{bitrate}, 265, '6channel bitrate ok' );
+    is( $info->{bits_per_sample}, 16, '6channel bits_per_sample ok' );
+    is( $info->{channels}, 6, '6channel channels ok' );
+    is( $info->{encoder_version}, 0x406, '6channel encoder_version ok' );
+    is( $info->{file_size}, 1024, '6channel file_size ok' );
+    is( $info->{samplerate}, 44100, '6channel samplerate ok' );
+    is( $info->{song_length_ms}, 30906, '6channel song_length_ms ok' );
+    is( $info->{total_samples}, 1362998, '6channel total_samples ok' );
 }
 
 sub _f {    

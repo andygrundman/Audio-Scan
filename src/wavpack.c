@@ -180,8 +180,9 @@ _wavpack_parse_block(wvpinfo *wvp)
   }
   
   while (remaining > 0) {
+    DEBUG_TRACE("remaining: %d\n", remaining);
     // Read sub-block header (2-4 bytes)
-    uint8_t id;
+    unsigned char id;
     uint32_t size;
     
     if ( !_check_buf(wvp->infile, wvp->buf, 4, WAVPACK_BLOCK_SIZE) ) {
@@ -197,6 +198,7 @@ _wavpack_parse_block(wvpinfo *wvp)
       id &= ~ID_LARGE;
       size = buffer_get_int24_le(wvp->buf) << 1;
       remaining -= 3;
+      DEBUG_TRACE("  ID_LARGE, changed to %x\n", id);
     }
     else {
       // 8-bit size
@@ -207,9 +209,10 @@ _wavpack_parse_block(wvpinfo *wvp)
     if (id & ID_ODD_SIZE) {
       id &= ~ID_ODD_SIZE;
       size--;
+      DEBUG_TRACE("  ID_ODD_SIZE, changed to %x\n", id);
     }
     
-    if ( !size || id & ID_WV_BITSTREAM ) {
+    if ( id == ID_WV_BITSTREAM || !size ) {
       // Found the bitstream, don't read any farther
       DEBUG_TRACE("  Sub-Chunk: WV_BITSTREAM (size %u)\n", size);
       break;
@@ -218,13 +221,11 @@ _wavpack_parse_block(wvpinfo *wvp)
     // We only care about 0x27 (ID_SAMPLE_RATE) and 0xd (ID_CHANNEL_INFO)    
     switch (id) {
     case ID_SAMPLE_RATE:
-      // XXX need test file
       DEBUG_TRACE("  Sub-Chunk: ID_SAMPLE_RATE (size: %u)\n", size);
       _wavpack_parse_sample_rate(wvp, size);
       break;
       
     case ID_CHANNEL_INFO:
-      // XXX need test file
       DEBUG_TRACE("  Sub-Chunk: ID_CHANNEL_INFO (size: %u)\n", size);
       _wavpack_parse_channel_info(wvp, size);
       break;
@@ -236,6 +237,18 @@ _wavpack_parse_block(wvpinfo *wvp)
     }
     
     remaining -= size;
+    
+    // If size was odd, skip a byte
+    if (size & 0x1) {
+      if ( buffer_len(wvp->buf) ) {
+        buffer_consume(wvp->buf, 1);
+      }
+      else {
+        _wavpack_skip(wvp, 1);
+      }
+      
+      remaining--;
+    }
   }
   
   // Calculate bitrate
@@ -265,9 +278,19 @@ _wavpack_parse_sample_rate(wvpinfo *wvp, uint32_t size)
 int
 _wavpack_parse_channel_info(wvpinfo *wvp, uint32_t size)
 {
-  uint8_t channels = buffer_get_char(wvp->buf);
+  uint32_t channels;
+  unsigned char *bptr = buffer_ptr(wvp->buf);
+  
+  if (size == 6) {
+    channels = (bptr[0] | ((bptr[2] & 0xf) << 8)) + 1;
+  }
+  else {
+    channels = bptr[0];
+  }
   
   my_hv_store( wvp->info, "channels", newSVuv(channels) );
+  
+  buffer_consume(wvp->buf, size);
   
   return 1;
 }
@@ -420,10 +443,7 @@ _wavpack_parse_old(wvpinfo *wvp)
   wphdr.ckSize  = buffer_get_int_le(wvp->buf);
   wphdr.version = buffer_get_short_le(wvp->buf);
   
-  // XXX need v1 test file
-  
   if (wphdr.version >= 2) {
-    // XXX need v2 test file
     wphdr.bits = buffer_get_short_le(wvp->buf);
   }
   

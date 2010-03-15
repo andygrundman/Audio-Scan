@@ -273,8 +273,11 @@ t/wav/wav32-info-badchunk.wav
 t/wav/wav32-info-nulls.wav
 t/wav/wav32.wav
 t/wavpack/24-bit.wv
-t/wavpack/hybrid-24kbps.wv
+t/wavpack/6channel.wv
+t/wavpack/custom-samplerate.wv
+t/wavpack/hybrid.wv
 t/wavpack/silence-44-s.wv
+t/wavpack/v2.wv
 t/wavpack/v3.wv
 t/wavpack/win-executable.wv
 t/wavpack/zero-first-block.wv
