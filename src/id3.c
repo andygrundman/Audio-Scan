@@ -1197,7 +1197,7 @@ _id3_get_utf8_string(id3info *id3, SV **string, uint32_t len, uint8_t encoding)
   
   switch (encoding) {
     case ISO_8859_1:
-      read = buffer_get_latin1_as_utf8(id3->buf, id3->utf8, len);
+      read += buffer_get_latin1_as_utf8(id3->buf, id3->utf8, len);
       DEBUG_TRACE("    read latin1 string of %d bytes: %s\n", read, (char *)buffer_ptr(id3->utf8));
       break;
     
@@ -1241,7 +1241,6 @@ _id3_get_utf8_string(id3info *id3, SV **string, uint32_t len, uint8_t encoding)
     default:
       break;
   }
-  
   
   if (read) {
     *string = newSVpv( buffer_ptr(id3->utf8), 0 );

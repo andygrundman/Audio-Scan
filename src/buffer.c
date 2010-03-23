@@ -609,9 +609,6 @@ buffer_get_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint)
   int i = 0;
   unsigned char *bptr = buffer_ptr(buffer);
   
-  if (bptr[0] == 0)
-    return 0;
-  
   for (i = 0; i < len_hint; i++) {
     uint8_t c = bptr[i];
     
