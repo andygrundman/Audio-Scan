@@ -9,8 +9,10 @@ if ( $Config{myarchname} =~ /i386/ ) {
     if ( my @archs = $Config{ccflags} =~ /-arch ([^ ]+)/g ) {
         $arch = join( '', map { "-arch $_ " } @archs );
         
-        # XXX for development, you can use only one arch to speed up compiles
-        $arch = '-arch x86_64 ';
+        if ( -e 'MANIFEST.SKIP' ) {
+            # XXX for development, use only one arch to speed up compiles
+            $arch = '-arch x86_64 ';
+        }
     }
     
     # Read OS version
