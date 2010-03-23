@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 337;
+use Test::More tests => 340;
 
 use Audio::Scan;
 
@@ -1113,6 +1113,16 @@ eval {
     
     is( $tags->{TIT2}, 'Track Title', 'v2.4 group id frame ok' );
     is( $tags->{TRCK}, '02/10', 'v2.4 frame after group id frame ok' );
+}
+
+# v2.4 with UTF-8 encoded comment with empty null description
+{
+    my $s = Audio::Scan->scan( _f('v2.4-utf8-null-comment.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{COMM}->[0], 'eng', 'v2.4 UTF-8 null comment lang ok' );
+    is( $tags->{COMM}->[1], '', 'v2.4 UTF-8 null comment description ok' );
+    is( $tags->{COMM}->[2], 'Test 123', 'v2.4 UTF-8 null comment value ok' );
 }
 
 sub _f {    
