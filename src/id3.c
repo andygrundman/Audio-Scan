@@ -236,8 +236,16 @@ _id3_parse_v2(id3info *id3)
   DEBUG_TRACE("Parsing ID3v2.%d.%d tag, flags %x, size %d\n", id3->version_major, id3->version_minor, id3->flags, id3->size);
   
   if (id3->flags & ID3_TAG_FLAG_UNSYNCHRONISATION) {
-    // XXX need v2.2/v2.3 unsync test file
-    DEBUG_TRACE("  Un-synchronizing tag\n");
+    if (id3->version_major < 4) {
+      // It's unclear but the v2.4.0-changes document seems to say that v2.4 should
+      // ignore the tag-level unsync flag and only worry about frame-level unsync
+    
+      // XXX need v2.2/v2.3 unsync test file
+      DEBUG_TRACE("  !!! TODO un-synchronize tag\n");
+    }
+    else {
+      DEBUG_TRACE("  Ignoring v2.4 tag un-synchronize flag\n");
+    }
   }
   
   if (id3->flags & ID3_TAG_FLAG_EXTENDEDHEADER) {
@@ -550,18 +558,25 @@ _id3_parse_v2_frame(id3info *id3)
       }
       
       if (flags & ID3_FRAME_FLAG_V24_UNSYNCHRONISATION) {
-        // tested with v2.4-unsync.mp3
-        uint32_t new_size;
-        
-        if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {
-          ret = 0;
-          goto out;
+        // Special case, do not unsync an APIC frame if not reading artwork,
+        // FF's are not likely to appear in the part we care about anyway
+        if ( !strcmp(id, "APIC") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
+          DEBUG_TRACE("    Would un-synchronize APIC frame, but ignoring because of AUDIO_SCAN_NO_ARTWORK\n");
         }
+        else {
+          // tested with v2.4-unsync.mp3
+          uint32_t new_size;
         
-        // XXX should use new_size as the size value
-        new_size = _id3_deunsync( buffer_ptr(id3->buf), size );
+          if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {
+            ret = 0;
+            goto out;
+          }
         
-        DEBUG_TRACE("    Un-synchronized frame, new_size %d\n", new_size);
+          // XXX should use new_size as the size value
+          new_size = _id3_deunsync( buffer_ptr(id3->buf), size );
+        
+          DEBUG_TRACE("    Un-synchronized frame, new_size %d\n", new_size);
+        }
       }
       
       if (flags & ID3_FRAME_FLAG_V24_COMPRESSION) {
@@ -598,8 +613,9 @@ _id3_parse_v2_frame(id3info *id3)
   }
   
   // Special case, completely skip XHD3 frame (mp3HD) as it will be large
-  if ( !strcmp(id, "XHD3") ) {
-    DEBUG_TRACE("    skipping XHD3 frame\n");
+  // Also skip NCON, a large tag written by MusicMatch
+  if ( !strcmp(id, "XHD3") || !strcmp(id, "NCON") ) {
+    DEBUG_TRACE("    skipping large binary %s frame\n", id);
     _id3_skip(id3, size);
     id3->size_remain -= size;
     goto out;
