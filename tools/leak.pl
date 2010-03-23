@@ -6,11 +6,21 @@ use Time::HiRes qw(sleep);
 
 my $file = shift;
 
-for ( 1..5000 ) {
+$ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+
+for ( 1..50000 ) {
     my $s = Audio::Scan->scan($file);
     
-    # Test find_frame doesn't leak
-    Audio::Scan->find_frame( $file, 1000 );
+    # Also test in no artwork mode
+    #{
+    #    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    #    $s = Audio::Scan->scan($file);
+    #}
     
-    sleep 0.01;
+    # Test find_frame doesn't leak
+    if ( $file !~ /\.m4a$/ ) {
+        Audio::Scan->find_frame( $file, 10 );
+    }
+    
+    sleep 0.001;
 }

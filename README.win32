@@ -5,24 +5,18 @@ they produce may not run on all versions of Windows.
 
 zlib
 ----
-Download zlib from http://www.zlib.net/zlib123.zip.
-Build from projects/visualc6/zlib.dsw.
-Build Win32_LIB_Release
-
-libid3tag
----------
-Open libid3tag/msvc++/libid3tag.dsp
-Go to Project -> libid3tag Properties -> Configuration Properties -> C/C++ -> General
-Change Additional Include Directories to point to your zlib and Perl directories, something like:
-  .;"C:\dev\zlib-1.2.3";"C:\Perl\lib\CORE"
-Build Release
+The included zlib.lib should just work, if not:
+  Download zlib from http://www.zlib.net/zlib123.zip.
+  Build from projects/visualc6/zlib.dsw.
+  Build Win32_LIB_Release
+  Copy zlib.lib into the Audio::Scan win32 directory.
 
 Audio::Scan
 -----------
 Install ActivePerl 5.8.8 or 5.10.0.
 Open command prompt.
 Run the vcvars file, for example C:\Program Files\Microsoft Visual Studio 8\VC\vcvarsall.bat
-If your zlib directory is not ..\zlib-1.2.3 edit Makefile.PL
 perl Makefile.PL
 nmake
+nmake test
 

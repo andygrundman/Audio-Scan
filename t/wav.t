@@ -26,8 +26,8 @@ use Audio::Scan;
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 version ok' );
     
     is( ref $tags->{APIC}, 'ARRAY', 'APIC ok' );
-    is( $tags->{APIC}->[1], 'image/jpg', 'APIC type ok' );
-    is( length( $tags->{APIC}->[4] ), 2103, 'APIC size ok' );
+    is( $tags->{APIC}->[0], 'image/jpg', 'APIC type ok' );
+    is( length( $tags->{APIC}->[3] ), 2103, 'APIC size ok' );
     is( ref $tags->{COMM}, 'ARRAY', 'COMM ok' );
     is( $tags->{TALB}, 'WAV Album', 'TALB ok' );
     is( $tags->{TCON}, 'Alternative', 'TCON ok' );

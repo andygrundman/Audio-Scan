@@ -3,7 +3,6 @@ General
 5.6 support?
 Large buffers will still be allocated with artwork disabled:
   ASF, Ogg (hard to fix these)
-  libid3tag reads the entire tag into memory, needs to be replaced
 Clean up various code by using buffer_get_bits
 Handle stuff done by expensive SC Unicode regexes
 
@@ -43,7 +42,8 @@ Test invalid picture data
 ASF
 ---
 Filter out duplicate tags if the same exact tag exists in Extended Content Description and Metadata Library?
-Refactor a bit
+Refactor:
+  Use a scratch buffer instead of many utf8 buffers
 
 MP4/AAC
 -------

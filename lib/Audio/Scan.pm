@@ -2,7 +2,7 @@ package Audio::Scan;
 
 use strict;
 
-our $VERSION = '0.63';
+our $VERSION = '0.70';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -27,7 +27,7 @@ __END__
 
 =head1 NAME
 
-Audio::Scan - Fast C parser for all common audio file formats
+Audio::Scan - Fast C metadata and tag reader for all common audio file formats
 
 =head1 SYNOPSIS
 
@@ -56,8 +56,7 @@ Audio::Scan - Fast C parser for all common audio file formats
 =head1 DESCRIPTION
 
 Audio::Scan is a C-based scanner for audio file metadata and tag information. It currently
-supports MP3 via an included version of libid3tag, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF,
-Musepack, Monkey's Audio, and WavPack.
+supports MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF, Musepack, Monkey's Audio, and WavPack.
 
 See below for specific details about each file format.
 
@@ -189,16 +188,18 @@ The following metadata about a file may be returned:
 
 =head2 TAGS
 
-Raw tags are returned as found by libid3tag.  This means older tags such as ID3v1 and ID3v2.2
+Raw tags are returned as found.  This means older tags such as ID3v1 and ID3v2.2/v2.3
 are converted to ID3v2.4 tag names.  Multiple instances of a tag in a file will be returned
 as arrays.  Complex tags such as APIC and COMM are returned as arrays.  All tag fields are
-converted to upper-case.  Sample tag data:
+converted to upper-case.  All text is converted to UTF-8.
+
+Sample tag data:
 
     tags => {
           ALBUMARTISTSORT => "Solar Fields",
-          APIC => [ 0, "image/jpeg", 3, "", <binary data snipped> ],
+          APIC => [ "image/jpeg", 3, "", <binary data snipped> ],
           CATALOGNUMBER => "INRE 017",
-          COMM => [0, "eng", "", "Amazon.com Song ID: 202981429"],
+          COMM => ["eng", "", "Amazon.com Song ID: 202981429"],
           "MUSICBRAINZ ALBUM ARTIST ID" => "a2af1f31-c9eb-4fff-990c-c4f547a11b75",
           "MUSICBRAINZ ALBUM ID" => "282143c9-6191-474d-a31a-1117b8c88cc0",
           "MUSICBRAINZ ALBUM RELEASE COUNTRY" => "FR",

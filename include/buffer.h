@@ -35,6 +35,12 @@ typedef struct {
   u_int  ncached; /* Number of bits in cache */
 } Buffer;
 
+enum utf16_byteorder {
+  UTF16_BYTEORDER_ANY,
+  UTF16_BYTEORDER_BE,
+  UTF16_BYTEORDER_LE
+};
+
 const uint32_t CacheMask[33] = {
   0x0, 0x1, 0x3, 0x7, 0xf, 0x1f, 0x3f, 0x7f,
   0xff, 0x1ff, 0x3ff, 0x7ff, 0xfff, 0x1fff, 0x3fff, 0x7fff,
@@ -88,7 +94,9 @@ uint16_t get_u16(const void *vp);
 int buffer_get_short_ret(uint16_t *ret, Buffer *buffer);
 uint16_t buffer_get_short(Buffer *buffer);
 void buffer_put_char(Buffer *buffer, int value);
-void buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len);
+uint32_t buffer_get_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint);
+uint32_t buffer_get_latin1_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint);
+uint32_t buffer_get_utf16_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len, uint8_t byteorder);
 void buffer_get_guid(Buffer *buffer, GUID *g);
 int buffer_get_float32_le_ret(float *ret, Buffer *buffer);
 float buffer_get_float32_le(Buffer *buffer);
@@ -98,5 +106,6 @@ float buffer_get_float32(Buffer *buffer);
 float get_f32(const void *vp);
 double buffer_get_ieee_float(Buffer *buffer);
 uint32_t buffer_get_bits(Buffer *buffer, uint32_t bits);
+uint32_t buffer_get_syncsafe(Buffer *buffer, uint8_t bytes);
 
 #endif

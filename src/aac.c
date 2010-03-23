@@ -91,8 +91,7 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
   
   my_hv_store( info, "audio_offset", newSVuv(audio_offset) );
   
-  // Parse ID3 at end, since we somehow can't use the filehandle anymore
-  // after libid3tag uses it
+  // Parse ID3 at end
   if (id3_size) {
     parse_id3(infile, file, info, tags, 0);
   }

@@ -14,7 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#define AAC_BLOCK_SIZE 65536
+#define AAC_BLOCK_SIZE 4096
 
 static int adts_sample_rates[] = {
   96000,

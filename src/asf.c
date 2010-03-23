@@ -190,6 +190,8 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   
   // Store offset to beginning of data (50 goes past the top-level data packet)
   my_hv_store( info, "audio_offset", newSVuv(hdr.size + 50) );
+  
+  my_hv_store( info, "file_size", newSVuv(file_size) );
 
 /*
   XXX: Not worth the overhead of skipping the data and parsing
@@ -229,6 +231,7 @@ _parse_content_description(Buffer *buf, HV *info, HV *tags)
 {
   int i;
   uint16_t len[5];
+  Buffer utf8_buf;
   char fields[5][12] = {
     { "Title" },
     { "Author" },
@@ -241,26 +244,31 @@ _parse_content_description(Buffer *buf, HV *info, HV *tags)
     len[i] = buffer_get_short_le(buf);
   }
   
+  buffer_init(&utf8_buf, len[0]);
+  
   for (i = 0; i < 5; i++) {
     SV *value;
-    Buffer utf8_buf;
     
     if ( len[i] ) {
-      buffer_get_utf16le_as_utf8(buf, &utf8_buf, len[i]);
+      buffer_clear(&utf8_buf); 
+      buffer_get_utf16_as_utf8(buf, &utf8_buf, len[i], UTF16_BYTEORDER_LE);
       value = newSVpv( buffer_ptr(&utf8_buf), 0 );
       sv_utf8_decode(value);
     
       _store_tag( tags, newSVpv(fields[i], 0), value );
-    
-      buffer_free(&utf8_buf);
     }
   }
+  
+  buffer_free(&utf8_buf);
 }
 
 void
 _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
 {
+  Buffer utf8_buf;
   uint16_t count = buffer_get_short_le(buf);
+  
+  buffer_init(&utf8_buf, 32);
   
   while ( count-- ) {
     uint16_t name_len;
@@ -268,23 +276,22 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
     uint16_t value_len;
     SV *key = NULL;
     SV *value = NULL;
-    Buffer utf8_buf;
     
     name_len = buffer_get_short_le(buf);
-    
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
+     
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
     key = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(key);
-    buffer_free(&utf8_buf);
     
     data_type = buffer_get_short_le(buf);
     value_len = buffer_get_short_le(buf);
     
     if (data_type == TYPE_UNICODE) {
-      buffer_get_utf16le_as_utf8(buf, &utf8_buf, value_len);
+      buffer_clear(&utf8_buf);
+      buffer_get_utf16_as_utf8(buf, &utf8_buf, value_len, UTF16_BYTEORDER_LE);
       value = newSVpv( buffer_ptr(&utf8_buf), 0 );
       sv_utf8_decode(value);
-      buffer_free(&utf8_buf);
     }
     else if (data_type == TYPE_BYTE) {
       // handle picture data, interestingly it is compatible with the ID3v2 APIC frame
@@ -329,6 +336,8 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
       _store_tag( tags, key, value );
     }
   }
+
+  buffer_free(&utf8_buf);
 }
   
 void
@@ -376,7 +385,9 @@ _parse_file_properties(Buffer *buf, HV *info, HV *tags)
     play_duration /= 10000;
     send_duration /= 10000;
     
-    my_hv_store( info, "file_size", newSViv(file_size) );
+    // Don't overwrite the actual file size we found from stat
+    //my_hv_store( info, "file_size", newSViv(file_size) );
+    
     my_hv_store( info, "creation_date", newSViv(creation_date) );
     my_hv_store( info, "data_packets", newSViv(data_packets) );
     my_hv_store( info, "play_duration_ms", newSViv(play_duration) );
@@ -599,7 +610,10 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
 void
 _parse_metadata(Buffer *buf, HV *info, HV *tags)
 {
+  Buffer utf8_buf;
   uint16_t count = buffer_get_short_le(buf);
+  
+  buffer_init(&utf8_buf, 32);
   
   while ( count-- ) {
     uint16_t stream_number;
@@ -608,7 +622,6 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
     uint32_t data_len;
     SV *key = NULL;
     SV *value = NULL;
-    Buffer utf8_buf;
     
     // Skip reserved
     buffer_consume(buf, 2);
@@ -618,16 +631,16 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
     data_type     = buffer_get_short_le(buf);
     data_len      = buffer_get_int_le(buf);
     
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
     key = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(key);
-    buffer_free(&utf8_buf);
     
     if (data_type == TYPE_UNICODE) {
-      buffer_get_utf16le_as_utf8(buf, &utf8_buf, data_len);
+      buffer_clear(&utf8_buf);
+      buffer_get_utf16_as_utf8(buf, &utf8_buf, data_len, UTF16_BYTEORDER_LE);
       value = newSVpv( buffer_ptr(&utf8_buf), 0 );
       sv_utf8_decode(value);
-      buffer_free(&utf8_buf);
     }
     else if (data_type == TYPE_BYTE) {
       value = newSVpvn( buffer_ptr(buf), data_len );
@@ -670,6 +683,8 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
       }
     }
   }
+
+  buffer_free(&utf8_buf);
 }
 
 void
@@ -770,17 +785,21 @@ _parse_language_list(Buffer *buf, HV *info, HV *tags)
   AV *list = newAV();
   uint16_t count = buffer_get_short_le(buf);
   
+  buffer_init(&utf8_buf, 32);
+  
   while ( count-- ) {
     SV *value;
     
     uint8_t len = buffer_get_char(buf);
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, len);
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, len, UTF16_BYTEORDER_LE);
     value = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(value);
-    buffer_free(&utf8_buf);
     
     av_push( list, value );
   }
+  
+  buffer_free(&utf8_buf);
   
   my_hv_store( info, "language_list", newRV_noinc( (SV*)list ) );
 }
@@ -836,8 +855,11 @@ _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
 void
 _parse_codec_list(Buffer *buf, HV *info, HV *tags)
 {
+  Buffer utf8_buf;
   uint32_t count;
   AV *list = newAV();
+  
+  buffer_init(&utf8_buf, 32);
   
   // Skip reserved
   buffer_consume(buf, 16);
@@ -848,7 +870,6 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
     HV *codec_info = newHV();
     uint16_t name_len;
     uint16_t desc_len;
-    Buffer utf8_buf;
     SV *name = NULL;
     SV *desc = NULL;
     
@@ -868,7 +889,8 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
     // Unlike other objects, these lengths are the
     // "number of Unicode chars", not bytes, so we need to double it
     name_len = buffer_get_short_le(buf) * 2;
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
     name = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(name);
     my_hv_store( codec_info, "name", name );
@@ -878,20 +900,20 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
       my_hv_store( info, "lossless", newSVuv(1) );
     }
     
-    buffer_free(&utf8_buf);
-    
     desc_len = buffer_get_short_le(buf) * 2;
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, desc_len);
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, desc_len, UTF16_BYTEORDER_LE);
     desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(desc);
     my_hv_store( codec_info, "description", desc );
-    buffer_free(&utf8_buf);
     
     // Skip info
     buffer_consume(buf, buffer_get_short_le(buf));
     
     av_push( list, newRV_noinc( (SV *)codec_info ) );
   }
+  
+  buffer_free(&utf8_buf);
   
   my_hv_store( info, "codec_list", newRV_noinc( (SV *)list ) );
 }
@@ -911,12 +933,14 @@ _parse_stream_bitrate_properties(Buffer *buf, HV *info, HV *tags)
 void
 _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
 {
+  Buffer utf8_buf;
   uint16_t count = buffer_get_short_le(buf);
+  
+  buffer_init(&utf8_buf, 32);
   
   while ( count-- ) {
     SV *key = NULL;
     SV *value = NULL;
-    Buffer utf8_buf;
     uint16_t stream_number, name_len, data_type;
     uint32_t data_len;
     
@@ -931,16 +955,16 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     data_type     = buffer_get_short_le(buf);
     data_len      = buffer_get_int_le(buf);
     
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len);
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
     key = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(key);
-    buffer_free(&utf8_buf);
     
     if (data_type == TYPE_UNICODE) {
-      buffer_get_utf16le_as_utf8(buf, &utf8_buf, data_len);
+      buffer_clear(&utf8_buf);
+      buffer_get_utf16_as_utf8(buf, &utf8_buf, data_len, UTF16_BYTEORDER_LE);
       value = newSVpv( buffer_ptr(&utf8_buf), 0 );
       sv_utf8_decode(value);
-      buffer_free(&utf8_buf);
     }
     else if (data_type == TYPE_BYTE) {
       // handle picture data
@@ -999,6 +1023,8 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
       }
     }
   }
+
+  buffer_free(&utf8_buf);
 }
 
 void
@@ -1257,10 +1283,11 @@ _parse_extended_content_encryption(Buffer *buf, HV *info, HV *tags)
   Buffer utf8_buf;
   SV *value;
   unsigned char *tmp_ptr = buffer_ptr(buf);
-    
+  
   if ( tmp_ptr[0] == 0xFF && tmp_ptr[1] == 0xFE ) {
     buffer_consume(buf, 2);
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, len - 2);
+    buffer_init(&utf8_buf, len - 2);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, len - 2, UTF16_BYTEORDER_LE);
     value = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(value);
     buffer_free(&utf8_buf);
@@ -1281,6 +1308,8 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
   AV *types = newAV();
   AV *commands = newAV();
   
+  buffer_init(&utf8_buf, 32);
+  
   // Skip reserved
   buffer_consume(buf, 16);
   
@@ -1291,10 +1320,10 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     SV *value;
     uint16_t len = buffer_get_short_le(buf);
     
-    buffer_get_utf16le_as_utf8(buf, &utf8_buf, len * 2);
+    buffer_clear(&utf8_buf);
+    buffer_get_utf16_as_utf8(buf, &utf8_buf, len * 2, UTF16_BYTEORDER_LE);
     value = newSVpv( buffer_ptr(&utf8_buf), 0 );
     sv_utf8_decode(value);
-    buffer_free(&utf8_buf);
     
     av_push( types, value );
   }
@@ -1308,10 +1337,10 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     uint16_t name_len   = buffer_get_short_le(buf);
     
     if (name_len) {
-      buffer_get_utf16le_as_utf8(buf, &utf8_buf, name_len * 2);
+      buffer_clear(&utf8_buf);
+      buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len * 2, UTF16_BYTEORDER_LE);
       value = newSVpv( buffer_ptr(&utf8_buf), 0 );
       sv_utf8_decode(value);
-      buffer_free(&utf8_buf);
       my_hv_store( command, "command", value );
     }
     
@@ -1320,6 +1349,8 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     
     av_push( commands, newRV_noinc( (SV *)command ) );
   }
+  
+  buffer_free(&utf8_buf);
   
   my_hv_store( info, "script_types", newRV_noinc( (SV *)types ) );
   my_hv_store( info, "script_commands", newRV_noinc( (SV *)commands ) );
@@ -1337,6 +1368,8 @@ _parse_picture(Buffer *buf)
   HV *picture = newHV();
   Buffer utf8_buf;
   
+  buffer_init(&utf8_buf, 32);
+  
   my_hv_store( picture, "image_type", newSVuv( buffer_get_char(buf) ) );
 
   image_len = buffer_get_int_le(buf);
@@ -1348,11 +1381,10 @@ _parse_picture(Buffer *buf)
     tmp_ptr += 2;
   }
   
-  buffer_get_utf16le_as_utf8(buf, &utf8_buf, mime_len);
+  buffer_get_utf16_as_utf8(buf, &utf8_buf, mime_len, UTF16_BYTEORDER_LE);
   mime = newSVpv( buffer_ptr(&utf8_buf), 0 );
   sv_utf8_decode(mime);
   my_hv_store( picture, "mime_type", mime );
-  buffer_free(&utf8_buf);
   
   // Description is a double-null-terminated UTF-16 string
   tmp_ptr = buffer_ptr(buf);
@@ -1361,11 +1393,11 @@ _parse_picture(Buffer *buf)
     tmp_ptr += 2;
   }
   
-  buffer_get_utf16le_as_utf8(buf, &utf8_buf, desc_len);
+  buffer_clear(&utf8_buf);
+  buffer_get_utf16_as_utf8(buf, &utf8_buf, desc_len, UTF16_BYTEORDER_LE);
   desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
   sv_utf8_decode(desc);
   my_hv_store( picture, "description", desc );
-  buffer_free(&utf8_buf);
   
   if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
     my_hv_store( picture, "image", newSVuv(image_len) );
@@ -1376,6 +1408,8 @@ _parse_picture(Buffer *buf)
   
   buffer_consume(buf, image_len);
   
+  buffer_free(&utf8_buf);
+  
   return newRV_noinc( (SV *)picture );
 }
 
@@ -1385,7 +1419,7 @@ int
 asf_find_frame(PerlIO *infile, char *file, int offset)
 {
   int frame_offset = -1;
-  uint32_t audio_offset, max_packet_size, max_bitrate;
+  uint32_t audio_offset, max_packet_size, max_bitrate, file_size;
   uint64_t data_packets;
   uint32_t packet_num;
   uint8_t count = 0;
@@ -1395,6 +1429,12 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
   HV *tags = newHV();
   get_asf_metadata(infile, file, info, tags);
   
+  if ( !my_hv_exists(info, "data_packets") ) {
+    // Can't seek in file without data_packets value
+    goto out;
+  }
+  
+  file_size       = SvIV( *(my_hv_fetch( info, "file_size" )) );
   audio_offset    = SvIV( *(my_hv_fetch( info, "audio_offset" )) );
   data_packets    = SvIV( *(my_hv_fetch( info, "data_packets" )) );
   max_packet_size = SvIV( *(my_hv_fetch( info, "max_packet_size" )) );
@@ -1414,6 +1454,11 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
   
   while ( count < 10 ) {
     int time, duration;
+    
+    if ( frame_offset > file_size - 64 ) {
+      DEBUG_TRACE("  Offset too large: %d\n", frame_offset);
+      break;
+    }
     
     time = _timestamp(infile, frame_offset, &duration);
     
@@ -1454,6 +1499,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
     }
   }
   
+out:
   // Don't leak
   SvREFCNT_dec(info);
   SvREFCNT_dec(tags);
@@ -1469,7 +1515,10 @@ _timestamp(PerlIO *infile, int offset, int *duration)
   int timestamp = -1;
   uint8_t tmp;
   
-  PerlIO_seek(infile, offset, SEEK_SET);
+  DEBUG_TRACE("Seeking to %d to read timestamp\n", offset);
+  if ((PerlIO_seek(infile, offset, SEEK_SET)) != 0) {
+    return -1;
+  }
   
   buffer_init(&asf_buf, 64);
   

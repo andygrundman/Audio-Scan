@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 67;
+use Test::More tests => 68;
 
 use Audio::Scan;
 
@@ -187,6 +187,14 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 1462, 'Bad streaminfo duration ok' );
     is( $info->{total_samples}, 64512, 'Bad streaminfo total_samples ok' );
 }
+
+# Invalid comment length
+{
+    my $s = Audio::Scan->scan( _f('CVE-2007-4619-2.flac') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{ALBUM}, 'Quod Libet Test Data', 'CVE-2007-4619 handled ok' );
+}    
 
 sub _f {
     return catfile( $FindBin::Bin, 'flac', shift );

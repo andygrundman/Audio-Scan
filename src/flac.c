@@ -276,6 +276,11 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
   HV *tags = newHV();
   flacinfo *flac = _flac_parse(infile, file, info, tags, 1);
   
+  if ( !my_hv_exists(info, "samplerate") ) {
+    // Can't seek in file without samplerate
+    goto out;
+  }
+  
   samplerate   = SvIV( *(my_hv_fetch( info, "samplerate" )) );
   
   // Determine target sample we're looking for
@@ -331,6 +336,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
     frame_offset = _flac_binary_search_sample(flac, target_sample, flac->audio_offset, flac->file_size);
   }
   
+out:
   // Don't leak
   SvREFCNT_dec(info);
   SvREFCNT_dec(tags);
@@ -392,6 +398,11 @@ _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, 
   int i;
   
   buffer_init(&buf, flac->max_framesize);
+  
+  if (seek_offset > flac->file_size - FLAC_FRAME_MAX_HEADER) {
+    ret = 0;
+    goto out;
+  }
   
   if ( (PerlIO_seek(flac->infile, seek_offset, SEEK_SET)) == -1 ) {
     ret = 0;

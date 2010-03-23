@@ -2,15 +2,17 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 277;
+use Test::More tests => 337;
 
 use Audio::Scan;
 
 my $HAS_ENCODE;
 my $pate;
+my $raks;
 eval {
     require Encode;
     $pate = Encode::decode_utf8("pâté");
+    $raks = Encode::decode_utf8("räksmörgås");
     $HAS_ENCODE = 1;
 };
 
@@ -200,7 +202,7 @@ eval {
     is( $tags->{TALB}, 'Album Name', 'ID3v1 album ok' );
     is( $tags->{TDRC}, 2009, 'ID3v1 year ok' );
     is( $tags->{TCON}, 'Ambient', 'ID3v1 genre ok' );
-    is( $tags->{COMM}->[3], 'This is a comment', 'ID3v1 comment ok' );
+    is( $tags->{COMM}->[2], 'This is a comment', 'ID3v1 comment ok' );
 }
 
 # ID3v1.1 (adds track number)
@@ -216,7 +218,7 @@ eval {
     is( $tags->{TALB}, 'Album Name', 'ID3v1.1 album ok' );
     is( $tags->{TDRC}, 2009, 'ID3v1.1 year ok' );
     is( $tags->{TCON}, 'Ambient', 'ID3v1.1 genre ok' );
-    is( $tags->{COMM}->[3], 'This is a comment', 'ID3v1.1 comment ok' );
+    is( $tags->{COMM}->[2], 'This is a comment', 'ID3v1.1 comment ok' );
     is( $tags->{TRCK}, 16, 'ID3v1.1 track number ok' );
 }
 
@@ -228,12 +230,31 @@ eval {
     
     SKIP:
     {
-        skip 'Encode is not available', 1 unless $HAS_ENCODE;
-        is( $tags->{TPE1}, $pate, 'ID3v1 ISO-8859-1 artist ok' );
+        skip 'Encode is not available', 3 unless $HAS_ENCODE;
+        is( $tags->{TPE1}, $raks, 'ID3v1 ISO-8859-1 artist ok' );
+        is( $tags->{TIT2}, $raks, 'ID3v1 ISO-8859-1 title ok' );
+        is( $tags->{TALB}, $raks, 'ID3v1 ISO-8859-1 album ok' );
     }
     
     # Make sure it's been converted to UTF-8
-    is( utf8::valid( $tags->{TPE1} ), 1, 'ID3v1 ISO-8859-1 is valid UTF-8' );
+    ok( utf8::is_utf8( $tags->{TPE1} ), 'ID3v1 ISO-8859-1 artist converted to UTF-8 ok' );
+}
+
+# ID3v1 with UTF-8 encoding (no standard encoding is defined for v1 so we try to support it)
+{
+    my $s = Audio::Scan->scan_tags( _f('v1-utf8.mp3') );
+    my $tags = $s->{tags};
+    
+    SKIP:
+    {
+        skip 'Encode is not available', 3 unless $HAS_ENCODE;
+        is( $tags->{TPE1}, $raks, 'ID3v1 UTF-8 artist ok' );
+        is( $tags->{TIT2}, $raks, 'ID3v1 UTF-8 title ok' );
+        is( $tags->{TALB}, $raks, 'ID3v1 UTF-8 album ok' );
+    }
+    
+    # Make sure it's been converted to UTF-8
+    ok( utf8::is_utf8( $tags->{TPE1} ), 'ID3v1 UTF-8 artist converted to UTF-8 ok' );
 }
 
 # ID3v2.2 (libid3tag converts them to v2.4-equivalent tags)
@@ -248,8 +269,8 @@ eval {
     is( $tags->{TIT2}, 'Test v2.2.0', 'ID3v2.2 title ok' );
     is( $tags->{TDRC}, 1998, 'ID3v2.2 year ok' );
     is( $tags->{TCON}, 'Sound Clip', 'ID3v2.2 genre ok' );
-    is( $tags->{COMM}->[1], 'eng', 'ID3v2.2 comment language ok' );
-    is( $tags->{COMM}->[3], 'All Rights Reserved', 'ID3v2.2 comment ok' );
+    is( $tags->{COMM}->[0], 'eng', 'ID3v2.2 comment language ok' );
+    is( $tags->{COMM}->[2], 'All Rights Reserved', 'ID3v2.2 comment ok' );
     is( $tags->{TRCK}, 2, 'ID3v2.2 track number ok' );
 }
 
@@ -260,9 +281,9 @@ eval {
     my $tags = $s->{tags};
 
     is( scalar @{ $tags->{COMM} }, 4, 'ID3v2.2 4 comment tags ok' );
-    is( $tags->{COMM}->[1]->[2], 'iTunNORM', 'ID3v2.2 iTunNORM ok' );
-    is( $tags->{COMM}->[2]->[2], 'iTunes_CDDB_1', 'ID3v2.2 iTunes_CDDB_1 ok' );
-    is( $tags->{COMM}->[3]->[2], 'iTunes_CDDB_TrackNumber', 'ID3v2.2 iTunes_CDDB_TrackNumber ok' );
+    is( $tags->{COMM}->[1]->[1], 'iTunNORM', 'ID3v2.2 iTunNORM ok' );
+    is( $tags->{COMM}->[2]->[1], 'iTunes_CDDB_1', 'ID3v2.2 iTunes_CDDB_1 ok' );
+    is( $tags->{COMM}->[3]->[1], 'iTunes_CDDB_TrackNumber', 'ID3v2.2 iTunes_CDDB_TrackNumber ok' );
 }
 
 # ID3v2.2 from iTunes 8.1, full of non-standard frames
@@ -273,18 +294,18 @@ eval {
     my $tags = $s->{tags};
     
     is( $tags->{TENC}, 'iTunes 8.1', 'ID3v2.2 from iTunes 8.1 ok' );
-    is( $tags->{USLT}->[3], 'This is the lyrics field from iTunes.', 'iTunes 8.1 USLT ok' );
-    is( $tags->{YTCP}, 1, 'iTunes 8.1 TCP ok' );
-    is( $tags->{YTS2}, 'Album Artist Sort', 'iTunes 8.1 TS2 ok' );
-    is( $tags->{YTSA}, 'Album Sort', 'iTunes 8.1 TSA ok' );
-    is( $tags->{YTSC}, 'Composer Sort', 'iTunes 8.1 TSC ok' );
-    is( $tags->{YTSP}, 'Artist Name Sort', 'iTunes 8.1 TSP ok' );
-    is( $tags->{YTST}, 'Track Title Sort', 'iTunes 8.1 TST ok' );
-    is( ref $tags->{YRVA}, 'ARRAY', 'iTunes 8.1 RVA ok' );
-    is( $tags->{YRVA}->[0], '-2.119539 dB', 'iTunes 8.1 RVA right ok' );
-    is( $tags->{YRVA}->[1], '0.000000', 'iTunes 8.1 RVA right peak ok' );
-    is( $tags->{YRVA}->[2], '-2.119539 dB', 'iTunes 8.1 RVA left ok' );
-    is( $tags->{YRVA}->[3], '0.000000', 'iTunes 8.1 RVA left peak ok' );
+    is( $tags->{USLT}->[2], 'This is the lyrics field from iTunes.', 'iTunes 8.1 USLT ok' );
+    is( $tags->{TCMP}, 1, 'iTunes 8.1 TCP ok' );
+    is( $tags->{TSO2}, 'Album Artist Sort', 'iTunes 8.1 TS2 ok' );
+    is( $tags->{TSOA}, 'Album Sort', 'iTunes 8.1 TSA ok' );
+    is( $tags->{TSOC}, 'Composer Sort', 'iTunes 8.1 TSC ok' );
+    is( $tags->{TSOP}, 'Artist Name Sort', 'iTunes 8.1 TSP ok' );
+    is( $tags->{TSOT}, 'Track Title Sort', 'iTunes 8.1 TST ok' );
+    is( ref $tags->{RVAD}, 'ARRAY', 'iTunes 8.1 RVA ok' );
+    is( $tags->{RVAD}->[0], '-2.119539 dB', 'iTunes 8.1 RVA right ok' );
+    is( $tags->{RVAD}->[1], '0.000000', 'iTunes 8.1 RVA right peak ok' );
+    is( $tags->{RVAD}->[2], '-2.119539 dB', 'iTunes 8.1 RVA left ok' );
+    is( $tags->{RVAD}->[3], '0.000000', 'iTunes 8.1 RVA left peak ok' );
 }
 
 # ID3v2.3
@@ -399,6 +420,7 @@ eval {
 }
 
 # ID3v2.3 with empty TCON tag
+# Also has empty TENC, WXXX, TCOP, TOPE, TCOM, TYER, TALB
 {
     my $s = Audio::Scan->scan( _f('v2.3-empty-tcon.mp3') );
     
@@ -406,6 +428,12 @@ eval {
     
     is( !exists( $tags->{TCON} ), 1, 'ID3v2.3 empty TCON ok' );
     is( $tags->{TRCK}, '03/09', 'ID3v2.3 empty TCON track ok' );
+    is( !exists( $tags->{TDRC} ), 1, 'ID3v2.3 empty TYER ok' );
+    is( $tags->{TENC}, undef, 'ID3v2.3 empty TENC ok' );
+    is( $tags->{TOPE}, undef, 'ID3v2.3 empty TOPE ok' );
+    is( $tags->{TCOP}, undef, 'ID3v2.3 empty TCOP ok' );
+    is( $tags->{TCOM}, undef, 'ID3v2.3 empty TCOM ok' );
+    is( $tags->{TALB}, undef, 'ID3v2.3 empty TALB ok' );
 }
 
 # ID3v2.3 from iTunes with non-standard tags with spaces
@@ -416,7 +444,7 @@ eval {
     my $tags = $s->{tags};
     
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3v2.3 from iTunes ok' );
-    is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.3 invalid iTunes frame ok' );
+    is( $tags->{TSOT}, 'Track Title Sort', 'ID3v2.3 invalid iTunes frame ok' );
     is( ref $tags->{RVAD}, 'ARRAY', 'iTunes 8.1 RVAD ok' );
     is( $tags->{RVAD}->[0], '-2.119539 dB', 'iTunes 8.1 RVAD right ok' );
     is( $tags->{RVAD}->[1], '0.000000', 'iTunes 8.1 RVAD right peak ok' );
@@ -425,12 +453,17 @@ eval {
 }
 
 # ID3v2.3 corrupted text, from http://bugs.gentoo.org/show_bug.cgi?id=210564
+# The TBPM frame has an odd number of text bytes but specifies UTF-16 encoding, it
+# should not read into the next frame (TCON)
 {
     my $s = Audio::Scan->scan( _f('gentoo-bug-210564.mp3') );
     
     my $tags = $s->{tags};
     
-    is( $tags->{TALB}, 'aikosingles', 'ID3v2.3 corrupted album ok' );
+    is( $tags->{TRCK}, 26, 'ID3v2.3 corrupted frame TRCK ok' );
+    is( $tags->{TBPM}, 0, 'ID3v2.3 corrupted frame TBPM ok' );
+    is( $tags->{TALB}, 'aikosingles', 'ID3v2.3 corrupted frame TALB ok' );
+    is( $tags->{TCON}, 'JPop', 'ID3v2.3 corrupted frame TCON ok' );
     
     SKIP:
     {
@@ -564,8 +597,12 @@ eval {
     my $tags = $s->{tags};
     
     is( $info->{id3_version}, 'ID3v2.4.0', 'ID3v2.4 from iTunes ok' );
-    is( $tags->{'TST '}, 'Track Title Sort', 'ID3v2.4 invalid iTunes frame ok' );
+    is( $tags->{TSOT}, 'Track Title Sort', 'ID3v2.4 invalid iTunes TST frame ok' );
     is( $tags->{TCON}, 'Metal', 'ID3v2.4 TCON with (9) ok' );
+    is( $tags->{RVA2}->[0], '', 'ID3v2.4 RVA2 ok' );
+    is( $tags->{RVA2}->[1], 1, 'ID3v2.4 RVA2 channel ok' );
+    is( $tags->{RVA2}->[2], '-2.109375 dB', 'ID3v2.4 RVA2 adjustment ok' );
+    is( $tags->{RVA2}->[3], '0.000000 dB', 'ID3v2.4 RVA2 peak ok' );
 }
 
 # ID3v2.4 with JPEG APIC
@@ -575,12 +612,11 @@ eval {
     my $tags = $s->{tags};
     
     is( ref $tags->{APIC}, 'ARRAY', 'ID3v2.4 APIC JPEG frame is array' );
-    is( $tags->{APIC}->[0], 0, 'ID3v2.4 APIC JPEG frame text encoding ok' );
-    is( $tags->{APIC}->[1], 'image/jpeg', 'ID3v2.4 APIC JPEG mime type ok' );
-    is( $tags->{APIC}->[2], 3, 'ID3v2.4 APIC JPEG picture type ok' );
-    is( $tags->{APIC}->[3], 'This is the front cover description', 'ID3v2.4 APIC JPEG description ok' );
-    is( length( $tags->{APIC}->[4] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
-    is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
+    is( $tags->{APIC}->[0], 'image/jpeg', 'ID3v2.4 APIC JPEG mime type ok' );
+    is( $tags->{APIC}->[1], 3, 'ID3v2.4 APIC JPEG picture type ok' );
+    is( $tags->{APIC}->[2], 'This is the front cover description', 'ID3v2.4 APIC JPEG description ok' );
+    is( length( $tags->{APIC}->[3] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[3], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
 }
 
 # Test AUDIO_SCAN_NO_ARTWORK
@@ -591,7 +627,7 @@ eval {
     
     my $tags = $s->{tags};
     
-    is( $tags->{APIC}->[4], 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=1 ok ');
+    is( $tags->{APIC}->[3], 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=1 ok ');
 }
 
 # Test setting AUDIO_SCAN_NO_ARTWORK to 0
@@ -602,7 +638,7 @@ eval {
     
     my $tags = $s->{tags};
     
-    is( length( $tags->{APIC}->[4] ), 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=0 ok' );
+    is( length( $tags->{APIC}->[3] ), 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=0 ok' );
 }
 
 # ID3v2.4 with PNG APIC
@@ -612,12 +648,11 @@ eval {
     my $tags = $s->{tags};
     
     is( ref $tags->{APIC}, 'ARRAY', 'ID3v2.4 APIC PNG frame is array' );
-    is( $tags->{APIC}->[0], 0, 'ID3v2.4 APIC PNG frame text encoding ok' );
-    is( $tags->{APIC}->[1], 'image/png', 'ID3v2.4 APIC PNG mime type ok' );
-    is( $tags->{APIC}->[2], 3, 'ID3v2.4 APIC PNG picture type ok' );
-    is( $tags->{APIC}->[3], 'This is the front cover description', 'ID3v2.4 APIC PNG description ok' );
-    is( length( $tags->{APIC}->[4] ), 58618, 'ID3v2.4 APIC PNG picture length ok' );
-    is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), '89504e47', 'ID3v2.4 APIC PNG picture data ok ');
+    is( $tags->{APIC}->[0], 'image/png', 'ID3v2.4 APIC PNG mime type ok' );
+    is( $tags->{APIC}->[1], 3, 'ID3v2.4 APIC PNG picture type ok' );
+    is( $tags->{APIC}->[2], 'This is the front cover description', 'ID3v2.4 APIC PNG description ok' );
+    is( length( $tags->{APIC}->[3] ), 58618, 'ID3v2.4 APIC PNG picture length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[3], 0, 4 ) ), '89504e47', 'ID3v2.4 APIC PNG picture data ok ');
 }
 
 # ID3v2.4 with multiple APIC
@@ -630,20 +665,18 @@ eval {
     my $jpg = $tags->{APIC}->[1];
     
     is( ref $png, 'ARRAY', 'ID3v2.4 APIC PNG frame is array' );
-    is( $png->[0], 0, 'ID3v2.4 APIC PNG frame text encoding ok' );
-    is( $png->[1], 'image/png', 'ID3v2.4 APIC PNG mime type ok' );
-    is( $png->[2], 3, 'ID3v2.4 APIC PNG picture type ok' );
-    is( $png->[3], 'This is the front cover description', 'ID3v2.4 APIC PNG description ok' );
-    is( length( $png->[4] ), 58618, 'ID3v2.4 APIC PNG picture length ok' );
-    is( unpack( 'H*', substr( $png->[4], 0, 4 ) ), '89504e47', 'ID3v2.4 APIC PNG picture data ok ');
+    is( $png->[0], 'image/png', 'ID3v2.4 APIC PNG mime type ok' );
+    is( $png->[1], 3, 'ID3v2.4 APIC PNG picture type ok' );
+    is( $png->[2], 'This is the front cover description', 'ID3v2.4 APIC PNG description ok' );
+    is( length( $png->[3] ), 58618, 'ID3v2.4 APIC PNG picture length ok' );
+    is( unpack( 'H*', substr( $png->[3], 0, 4 ) ), '89504e47', 'ID3v2.4 APIC PNG picture data ok ');
     
     is( ref $jpg, 'ARRAY', 'ID3v2.4 APIC JPEG frame is array' );
-    is( $jpg->[0], 0, 'ID3v2.4 APIC JPEG frame text encoding ok' );
-    is( $jpg->[1], 'image/jpeg', 'ID3v2.4 APIC JPEG mime type ok' );
-    is( $jpg->[2], 4, 'ID3v2.4 APIC JPEG picture type ok' );
-    is( $jpg->[3], 'This is the back cover description', 'ID3v2.4 APIC JPEG description ok' );
-    is( length( $jpg->[4] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
-    is( unpack( 'H*', substr( $jpg->[4], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
+    is( $jpg->[0], 'image/jpeg', 'ID3v2.4 APIC JPEG mime type ok' );
+    is( $jpg->[1], 4, 'ID3v2.4 APIC JPEG picture type ok' );
+    is( $jpg->[2], 'This is the back cover description', 'ID3v2.4 APIC JPEG description ok' );
+    is( length( $jpg->[3] ), 2103, 'ID3v2.4 APIC JPEG picture length ok' );
+    is( unpack( 'H*', substr( $jpg->[3], 0, 4 ) ), 'ffd8ffe0', 'ID3v2.4 APIC JPEG picture data ok ');
 }
 
 # ID3v2.4 with GEOB
@@ -653,12 +686,11 @@ eval {
     my $tags = $s->{tags};
     
     is( ref $tags->{GEOB}, 'ARRAY', 'ID3v2.4 GEOB is array' );
-    is( $tags->{GEOB}->[0], 0, 'ID3v2.4 GEOB text encoding ok' );
-    is( $tags->{GEOB}->[1], 'text/plain', 'ID3v2.4 GEOB mime type ok' );
-    is( $tags->{GEOB}->[2], 'eyeD3.txt', 'ID3v2.4 GEOB filename ok' );
-    is( $tags->{GEOB}->[3], 'eyeD3 --help output', 'ID3v2.4 GEOB content description ok' );
-    is( length( $tags->{GEOB}->[4] ), 6207, 'ID3v2.4 GEOB length ok' );
-    is( substr( $tags->{GEOB}->[4], 0, 6 ), "\nUsage", 'ID3v2.4 GEOB content ok' );
+    is( $tags->{GEOB}->[0], 'text/plain', 'ID3v2.4 GEOB mime type ok' );
+    is( $tags->{GEOB}->[1], 'eyeD3.txt', 'ID3v2.4 GEOB filename ok' );
+    is( $tags->{GEOB}->[2], 'eyeD3 --help output', 'ID3v2.4 GEOB content description ok' );
+    is( length( $tags->{GEOB}->[3] ), 6207, 'ID3v2.4 GEOB length ok' );
+    is( substr( $tags->{GEOB}->[3], 0, 6 ), "\nUsage", 'ID3v2.4 GEOB content ok' );
 }
 
 # ID3v2.4 with multiple GEOB
@@ -671,20 +703,18 @@ eval {
     my $b = $tags->{GEOB}->[1];
     
     is( ref $a, 'ARRAY', 'ID3v2.4 GEOB multiple A is array' );
-    is( $a->[0], 0, 'ID3v2.4 GEOB multiple A text encoding ok' );
-    is( $a->[1], 'text/plain', 'ID3v2.4 GEOB multiple A mime type ok' );
-    is( $a->[2], 'eyeD3.txt', 'ID3v2.4 GEOB multiple A filename ok' );
-    is( $a->[3], 'eyeD3 --help output', 'ID3v2.4 GEOB multiple A content description ok' );
-    is( length( $a->[4] ), 6207, 'ID3v2.4 GEOB multiple A length ok' );
-    is( substr( $a->[4], 0, 6 ), "\nUsage", 'ID3v2.4 GEOB multiple A content ok' );
+    is( $a->[0], 'text/plain', 'ID3v2.4 GEOB multiple A mime type ok' );
+    is( $a->[1], 'eyeD3.txt', 'ID3v2.4 GEOB multiple A filename ok' );
+    is( $a->[2], 'eyeD3 --help output', 'ID3v2.4 GEOB multiple A content description ok' );
+    is( length( $a->[3] ), 6207, 'ID3v2.4 GEOB multiple A length ok' );
+    is( substr( $a->[3], 0, 6 ), "\nUsage", 'ID3v2.4 GEOB multiple A content ok' );
     
     is( ref $b, 'ARRAY', 'ID3v2.4 GEOB multiple B is array' );
-    is( $b->[0], 0, 'ID3v2.4 GEOB multiple B text encoding ok' );
-    is( $b->[1], 'text/plain', 'ID3v2.4 GEOB multiple B mime type ok' );
-    is( $b->[2], 'genres.txt', 'ID3v2.4 GEOB multiple B filename ok' );
-    is( $b->[3], 'eyeD3 --list-genres output', 'ID3v2.4 GEOB multiple B content description ok' );
-    is( length( $b->[4] ), 4087, 'ID3v2.4 GEOB multiple B length ok' );
-    is( substr( $b->[4], 0, 10 ), '  0: Blues', 'ID3v2.4 GEOB multiple B content ok' );
+    is( $b->[0], 'text/plain', 'ID3v2.4 GEOB multiple B mime type ok' );
+    is( $b->[1], 'genres.txt', 'ID3v2.4 GEOB multiple B filename ok' );
+    is( $b->[2], 'eyeD3 --list-genres output', 'ID3v2.4 GEOB multiple B content description ok' );
+    is( length( $b->[3] ), 4087, 'ID3v2.4 GEOB multiple B length ok' );
+    is( substr( $b->[3], 0, 10 ), '  0: Blues', 'ID3v2.4 GEOB multiple B content ok' );
 }
 
 # ID3v2.4 with TIPL frame that has multiple strings
@@ -721,7 +751,7 @@ eval {
 	
 	is( scalar( keys %{$tags} ), 10, 'iTunes broken syncsafe read all tags ok' );
 	is( scalar( @{ $tags->{COMM} } ), 4, 'iTunes broken syncsafe read all COMM frames ok' );
-	is( length( $tags->{APIC}->[4] ), 29614, 'iTunes broken syncsafe read APIC ok' );
+	is( length( $tags->{APIC}->[3] ), 29614, 'iTunes broken syncsafe read APIC ok' );
 }
 
 # v2.2 PIC frame
@@ -730,12 +760,12 @@ eval {
     
     my $tags = $s->{tags};
     
-    is( scalar( @{ $tags->{APIC} } ), 5, 'v2.2 PIC fields ok' );
-    is( $tags->{APIC}->[1], 'PNG', 'v2.2 PIC image format field ok' );
-    is( $tags->{APIC}->[2], 0, 'v2.2 PIC picture type ok' );
-    is( $tags->{APIC}->[3], '', 'v2.2 PIC description ok' );
-    is( length( $tags->{APIC}->[4] ), 61007, 'v2.2 PIC data length ok' );
-    is( unpack( 'H*', substr( $tags->{APIC}->[4], 0, 4 ) ), '89504e47', 'v2.2 PIC PNG picture data ok ');
+    is( scalar( @{ $tags->{APIC} } ), 4, 'v2.2 PIC fields ok' );
+    is( $tags->{APIC}->[0], 'PNG', 'v2.2 PIC image format field ok' );
+    is( $tags->{APIC}->[1], 0, 'v2.2 PIC picture type ok' );
+    is( $tags->{APIC}->[2], '', 'v2.2 PIC description ok' );
+    is( length( $tags->{APIC}->[3] ), 61007, 'v2.2 PIC data length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[3], 0, 4 ) ), '89504e47', 'v2.2 PIC PNG picture data ok ');
 } 
 
 # Scan via a filehandle
@@ -814,12 +844,18 @@ eval {
 }
 
 # Bug 13921, ID3v2.3 with experimental XSOP tag that should be treated as text
+# This file also contains a TYER and TDAT tag that should be properly converted to TDRC
 {
     my $s = Audio::Scan->scan_tags( _f('v2.3-xsop.mp3') );
     
     my $tags = $s->{tags};
     
     is( $tags->{XSOP}, 'Addy, Obo', 'Bug 13921, v2.3 XSOP ok' );
+    is( $tags->{TDRC}, '1992-02-14T13:46', 'v2.3 TYER/TDAT converted to TDRC ok' );
+    is( $tags->{PRIV}->[0]->[0], 'PeakValue', 'v2.3 PRIV frame 1 key ok' );
+    is( length($tags->{PRIV}->[0]->[1]), 4, 'v2.3 PRIV frame 1 value ok' );
+    is( $tags->{PRIV}->[1]->[0], 'AverageLevel', 'v2.3 PRIV frame 2 key ok' );
+    is( length($tags->{PRIV}->[1]->[1]), 4, 'v2.3 PRIV frame 2 value ok' );
 }
 
 # MPEG 2.0 with Xing header, bitrate calculation was broken
@@ -843,8 +879,8 @@ eval {
     is( $tags->{TENC}, 'iTunes v1.1', 'ID3v2.4 corrupt frame TENC ok' );
     is( $tags->{TIT2}, 'Evasion de Julien', 'ID3v2.4 corrupt frame TIT2 ok' );
     is( $tags->{TRCK}, '23/26', 'ID3v2.4 corrupt frame TRCK ok' );
-    is( $tags->{COMM}->[3], 'Diskapif', 'ID3v2.4 corrupt frame COMM ok' );
-    is( length( $tags->{APIC}->[4] ), 33133, 'ID3v2.4 corrupt frame APIC ok' );
+    is( $tags->{COMM}->[2], 'Diskapif', 'ID3v2.4 corrupt frame COMM ok' );
+    is( length( $tags->{APIC}->[3] ), 33133, 'ID3v2.4 corrupt frame APIC ok' );
 }
 
 # Bug 8380, ID3v2 + ID3v1
@@ -868,7 +904,8 @@ eval {
     
     is( $tags->{TALB}, 'Bob Marley & Peter Tosh', 'ID3v2.3 LINK frame TALB ok' );
     is( ref $tags->{LINK}, 'ARRAY', 'ID3v2.3 LINK frame is array' );
-    is( $tags->{LINK}->[0], 'WCOh', 'ID3v2.3 LINK frame string ok' );
+    is( $tags->{LINK}->[0], 'WCO', 'ID3v2.3 LINK frame frameid ok' );
+    like( $tags->{LINK}->[1], qr{^http://www.emusic.com}, 'ID3v2.3 LINK frame URL ok' );
 }
 
 # Bug 15196, multiple TCON genre values (v2.4)
@@ -882,6 +919,16 @@ eval {
     is( $tags->{TCON}->[1], 'Live', 'ID3v2.4 multiple TCON value 2 ok' );
 }
 
+# Multiple TCON genre in v2.4 with numeric only
+{
+    my $s = Audio::Scan->scan( _f('v2.4-multiple-tcon-numeric.mp3') );
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{TCON}, 'ARRAY', 'ID3v2.4 multiple numeric TCON is array' );
+    is( $tags->{TCON}->[0], 'A Capella', 'ID3v2.4 multiple numeric TCON value 1 ok' );
+    is( $tags->{TCON}->[1], 'Sonata', 'ID3v2.4 multiple numeric TCON value 2 ok' );
+}
+
 # Bug 3998, multiple TCON genre values (v2.3 UTF-16)
 {
     my $s = Audio::Scan->scan( _f('v2.3-multiple-tcon.mp3') );
@@ -891,6 +938,36 @@ eval {
     is( ref $tags->{TCON}, 'ARRAY', 'ID3v2.3 multiple TCON is array' );
     is( $tags->{TCON}->[0], 'Live', 'ID3v2.3 multiple TCON value 1 ok' );
     is( $tags->{TCON}->[1], 'Pop', 'ID3v2.3 multiple TCON value 2 ok' );
+}
+
+# Multiple TCON genre values in v2.3 numeric form (51)(39)
+{
+    my $s = Audio::Scan->scan( _f('v2.3-multiple-tcon-numeric.mp3') );
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{TCON}, 'ARRAY', 'ID3v2.3 multiple numeric TCON is array' );
+    is( $tags->{TCON}->[0], 'Techno-Industrial', 'ID3v2.3 multiple numeric TCON value 1 ok' );
+    is( $tags->{TCON}->[1], 'Noise', 'ID3v2.3 multiple numeric TCON value 2 ok' );
+}
+
+# Multiple TCON genre values in v2.3 with text (55)(Text)
+{
+    my $s = Audio::Scan->scan( _f('v2.3-multiple-tcon-text.mp3') );
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{TCON}, 'ARRAY', 'ID3v2.3 multiple numeric+text TCON is array' );
+    is( $tags->{TCON}->[0], 'Dream', 'ID3v2.3 multiple numeric+text TCON value 1 ok' );
+    is( $tags->{TCON}->[1], 'Text', 'ID3v2.3 multiple numeric+text TCON value 2 ok' );
+}
+
+# Multiple TCON genre values in v2.3 with RX/CR special keywords
+{
+    my $s = Audio::Scan->scan( _f('v2.3-multiple-tcon-rx-cr.mp3') );
+    my $tags = $s->{tags};
+    
+    is( ref $tags->{TCON}, 'ARRAY', 'ID3v2.3 multiple RX/CR TCON is array' );
+    is( $tags->{TCON}->[0], 'Remix', 'ID3v2.3 multiple RX/CR TCON value 1 ok' );
+    is( $tags->{TCON}->[1], 'Cover', 'ID3v2.3 multiple RX/CR TCON value 2 ok' );
 }
 
 # Bug 15197, MPEG-2 Layer 3 bitrate calculation
@@ -918,7 +995,125 @@ eval {
     is( $tags->{RGAD}->{album_gain}, '-5.600000 dB', 'RGAD album gain ok' );
 }
 
-# Test for 
+# v2.4 per-frame unsynchronisation
+{
+    my $s = Audio::Scan->scan( _f('v2.4-unsync.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TALB}, 'Album', 'v2.4 unsync TALB ok' );
+    is( $tags->{TDRC}, 2009, 'v2.4 unsync TDRC ok' );
+    is( $tags->{TIT2}, 'Title', 'v2.4 unsync TIT2 ok' );
+    is( $tags->{TPE1}, 'Artist', 'v2.4 unsync TPE1 ok' );
+}
+
+# v2.3 frame compression
+{
+    my $s = Audio::Scan->scan( _f('v2.3-compressed-frame.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TIT2}, 'Compressed TIT2 Frame', 'v2.3 compressed frame ok' );
+    is( $tags->{TPE1}, 'Artist Name', 'v2.3 frame after compressed frame ok' );
+}
+
+# v2.4 frame compression
+{
+    my $s = Audio::Scan->scan( _f('v2.4-compressed-frame.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TIT2}, 'Compressed TIT2 Frame', 'v2.4 compressed frame ok' );
+    is( $tags->{TRCK}, '02/10', 'v2.4 frame after compressed frame ok' );
+}
+
+# v2.3 extended header
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.3-ext-header.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TCON}, 'Blues', 'v2.3 extended header ok' );
+}
+
+# MCDI frame
+{
+    my $s = Audio::Scan->scan( _f('v2.3-mcdi.mp3') );
+    my $tags = $s->{tags};
+    
+    is( length($tags->{MCDI}), 804, 'v2.3 MCDI ok' );
+}
+
+# ETCO frame, test file from http://www.blogarithms.com/index.php/archives/2008/01/01/etcotag/
+{
+    my $s = Audio::Scan->scan( _f('v2.3-etco.mp3') );
+    my $tags = $s->{tags};
+    
+    my $etco = $tags->{ETCO};
+    is( $etco->[0], 2, 'v2.3 ETCO time stamp format ok' );
+    
+    my $events = $etco->[1];
+    is( $events->[0]->{type}, 3, 'v2.3 ETCO event type ok' );
+    is( $events->[0]->{timestamp}, 152110, 'v2.3 ETCO timestamp ok' );
+}
+
+# SYLT frame
+{
+    my $s = Audio::Scan->scan( _f('v2.3-sylt.mp3') );
+    my $tags = $s->{tags};
+    
+    my $sylt = $tags->{SYLT};
+    is( $sylt->[0], 'XXX', 'v2.3 SYLT language ok' );
+    is( $sylt->[1], 2, 'v2.3 SYLT time stamp format ok' );
+    is( $sylt->[2], 1, 'v2.3 SYLT content type ok' );
+    is( $sylt->[3], 'Converted from Lyrics3 v2.00', 'v2.3 SYLT description ok' );
+    
+    my $content = $sylt->[4];
+    is( $content->[0]->{text}, "Let's talk about time", 'v2.3 SYLT text 1 ok' );
+    is( $content->[0]->{timestamp}, 2000, 'v2.3 SYLT timestamp 1 ok' );
+    is( $content->[-1]->{text}, '(Repeat)', 'v2.3 SYLT text -1 ok' );
+    is( $content->[-1]->{timestamp}, 181000, 'v2.3 SYLT timestamp -1 ok' );
+}
+
+# invalid encoding bytes
+{
+    my $s = Audio::Scan->scan( _f('v2.3-invalid-encoding.mp3') );
+    my $tags = $s->{tags};
+    
+    ok( !exists $tags->{TRCK}, 'v2.3 invalid encoding ok' );
+}
+
+# v2.3 encrypted frame
+{
+    my $s = Audio::Scan->scan( _f('v2.3-encrypted-frame.mp3') );
+    my $tags = $s->{tags};
+    
+    ok( !exists $tags->{TIT2}, 'v2.3 encrypted frame is skipped' );
+    is( $tags->{TPE1}, 'Artist Name', 'v2.3 frame after encrypted frame is ok' );
+}
+
+# v2.3 group id frame
+{
+    my $s = Audio::Scan->scan( _f('v2.3-group-id.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TIT2}, 'Track Title', 'v2.3 group id frame ok' );
+    is( $tags->{TRCK}, '02/10', 'v2.3 frame after group id frame ok' );
+}
+
+# v2.4 encrypted frame
+{
+    my $s = Audio::Scan->scan( _f('v2.4-encrypted-frame.mp3') );
+    my $tags = $s->{tags};
+    
+    ok( !exists $tags->{TIT2}, 'v2.4 encrypted frame is skipped' );
+    is( $tags->{TRCK}, '02/10', 'v2.4 frame after encrypted frame is ok' );
+}
+
+# v2.4 group id frame
+{
+    my $s = Audio::Scan->scan( _f('v2.4-group-id.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TIT2}, 'Track Title', 'v2.4 group id frame ok' );
+    is( $tags->{TRCK}, '02/10', 'v2.4 frame after group id frame ok' );
+}
 
 sub _f {    
     return catfile( $FindBin::Bin, 'mp3', shift );

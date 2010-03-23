@@ -63,6 +63,7 @@ _ogg_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   buffer_init(&vorbis_buf, 0);
   
   file_size = _file_size(infile);
+  my_hv_store( info, "file_size", newSVuv(file_size) );
   
   if ( !_check_buf(infile, &ogg_buf, 10, OGG_BLOCK_SIZE) ) {
     err = -1;
@@ -344,8 +345,6 @@ _ogg_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     DEBUG_TRACE("Using nominal bitrate for average\n");
   }
   
-  my_hv_store( info, "file_size", newSVuv(file_size) );
-  
 out:
   buffer_free(&ogg_buf);
   buffer_free(&vorbis_buf);
@@ -376,6 +375,12 @@ _parse_vorbis_comments(PerlIO *infile, Buffer *vorbis_buf, HV *tags, int has_fra
   
   while (num_comments--) {
     len = buffer_get_int_le(vorbis_buf);
+    
+    // Sanity check length
+    if ( len > buffer_len(vorbis_buf) ) {
+      DEBUG_TRACE("invalid Vorbis comment length: %u\n", len);
+      return;
+    }
     
     bptr = buffer_ptr(vorbis_buf);
     
@@ -562,6 +567,12 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
     mid = low + ((high - low) / 2);
     
     DEBUG_TRACE("  Searching for sample %llu between %d and %d (mid %d)\n", target_sample, (int)low, (int)high, (int)mid);
+    
+    if (mid > file_size - 28) {
+      DEBUG_TRACE("  Reached end of file, aborting\n");
+      frame_offset = -1;
+      goto out;
+    }
     
     if ( (PerlIO_seek(infile, mid, SEEK_SET)) == -1 ) {
       frame_offset = -1;

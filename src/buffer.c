@@ -135,7 +135,11 @@ restart:
     goto restart;
 
   /* Increase the size of the buffer and retry. */
-  newlen = roundup(buffer->alloc + len, BUFFER_ALLOCSZ);
+  if (buffer->alloc + len < 4096)
+    newlen = (buffer->alloc + len) * 2;
+  else
+    newlen = buffer->alloc + len + 4096;
+  
   if (newlen > BUFFER_MAX_LEN)
     croak("buffer_append_space: alloc %u too large (max %u)",
         newlen, BUFFER_MAX_LEN);
@@ -597,21 +601,122 @@ buffer_put_char(Buffer *buffer, int value)
   buffer_append(buffer, &ch, 1);
 }
 
-// XXX supports U+0000 ~ U+FFFF only.
-void
-buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
+// Read a null-terminated UTF-8 string
+// Caller must manage utf8 buffer (init/free)
+uint32_t
+buffer_get_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint)
 {
   int i = 0;
+  unsigned char *bptr = buffer_ptr(buffer);
   
-  // Sanity check length
-  if ( len % 2 ) {
-    croak("buffer_get_utf16le_as_utf8: bad length %d", len);
+  if (bptr[0] == 0)
+    return 0;
+  
+  for (i = 0; i < len_hint; i++) {
+    uint8_t c = bptr[i];
+    
+    buffer_put_char(utf8, c);
+    
+    if (c == 0) {
+      i++;
+      break;
+    }
   }
   
-  buffer_init(utf8, len);
+  // Consume string + null
+  buffer_consume(buffer, i);
+  
+  // Add null if one wasn't provided
+  if ( (utf8->buf + utf8->end - 1)[0] != 0 ) {
+    buffer_put_char(utf8, 0);
+  }
+  
+#ifdef AUDIO_SCAN_DEBUG
+  //DEBUG_TRACE("utf8 buffer:\n");
+  //buffer_dump(utf8, 0);
+#endif
+  
+  return i;
+}
+
+// Read a null-terminated latin1 string, converting to UTF-8 in supplied buffer
+// len_hint is the length of the latin1 string, utf8 may end up being larger
+// or possibly less if we hit a null.
+// Caller must manage utf8 buffer (init/free)
+uint32_t
+buffer_get_latin1_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint)
+{
+  int i = 0;
+  unsigned char *bptr = buffer_ptr(buffer);
+  
+  // We may get a valid UTF-8 string in here from ID3v1 or
+  // elsewhere, if so we don't want to translate from ISO-8859-1
+  uint8_t is_utf8 = is_utf8_string(bptr, len_hint);
+  
+  for (i = 0; i < len_hint; i++) {
+    uint8_t c = bptr[i];
+    
+    if (is_utf8) {
+      buffer_put_char(utf8, c);
+    }
+    else {
+      // translate high chars from ISO-8859-1 to UTF-8
+      if (c < 0x80) {
+        buffer_put_char(utf8, c);
+      }
+      else if (c < 0xc0) {
+        buffer_put_char(utf8, 0xc2);
+        buffer_put_char(utf8, c);
+      }
+      else {
+        buffer_put_char(utf8, 0xc3);
+        buffer_put_char(utf8, c - 64);
+      }
+    }
+    
+    if (c == 0) {
+      i++;
+      break;
+    }
+  }
+  
+  // Consume string + null
+  buffer_consume(buffer, i);
+  
+  // Add null if one wasn't provided
+  if ( (utf8->buf + utf8->end - 1)[0] != 0 ) {
+    buffer_put_char(utf8, 0);
+  }
+  
+#ifdef AUDIO_SCAN_DEBUG
+  //DEBUG_TRACE("utf8 buffer:\n");
+  //buffer_dump(utf8, 0);
+#endif
+  
+  return i;
+}
+
+// Read a null-terminated UTF-16 string, converting to UTF-8 in the supplied buffer
+// Caller must manage utf8 buffer (init/free)
+// XXX supports U+0000 ~ U+FFFF only.
+uint32_t
+buffer_get_utf16_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len, uint8_t byteorder)
+{
+  int i = 0;
+  uint16_t wc = 0;
   
   for (i = 0; i < len; i += 2) {
-    uint16_t wc = buffer_get_short_le(buffer);
+    // Check that we are not reading past the end of the buffer
+    if (len - i >= 2) {
+      wc = (byteorder == UTF16_BYTEORDER_LE)
+        ? buffer_get_short_le(buffer)
+        : buffer_get_short(buffer);
+    }
+    else {
+      DEBUG_TRACE("    UTF-16 text has an odd number of bytes, skipping final byte\n");
+      buffer_consume(buffer, 1);
+      wc = 0;
+    }
 
     if (wc < 0x80) {
       buffer_put_char(utf8, wc & 0xff);      
@@ -625,12 +730,24 @@ buffer_get_utf16le_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len)
       buffer_put_char(utf8, 0x80 | ((wc>>6) & 0x3f));
       buffer_put_char(utf8, 0x80 | (wc & 0x3f));
     }
+    
+    if (wc == 0) {
+      i += 2;
+      break;
+    }
   }
   
   // Add null if one wasn't provided
   if ( (utf8->buf + utf8->end - 1)[0] != 0 ) {
     buffer_put_char(utf8, 0);
   }
+  
+#ifdef AUDIO_SCAN_DEBUG
+  //DEBUG_TRACE("utf8 buffer:\n");
+  //buffer_dump(utf8, 0);
+#endif
+  
+  return i;
 }
       
 void
@@ -828,3 +945,21 @@ buffer_get_bits(Buffer *buffer, uint32_t bits)
   return (buffer->cache >> buffer->ncached) & mask;
 }
 
+uint32_t
+buffer_get_syncsafe(Buffer *buffer, uint8_t bytes)
+{
+  uint32_t value = 0;
+  unsigned char *bptr = buffer_ptr(buffer);
+
+  switch (bytes) {
+  case 5: value = (value << 4) | (*bptr++ & 0x0f);
+  case 4: value = (value << 7) | (*bptr++ & 0x7f);
+          value = (value << 7) | (*bptr++ & 0x7f);
+          value = (value << 7) | (*bptr++ & 0x7f);
+          value = (value << 7) | (*bptr++ & 0x7f);
+  }
+  
+  buffer_consume(buffer, bytes);
+
+  return value;
+}

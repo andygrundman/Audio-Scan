@@ -56,6 +56,7 @@ typedef struct _GUID {
 #define my_hv_fetch(a,b)       hv_fetch(a,b,strlen(b),0)
 #define my_hv_exists(a,b)      hv_exists(a,b,strlen(b))
 #define my_hv_exists_ent(a,b)  hv_exists_ent(a,b,0)
+#define my_hv_delete(a,b)      hv_delete(a,b,strlen(b),0)
 
 #define GET_INT32BE(b) \
 (i = (b[0] << 24) | (b[1] << 16) | b[2] << 8 | b[3], b += 4, i)

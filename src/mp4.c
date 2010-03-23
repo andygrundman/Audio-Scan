@@ -1217,13 +1217,12 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
       }
       else if ( FOURCC_EQ( SvPVX(key), "GNRE" ) ) {
         // Special case genre, 16-bit int as id3 genre code
-        char *genre_string;
+        char const *genre_string;
         uint16_t genre_num = buffer_get_short(mp4->buf);
     
-        if (genre_num > 0 && genre_num < 148) {
-          genre_string = (char *)id3_ucs4_utf8duplicate( id3_genre_index(genre_num - 1) );
+        if (genre_num > 0 && genre_num < NGENRES + 1) {
+          genre_string = _id3_genre_index(genre_num - 1);
           my_hv_store_ent( mp4->tags, key, newSVpv( genre_string, 0 ) );
-          free(genre_string);
         }
         
         return 1;

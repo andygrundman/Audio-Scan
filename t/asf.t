@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 141;
+use Test::More tests => 140;
 
 use Audio::Scan;
 
@@ -228,7 +228,6 @@ eval {
     
     is( $info->{broadcast}, 1, 'Live stream ok' );
     is( $info->{seekable}, 0, 'Live stream not seekable ok' );
-    ok( !exists $info->{file_size}, 'Live stream has no file size ok' );
     
     is( $info->{streams}->[1]->{stream_type}, 'ASF_Command_Media', 'Live stream metadata stream ok' );
 }

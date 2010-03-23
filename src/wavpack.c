@@ -180,10 +180,11 @@ _wavpack_parse_block(wvpinfo *wvp)
   }
   
   while (remaining > 0) {
-    DEBUG_TRACE("remaining: %d\n", remaining);
     // Read sub-block header (2-4 bytes)
     unsigned char id;
     uint32_t size;
+    
+    DEBUG_TRACE("remaining: %d\n", remaining);
     
     if ( !_check_buf(wvp->infile, wvp->buf, 4, WAVPACK_BLOCK_SIZE) ) {
       return 0;

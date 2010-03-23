@@ -211,6 +211,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
     return -1;
   }
   
+  /*
   DEBUG_TRACE("frame: len %d, ver: 0x%x, layer %d, bitrate, %d, samplerate %d\n",
     pfi->frame_length,
     pfi->mpeg_version,
@@ -218,6 +219,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
     pfi->bitrate,
     pfi->samplerate
   );
+  */
 
   return 0;
 }
@@ -298,7 +300,7 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
           }
         }
         
-        DEBUG_TRACE("  Frame %d: %dkbps\n", frame_count, fi.bitrate);
+        //DEBUG_TRACE("  Frame %d: %dkbps\n", frame_count, fi.bitrate);
 
         if (fi.frame_length > buffer_len(mp3->buf)) {
           // Partial frame in buffer
@@ -333,7 +335,7 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
   int xing_flags;
   unsigned char *bptr;
   
-  if ( !_check_buf(mp3->infile, mp3->buf, 160 + pfi->xing_offset, MP3_BLOCK_SIZE) ) {
+  if ( !_check_buf(mp3->infile, mp3->buf, 4 + pfi->xing_offset, MP3_BLOCK_SIZE) ) {
     return 0;
   }
   
@@ -348,6 +350,10 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
       ( bptr[1] == 'n' && bptr[2] == 'f' && bptr[3] == 'o' )
     ) {
       DEBUG_TRACE("Found Xing/Info tag\n");
+      
+      if ( !_check_buf(mp3->infile, mp3->buf, 160, MP3_BLOCK_SIZE) ) {
+        return 0;
+      }
       
       // It's VBR if tag is Xing, and CBR if Info
       pfi->vbr = bptr[1] == 'i' ? VBR : CBR;
@@ -496,6 +502,10 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
   else if ( bptr[0] == 'V' && bptr[1] == 'B' && bptr[2] == 'R' && bptr[3] == 'I' ) {
     DEBUG_TRACE("Found VBRI tag\n");
     
+    if ( !_check_buf(mp3->infile, mp3->buf, 14, MP3_BLOCK_SIZE) ) {
+      return 0;
+    }
+    
     // Skip tag and version ID
     buffer_consume(mp3->buf, 6);
 
@@ -590,6 +600,12 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       audio_offset++;
 
       if ( !buffer_len(mp3->buf) ) {
+        if (audio_offset >= file_size - 4) {
+          // No audio frames in file
+          err = -1;
+          goto out;
+        }
+        
         if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
           PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
           err = -1;
@@ -906,6 +922,8 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
   // XXX this would be more accurate if we determined max_frame_len
   if ((file_size - frame_offset) < 1000) {
     frame_offset -= 1000 - (file_size - frame_offset);
+    if (frame_offset < 0)
+      frame_offset = 0;
     DEBUG_TRACE("find_frame: offset too close to end of file, adjusted to %d\n", frame_offset);
   }
   

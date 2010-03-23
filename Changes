@@ -1,6 +1,13 @@
 Revision history for Audio::Scan
 
-0.63
+0.70
+        - Replaced libid3tag with a custom ID3 tag parser. libid3tag would read an entire
+          tag into memory, so in files with large embedded artwork this was a huge waste
+          of memory.  The new parser will never buffer more than about 4K of the file if
+          AUDIO_SCAN_NO_ARTWORK is set.  It is also around twice as fast.
+        - INCOMPATIBLE CHANGE: ID3 tag elements returned in array form no longer include
+          the encoding type as the first value in the array.  Common frames this affects
+          include COMM, APIC, USLT, and others.
         - INCOMPATIBLE CHANGE: find_frame for both MP3 and Ogg Vorbis now take a
           timestamp in milliseconds.  Seeking using a file offset is too ambiguous
           because of non-audio tag data.
@@ -9,6 +16,9 @@ Revision history for Audio::Scan
         - Improved Ogg Vorbis bitrate/duration calculation when file contains multiple
           logical bitstreams.
         - Added support for old WavPack versions < 4.
+        - Changed ASF file_size value to be the actual file size, not the value from within
+          the file metadata which may or may not be correct.
+        - Bundled a win32 build of zlib to make compiling on Windows a bit easier.
 
 0.62    2010-03-02 12:00:00
         - INCOMPATIBLE CHANGE: Ogg Vorbis COVERART tags are now translated to an
