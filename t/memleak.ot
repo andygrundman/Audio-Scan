@@ -11,7 +11,9 @@ eval "use Proc::ProcessTable";
 
 plan skip_all => 'Proc::ProcessTable required for this test' if $@;
 
-plan tests => 304;
+plan tests => 464;
+
+$ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
 
 our $t = Proc::ProcessTable->new( cache_ttys => 1 );
 our ( $initial, $final ) = ( 0, 0 );
@@ -24,30 +26,47 @@ my $files = File::Next::files(
 while ( defined ( my $file = $files->() ) ) {
     print "# $file\n";
     
-    # Run to set initial memory size
-    for ( 1 .. 3 ) {
-        my $s = Audio::Scan->scan($file);
-    }
-    
     # Test scan leak
-    $initial = size_of();
-    for ( 1 .. 2000 ) {
-        my $s = Audio::Scan->scan($file);
-    }
-    $final = size_of();
-    is( $final - $initial, 0, "$file scan not leaking" );
-    
-    if ( $file !~ /\.m4a$/ ) {
-        # Test seek leak
+    {
         for ( 1 .. 3 ) {
-            Audio::Scan->find_frame( $file, 10 );
+            my $s = Audio::Scan->scan($file);
         }
         $initial = size_of();
         for ( 1 .. 2000 ) {
-            Audio::Scan->find_frame( $file, 10 );
+            my $s = Audio::Scan->scan($file);
         }
         $final = size_of();
-        is( $final - $initial, 0, "$file seek not leaking" );
+        is( $final - $initial, 0, "$file scan not leaking" );
+    }
+    
+    # Test artwork mode leak
+    {
+        local $ENV{AUDIO_SCAN_NO_ARTWORK} = 0;
+        
+        for ( 1 .. 3 ) {
+            my $s = Audio::Scan->scan($file);
+        }
+        $initial = size_of();
+        for ( 1 .. 2000 ) {
+            my $s = Audio::Scan->scan($file);
+        }
+        $final = size_of();
+        is( $final - $initial, 0, "$file artwork mode scan not leaking" );
+    }        
+    
+    # Test seek leak
+    {
+        if ( $file !~ /\.m4a$/ ) {       
+            for ( 1 .. 3 ) {
+                Audio::Scan->find_frame( $file, 10 );
+            }
+            $initial = size_of();
+            for ( 1 .. 2000 ) {
+                Audio::Scan->find_frame( $file, 10 );
+            }
+            $final = size_of();
+            is( $final - $initial, 0, "$file seek not leaking" );
+        }
     }
 }
 

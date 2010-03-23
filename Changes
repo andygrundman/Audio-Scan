@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.70
+0.70    2010-03-23 19:00:00
         - Replaced libid3tag with a custom ID3 tag parser. libid3tag would read an entire
           tag into memory, so in files with large embedded artwork this was a huge waste
           of memory.  The new parser will generally never buffer more than about 4K of the
