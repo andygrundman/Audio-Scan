@@ -695,9 +695,10 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
   uint32_t read = 0;
   int8_t encoding = -1;
   
-  uint8_t skip_artwork = ( !strcmp(id, "APIC") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) ? 1 : 0;
+  uint8_t buffer_art = ( !strcmp(id, "APIC") ) ? 1 : 0;
+  uint8_t skip_art   = ( buffer_art && _env_true("AUDIO_SCAN_NO_ARTWORK") ) ? 1 : 0;
   
-  if (skip_artwork) {
+  if (skip_art) {
     // Only buffer enough for the APIC header fields, this is only a rough guess
     // because the description could technically be very long
     if ( !_check_buf(id3->infile, id3->buf, 128, ID3_BLOCK_SIZE) ) {
@@ -706,9 +707,19 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
     DEBUG_TRACE("    partial read due to AUDIO_SCAN_NO_ARTWORK\n");
   }
   else {
-    // Buffer the entire frame
-    if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {
-      return 0;
+    // Use a special buffering mode for binary artwork, to avoid
+    // using 2x the memory of the APIC frame (once for buffer, once for SV)
+    if (buffer_art) {
+      // Buffer enough for encoding/MIME/picture type/description
+      if ( !_check_buf(id3->infile, id3->buf, 128, ID3_BLOCK_SIZE) ) {
+        return 0;
+      }
+    }
+    else {
+      // Buffer the entire frame
+      if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {
+        return 0;
+      }
     }
   }
   
@@ -1070,13 +1081,38 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
         
         case ID3_FIELD_TYPE_BINARYDATA: // ETCO, MLLT, SYTC, SYLT, RVA2, EQU2, APIC,
                                         // GEOB, AENC, POSS, COMR, ENCR, GRID, PRIV, SIGN, ASPI
-          // Special handling for APIC tags when in skip_artwork mode
-          if (skip_artwork) {
+          // Special handling for APIC tags when in skip_art mode
+          if (skip_art) {
             av_push( framedata, newSVuv(size - read) );
             _id3_skip(id3, size - read);
             read = size;
           }
           
+          // Special buffering mode for APIC data, avoids a large buffer allocation
+          else if (buffer_art) {
+            uint32_t remain = size - read;
+            uint32_t chunk_size;
+            SV *artwork = newSVpv("", 0);
+            
+            while (read < size) {
+              if ( !_check_buf(id3->infile, id3->buf, 1, ID3_BLOCK_SIZE) ) {
+                return 0;
+              }
+              
+              chunk_size = remain < buffer_len(id3->buf) ? remain : buffer_len(id3->buf);
+              
+              read += chunk_size;
+              remain -= chunk_size;
+              
+              sv_catpvn( artwork, buffer_ptr(id3->buf), chunk_size );
+              buffer_consume(id3->buf, chunk_size);
+              
+              DEBUG_TRACE("    buffered %d bytes of APIC data (remaining %d)\n", chunk_size, remain);
+            }
+            
+            av_push( framedata, artwork );
+          }
+                      
           // Special handling for RVA2 tags
           else if ( !strcmp(id, "RVA2") ) {
             read += _id3_parse_rva2(id3, size, framedata);
