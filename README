@@ -1,6 +1,6 @@
 NAME
-    Audio::Scan - XS parser for MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV, AIFF,
-    Musepack, Monkey's Audio
+    Audio::Scan - Fast C metadata and tag reader for all common audio file
+    formats
 
 SYNOPSIS
         use Audio::Scan;
@@ -12,17 +12,23 @@ SYNOPSIS
 
         # Just tags
         my $tags = Audio::Scan->scan_tags('/path/to/file.mp3');
-        
-    # Scan a filehandle
+    
+        # Scan without reading (possibly large) artwork into memory.
+        # Instead of binary artwork data, the size of the artwork will be returned instead.
+        {
+            local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+            my $data = Audio::Scan->scan('/path/to/file.mp3');
+        }
+    
+        # Scan a filehandle
         open my $fh, '<', 'my.mp3';
         my $data = Audio::Scan->scan_fh( mp3 => $fh );
         close $fh;
 
 DESCRIPTION
     Audio::Scan is a C-based scanner for audio file metadata and tag
-    information. It currently supports MP3 via an included version of
-    libid3tag, MP4, Ogg Vorbis, FLAC (if libFLAC is installed), ASF, WAV,
-    AIFF, Musepack, and Monkey's Audio.
+    information. It currently supports MP3, MP4, Ogg Vorbis, FLAC, ASF, WAV,
+    AIFF, Musepack, Monkey's Audio, and WavPack.
 
     See below for specific details about each file format.
 
@@ -42,6 +48,7 @@ METHODS
         Monkey's Audio:  ape, apl
         WAV: wav
         AIFF: aiff, aif
+        WavPack: wv
 
     This method returns a hashref containing two other hashrefs: info and
     tags. The contents of the info and tag hashes vary depending on file
@@ -59,26 +66,67 @@ METHODS
     Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or
     "ogg". Note that FLAC does not support reading from a filehandle.
 
-  find_frame( $path, $offset )
-    Returns the byte offset to the first audio frame starting from $offset.
+  find_frame( $path, $timestamp_in_ms )
+    Returns the byte offset to the first audio frame starting from the given
+    timestamp (in milliseconds).
 
-    The offset value is different depending on the file type:
+    MP3, Ogg, FLAC, ASF, MP4
+        The byte offset to the data packet containing this timestamp will be
+        returned. For file formats that don't provide timestamp information
+        such as MP3, the best estimate for the location of the timestamp
+        will be returned. This will be more accurate if the file has a Xing
+        header or is CBR for example.
 
-    MP3, Ogg, FLAC
-        Offset is the byte offset to start searching from. The byte offset
-        to the first audio packet/frame past this point will be returned.
+    WAV, AIFF, Musepack, Monkey's Audio, WavPack
+        Not yet supported by find_frame.
 
-    ASF Offset is a timestamp in milliseconds. The byte offset to the ASF
-        data packet containing this timestamp will be returned.
+  find_frame_return_info( $mp4_path, $timestamp_in_ms )
+    The header of an MP4 file contains various metadata that refers to the
+    structure of the audio data, making seeking more difficult to perform.
+    This method will return the usual $info hash with 2 additional keys:
 
-    WAV, AIFF, Musepack, Monkey's Audio
-        Not supported by find_frame.
+        seek_offset - The seek offset in bytes
+        seek_header - A rewritten MP4 header that can be prepended to the audio data
+                      found at seek_offset to construct a valid bitstream. Specifically,
+                      the following boxes are rewritten: stts, stsc, stsz, stco
+
+    For example, to seek 30 seconds into a file and write out a new MP4 file
+    seeked to this point:
+
+        my $info = Audio::Scan->find_frame_return_info( $file, 30000 );
+    
+        open my $f, '<', $file;
+        sysseek $f, $info->{seek_offset}, 1;
+
+        open my $fh, '>', 'seeked.m4a';
+        print $fh $info->{seek_header};
+
+        while ( sysread( $f, my $buf, 65536 ) ) {
+            print $fh $buf;
+        }
+
+        close $f;
+        close $fh;
 
   find_frame_fh( $type => $fh, $offset )
     Same as "find_frame", but with a filehandle.
 
   has_flac()
-    Returns 1 if FLAC support was compiled in, or 0 if not.
+    Deprecated. Always returns 1 now that FLAC is always enabled.
+
+  is_supported( $path )
+    Returns 1 if the given path can be scanned by Audio::Scan, or 0 if not.
+
+  get_types()
+    Returns an array of strings of the file types supported by Audio::Scan.
+
+  extensions_for( $type )
+    Returns an array of strings of the file extensions that are considered
+    to be the file type *$type*.
+
+  type_for( $extension )
+    Returns file type for a given extension. Returns *undef* for unsupported
+    extensions.
 
 MP3
   INFO
@@ -124,17 +172,19 @@ MP3
         lame_preset
 
   TAGS
-    Raw tags are returned as found by libid3tag. This means older tags such
-    as ID3v1 and ID3v2.2 are converted to ID3v2.4 tag names. Multiple
-    instances of a tag in a file will be returned as arrays. Complex tags
-    such as APIC and COMM are returned as arrays. All tag fields are
-    converted to upper-case. Sample tag data:
+    Raw tags are returned as found. This means older tags such as ID3v1 and
+    ID3v2.2/v2.3 are converted to ID3v2.4 tag names. Multiple instances of a
+    tag in a file will be returned as arrays. Complex tags such as APIC and
+    COMM are returned as arrays. All tag fields are converted to upper-case.
+    All text is converted to UTF-8.
+
+    Sample tag data:
 
         tags => {
               ALBUMARTISTSORT => "Solar Fields",
-              APIC => [ 0, "image/jpeg", 3, "", <binary data snipped> ],
+              APIC => [ "image/jpeg", 3, "", <binary data snipped> ],
               CATALOGNUMBER => "INRE 017",
-              COMM => [0, "eng", "", "Amazon.com Song ID: 202981429"],
+              COMM => ["eng", "", "Amazon.com Song ID: 202981429"],
               "MUSICBRAINZ ALBUM ARTIST ID" => "a2af1f31-c9eb-4fff-990c-c4f547a11b75",
               "MUSICBRAINZ ALBUM ID" => "282143c9-6191-474d-a31a-1117b8c88cc0",
               "MUSICBRAINZ ALBUM RELEASE COUNTRY" => "FR",
@@ -170,14 +220,15 @@ MP4
         audio_offset (byte offset to start of mdat)
         compatible_brands
         file_size
+        leading_mdat (if file has mdat before moov)
         major_brand
         minor_version
         song_length_ms
         timescale
         tracks (array of tracks in the file)
             Each track may contain:
-            
-        audio_type
+        
+            audio_type
             avg_bitrate
             bits_per_sample
             channels
@@ -268,7 +319,7 @@ FLAC
         samplerate (in kHz)
         bitrate (in bps)
         file_size
-        audio_offset (byte offset to audio)
+        audio_offset (byte offset to first audio frame)
         song_length_ms (duration in milliseconds)
         bits_per_sample
         frames
@@ -287,15 +338,15 @@ FLAC
 
         Each application block is returned in the APPLICATION tag keyed by application ID.
 
-    CUESHEET
+    CUESHEET_BLOCK
 
-        The CUESHEET tag is an array containing each line of the cue sheet.
+        The CUESHEET_BLOCK tag is an array containing each line of the cue sheet.
 
-    PICTURE
+    ALLPICTURES
 
         Embedded pictures are returned in an ALLPICTURES array.  Each picture has the following metadata:
-        
-        mime_type
+    
+            mime_type
             description
             width
             height
@@ -490,8 +541,30 @@ MUSEPACK
     Musepack uses APEv2 tags. They are returned as a hash of key/value
     pairs.
 
+WAVPACK
+  
+    The following metadata about a file may be returned.
+
+        audio_offset
+        bitrate (in bps)
+        bits_per_sample
+        channels
+        encoder_version
+        file_size
+        hybrid (1 if file is lossy) (v4 only)
+        lossless (1 if file is lossless) (v4 only)
+        samplerate
+        song_length_ms
+        total_samples
+
+  TAGS
+    WavPack uses APEv2 tags. They are returned as a hash of key/value pairs.
+
 
 THANKS
+    Some code from the Rockbox project was very helpful in implementing ASF
+    and MP4 seeking.
+
     Some of the file format parsing code was derived from the mt-daapd
     project, and adapted by Netgear. It has been heavily rewritten to fix
     bugs and add more features.
@@ -517,7 +590,7 @@ AUTHORS
     Dan Sully, <daniel@cpan.org>
 
 COPYRIGHT AND LICENSE
-    Copyright (C) 2009 Logitech, Inc.
+    Copyright (C) 2010 Logitech, Inc.
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the

@@ -2,7 +2,7 @@ package Audio::Scan;
 
 use strict;
 
-our $VERSION = '0.70';
+our $VERSION = '0.71';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -114,6 +114,35 @@ file has a Xing header or is CBR for example.
 Not yet supported by find_frame.
 
 =back
+
+=head2 find_frame_return_info( $mp4_path, $timestamp_in_ms )
+
+The header of an MP4 file contains various metadata that refers to the structure of
+the audio data, making seeking more difficult to perform. This method will return
+the usual $info hash with 2 additional keys:
+
+    seek_offset - The seek offset in bytes
+    seek_header - A rewritten MP4 header that can be prepended to the audio data
+                  found at seek_offset to construct a valid bitstream. Specifically,
+                  the following boxes are rewritten: stts, stsc, stsz, stco
+
+For example, to seek 30 seconds into a file and write out a new MP4 file seeked to
+this point:
+
+    my $info = Audio::Scan->find_frame_return_info( $file, 30000 );
+    
+    open my $f, '<', $file;
+    sysseek $f, $info->{seek_offset}, 1;
+
+    open my $fh, '>', 'seeked.m4a';
+    print $fh $info->{seek_header};
+
+    while ( sysread( $f, my $buf, 65536 ) ) {
+        print $fh $buf;
+    }
+
+    close $f;
+    close $fh;
 
 =head2 find_frame_fh( $type => $fh, $offset )
 
