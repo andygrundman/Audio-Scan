@@ -47,8 +47,8 @@ Refactor:
 
 MP4/AAC
 -------
-A method to retrieve the header of a file, seeked to a certain point. Needs to rewrite all stbl atoms with
-correct offsets, etc.  Possibly also rewrite duration info.
+Support seeking in files with multiple tracks (HD-AAC)
+Refactor second-pass box reading code in find_frame.
 
 ALAC
 ----

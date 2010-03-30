@@ -34,47 +34,58 @@ typedef struct tts {
 
 typedef struct stc {
   uint32_t first_chunk;
-  uint32_t num_samples;
+  uint32_t samples_per_chunk;
 } stc;
 
 typedef struct mp4info {
   PerlIO *infile;
   char *file;
   Buffer *buf;
-  uint64_t size;  // total size
-  uint8_t  hsize; // header size
-  uint64_t rsize; // remaining size
+  uint64_t file_size; // total file size
+  uint64_t size;      // total size
+  uint8_t  hsize;     // header size
+  uint64_t rsize;     // remaining size
   uint64_t audio_offset;
   uint64_t audio_size;
   HV *info;
   HV *tags;
   uint32_t current_track;
+  uint32_t track_count;
   uint8_t seen_moov;
   
   // Data structures used to support seeking
   // Based on code from Rockbox
   
-  uint8_t seeking; // flag if we're seeking
+  uint8_t seeking;      // flag if we're seeking
+  uint32_t old_st_size; // size of original st* boxes
+  uint32_t new_st_size; // size of rewritten st* boxes
+  uint32_t meta_size;   // size of variable meta box
+  SV *seekhdr;          // rewritten header during second seek pass
   
   // stsc
   uint32_t num_sample_to_chunks;
   struct stc *sample_to_chunk;
+  SV *new_stsc;
   
   // stco
   uint32_t *chunk_offset;
   uint32_t num_chunk_offsets;
+  SV *new_stco;
   
   // stts
   struct tts *time_to_sample;
   uint32_t num_time_to_samples;
+  SV *new_stts;
   
   // stsz
   uint16_t *sample_byte_size;
   uint32_t num_sample_byte_sizes;
+  SV *new_stsz;
 } mp4info;
 
 static int get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags);
 int mp4_find_frame(PerlIO *infile, char *file, int offset);
+int mp4_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info);
 
 mp4info * _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
 int _mp4_read_box(mp4info *mp4);
@@ -98,3 +109,6 @@ uint8_t _mp4_parse_ilst_custom(mp4info *mp4, uint32_t size);
 HV * _mp4_get_current_trackinfo(mp4info *mp4);
 uint32_t _mp4_descr_length(Buffer *buf);
 void _mp4_skip(mp4info *mp4, uint32_t size);
+uint32_t _mp4_samples_in_chunk(mp4info *mp4, uint32_t chunk);
+uint32_t _mp4_total_samples(mp4info *mp4);
+uint32_t _mp4_get_sample_duration(mp4info *mp4, uint32_t sample);

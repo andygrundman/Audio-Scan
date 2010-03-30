@@ -32,6 +32,7 @@ typedef struct {
   int (*get_tags)(PerlIO *infile, char *file, HV *info, HV *tags);
   int (*get_fileinfo)(PerlIO *infile, char *file, HV *tags);
   int (*find_frame)(PerlIO *infile, char *file, int offset);
+  int (*find_frame_return_info)(PerlIO *infile, char *file, int offset, HV *info);
 } taghandler;
 
 struct _types audio_types[] = {
@@ -49,15 +50,15 @@ struct _types audio_types[] = {
 };
 
 static taghandler taghandlers[] = {
-  { "mp4", get_mp4tags, 0, mp4_find_frame },
-  { "aac", get_aacinfo, 0, 0 },
-  { "mp3", get_mp3tags, get_mp3fileinfo, mp3_find_frame },
-  { "ogg", get_ogg_metadata, 0, ogg_find_frame },
-  { "mpc", get_ape_metadata, get_mpcfileinfo, 0 },
-  { "ape", get_ape_metadata, get_macfileinfo, 0 },
-  { "flc", get_flac_metadata, 0, flac_find_frame },
-  { "asf", get_asf_metadata, 0, asf_find_frame },
-  { "wav", get_wav_metadata, 0, 0 },
+  { "mp4", get_mp4tags, 0, mp4_find_frame, mp4_find_frame_return_info },
+  { "aac", get_aacinfo, 0, 0, 0 },
+  { "mp3", get_mp3tags, get_mp3fileinfo, mp3_find_frame, 0 },
+  { "ogg", get_ogg_metadata, 0, ogg_find_frame, 0 },
+  { "mpc", get_ape_metadata, get_mpcfileinfo, 0, 0 },
+  { "ape", get_ape_metadata, get_macfileinfo, 0, 0 },
+  { "flc", get_flac_metadata, 0, flac_find_frame, 0 },
+  { "asf", get_asf_metadata, 0, asf_find_frame, 0 },
+  { "wav", get_wav_metadata, 0, 0, 0 },
   { "wvp", get_ape_metadata, get_wavpack_info, 0 },
   { NULL, 0, 0, 0 }
 };
@@ -240,6 +241,39 @@ CODE:
   PerlIO *fh = IoIFP(sv_2io(sfh));
   
   RETVAL = _find_frame( suffix, fh, newSVpv("(filehandle)", 0), offset );
+}
+OUTPUT:
+  RETVAL
+
+HV *
+find_frame_return_info(char *, SV *path, int offset)
+CODE:
+{
+  PerlIO *infile;
+  char *suffix = strrchr( SvPVX(path), '.' );
+  taghandler *hdl;
+  
+  RETVAL = newHV();
+  sv_2mortal((SV*)RETVAL);
+
+  if ( !suffix ) {
+    XSRETURN_UNDEF;
+  }
+
+  suffix++;
+
+  if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
+    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
+    XSRETURN_UNDEF;
+  }
+  
+  hdl = _get_taghandler(suffix);
+  
+  if (hdl && hdl->find_frame_return_info) {
+    hdl->find_frame_return_info(infile, SvPVX(path), offset, RETVAL);
+  }
+
+  PerlIO_close(infile);
 }
 OUTPUT:
   RETVAL

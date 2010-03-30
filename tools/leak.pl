@@ -18,7 +18,10 @@ for ( 1..50000 ) {
     #}
     
     # Test find_frame doesn't leak
-    if ( $file !~ /\.m4a$/ ) {
+    if ( $file =~ /\.m4a$/ ) {
+        Audio::Scan->find_frame_return_info( $file, 10 );
+    }
+    else {
         Audio::Scan->find_frame( $file, 10 );
     }
     

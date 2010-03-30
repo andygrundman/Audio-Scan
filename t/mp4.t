@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 102;
+use Test::More tests => 107;
 
 use Audio::Scan;
 
@@ -217,7 +217,30 @@ use Audio::Scan;
 {
     my $offset = Audio::Scan->find_frame( _f('itunes811.m4a'), 30 );
     
-    is( $offset, 6177, 'Find frame ok' );
+    is( $offset, 6183, 'Find frame ok' );
+}
+
+# Find frame with info
+{
+    my $info = Audio::Scan->find_frame_return_info( _f('itunes811.m4a'), 30 );
+    
+    is( $info->{seek_offset}, 6183, 'Find frame return info offset ok' );
+    is( length( $info->{seek_header} ), 6173, 'Find frame return info header rewrite ok' );
+}
+
+# Find frame in ALAC file with unusual stts values
+{
+    my $info = Audio::Scan->find_frame_return_info( _f('alac-multiple-stts.m4a'), 30000 );
+    
+    is( $info->{seek_offset}, 2123193, 'Find frame in ALAC multiple stts ok' );
+    is( length( $info->{seek_header} ), 34274, 'Find frame in ALAC multiple stts header ok' );
+}
+
+# Find frame in HD-AAC file (2 tracks) (not yet supported)
+{
+    my $info = Audio::Scan->find_frame_return_info( _f('hd-aac.m4a'), 10 );
+    
+    is( $info->{seek_offset}, -1, 'Find frame in HD-AAC ok' );
 }
 
 sub _f {

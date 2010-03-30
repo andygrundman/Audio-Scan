@@ -914,6 +914,26 @@ buffer_get_ieee_float(Buffer *buffer)
     return f;
 }
 
+void
+put_u32(void *vp, uint32_t v)
+{
+	u_char *p = (u_char *)vp;
+
+	p[0] = (u_char)(v >> 24) & 0xff;
+	p[1] = (u_char)(v >> 16) & 0xff;
+	p[2] = (u_char)(v >> 8) & 0xff;
+	p[3] = (u_char)v & 0xff;
+}
+
+void
+buffer_put_int(Buffer *buffer, u_int value)
+{
+	char buf[4];
+
+	put_u32(buf, value);
+	buffer_append(buffer, buf, 4);
+}
+
 // Warnings:
 // Do not request more than 32 bits at a time.
 // Be careful if using other buffer functions without reading a multiple of 8 bits.

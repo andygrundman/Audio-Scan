@@ -56,7 +56,18 @@ while ( defined ( my $file = $files->() ) ) {
     
     # Test seek leak
     {
-        if ( $file !~ /\.m4a$/ ) {       
+        if ( $file =~ /\.m4a$/ ) {
+            for ( 1 .. 3 ) {
+                Audio::Scan->find_frame_return_info( $file, 10 );
+            }
+            $initial = size_of();
+            for ( 1 .. 2000 ) {
+                Audio::Scan->find_frame_return_info( $file, 10 );
+            }
+            $final = size_of();
+            is( $final - $initial, 0, "$file seek not leaking" );
+        }
+        else {
             for ( 1 .. 3 ) {
                 Audio::Scan->find_frame( $file, 10 );
             }
