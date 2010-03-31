@@ -17,7 +17,7 @@ if ( $Config{myarchname} =~ /i386/ ) {
     
     # Read OS version
     my $sys = `/usr/sbin/system_profiler SPSoftwareDataType`;
-    my ($osx_ver) = $sys =~ /Mac OS X (10[^ ]+)/;
+    my ($osx_ver) = $sys =~ /Mac OS X.*(10\.[^ ]+)/;
     if ( $osx_ver gt '10.5' ) {
         # Running 10.6+, build as 10.5+
         $arch .= "-isysroot /Developer/SDKs/MacOSX10.5.sdk -mmacosx-version-min=10.5";
