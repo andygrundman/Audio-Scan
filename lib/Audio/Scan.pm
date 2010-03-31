@@ -2,7 +2,7 @@ package Audio::Scan;
 
 use strict;
 
-our $VERSION = '0.72';
+our $VERSION = '0.73';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -147,6 +147,10 @@ this point:
 =head2 find_frame_fh( $type => $fh, $offset )
 
 Same as C<find_frame>, but with a filehandle.
+
+=head2 find_frame_fh_return_info( $type => $fh, $offset )
+
+Same as C<find_frame_return_info>, but with a filehandle.
 
 =head2 has_flac()
 

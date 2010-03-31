@@ -144,6 +144,20 @@ _find_frame( char *suffix, PerlIO *infile, SV *path, int offset )
   return frame;
 }
 
+HV *
+_find_frame_return_info( char *suffix, PerlIO *infile, SV *path, int offset )
+{
+  taghandler *hdl = _get_taghandler(suffix);
+  HV *info = newHV();
+  sv_2mortal((SV*)info);
+  
+  if (hdl && hdl->find_frame_return_info) {
+    hdl->find_frame_return_info(infile, SvPVX(path), offset, info);
+  }
+  
+  return info;
+}
+
 MODULE = Audio::Scan		PACKAGE = Audio::Scan
 
 int
@@ -251,10 +265,6 @@ CODE:
 {
   PerlIO *infile;
   char *suffix = strrchr( SvPVX(path), '.' );
-  taghandler *hdl;
-  
-  RETVAL = newHV();
-  sv_2mortal((SV*)RETVAL);
 
   if ( !suffix ) {
     XSRETURN_UNDEF;
@@ -266,14 +276,23 @@ CODE:
     PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
     XSRETURN_UNDEF;
   }
-  
-  hdl = _get_taghandler(suffix);
-  
-  if (hdl && hdl->find_frame_return_info) {
-    hdl->find_frame_return_info(infile, SvPVX(path), offset, RETVAL);
-  }
+
+  RETVAL = _find_frame_return_info( suffix, infile, path, offset );
 
   PerlIO_close(infile);
+}
+OUTPUT:
+  RETVAL
+
+HV *
+find_frame_fh_return_info(char *, SV *type, SV *sfh, int offset)
+CODE:
+{
+  char *suffix = SvPVX(type);
+
+  PerlIO *fh = IoIFP(sv_2io(sfh));
+
+  RETVAL = _find_frame_return_info( suffix, fh, newSVpv("(filehandle)", 0), offset );
 }
 OUTPUT:
   RETVAL

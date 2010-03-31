@@ -50,6 +50,7 @@ Refactor:
 MP4/AAC
 -------
 Support seeking in files with multiple tracks (HD-AAC)
+Support seeking in ADTS files
 Refactor second-pass box reading code in find_frame.
 
 ALAC

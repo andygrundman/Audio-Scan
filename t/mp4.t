@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 107;
+use Test::More tests => 109;
 
 use Audio::Scan;
 
@@ -241,6 +241,18 @@ use Audio::Scan;
     my $info = Audio::Scan->find_frame_return_info( _f('hd-aac.m4a'), 10 );
     
     is( $info->{seek_offset}, -1, 'Find frame in HD-AAC ok' );
+}
+
+# Find frame with info from filehandle
+{
+    open my $fh, '<', _f('itunes811.m4a');
+    
+    my $info = Audio::Scan->find_frame_fh_return_info( mp4 => $fh, 30 );
+    
+    is( $info->{seek_offset}, 6183, 'Find frame return info via filehandle ok' );
+    is( length( $info->{seek_header} ), 6173, 'Find frame return info via filehandle rewrite ok' );
+    
+    close $fh;
 }
 
 sub _f {
