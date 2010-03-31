@@ -313,6 +313,7 @@ _id3_parse_v2_frame(id3info *id3)
   uint16_t flags = 0;
   uint32_t size  = 0;
   uint32_t decoded_size = 0;
+  uint32_t unsync_extra = 0;
   id3_frametype const *frametype;
   Buffer *tmp_buf = 0;
   
@@ -562,25 +563,29 @@ _id3_parse_v2_frame(id3info *id3)
         // FF's are not likely to appear in the part we care about anyway
         if ( !strcmp(id, "APIC") && _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
           DEBUG_TRACE("    Would un-synchronize APIC frame, but ignoring because of AUDIO_SCAN_NO_ARTWORK\n");
+          
+          // Reset decoded_size to 0 since we aren't actually decoding.
+          // XXX this would break if we have a compressed + unsync APIC frame but not very likely in the real world
+          decoded_size = 0;
         }
         else {
           // tested with v2.4-unsync.mp3
-          uint32_t new_size;
-        
           if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {
             ret = 0;
             goto out;
           }
+          
+          decoded_size = _id3_deunsync( buffer_ptr(id3->buf), size );
+          
+          unsync_extra = size - decoded_size;
         
-          // XXX should use new_size as the size value
-          new_size = _id3_deunsync( buffer_ptr(id3->buf), size );
-        
-          DEBUG_TRACE("    Un-synchronized frame, new_size %d\n", new_size);
+          DEBUG_TRACE("    Un-synchronized frame, new_size %d\n", decoded_size);
         }
       }
       
       if (flags & ID3_FRAME_FLAG_V24_COMPRESSION) {
         // tested with v2.4-compressed-frame.mp3
+        // XXX need test for compressed + unsync
         unsigned long tmp_size;
         
         if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {
@@ -661,18 +666,23 @@ _id3_parse_v2_frame(id3info *id3)
     id3->buf = decompressed;
   }
 
-  if ( !_id3_parse_v2_frame_data(id3, (char *)&id, decompressed ? decoded_size : size, frametype) ) {
+  if ( !_id3_parse_v2_frame_data(id3, (char *)&id, decoded_size ? decoded_size : size, frametype) ) {
     DEBUG_TRACE("    error parsing frame, aborting\n");
     ret = 0;
     goto out;
   }
-  //_id3_skip(id3, size);
   
   if (id3->size_remain > size) {
     id3->size_remain -= size;
   }
   else {
     id3->size_remain = 0;
+  }
+  
+  // Consume extra bytes if we had to unsync this frame
+  if (unsync_extra) {
+    DEBUG_TRACE("    consuming extra bytes after unsync: %d\n", unsync_extra);
+    buffer_consume(id3->buf, unsync_extra);
   }
   
 out:

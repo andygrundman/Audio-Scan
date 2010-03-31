@@ -154,6 +154,7 @@ t/mp3/v2.4-ape.mp3
 t/mp3/v2.4-apic-jpg.mp3
 t/mp3/v2.4-apic-multiple.mp3
 t/mp3/v2.4-apic-png.mp3
+t/mp3/v2.4-apic-unsync.mp3
 t/mp3/v2.4-compressed-frame.mp3
 t/mp3/v2.4-corrupt-frame.mp3
 t/mp3/v2.4-encrypted-frame.mp3

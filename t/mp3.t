@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 340;
+use Test::More tests => 344;
 
 use Audio::Scan;
 
@@ -1123,6 +1123,26 @@ eval {
     is( $tags->{COMM}->[0], 'eng', 'v2.4 UTF-8 null comment lang ok' );
     is( $tags->{COMM}->[1], '', 'v2.4 UTF-8 null comment description ok' );
     is( $tags->{COMM}->[2], 'Test 123', 'v2.4 UTF-8 null comment value ok' );
+}
+
+# v2.4 with unsynchronized APIC frame, check that the correct length is read
+# in both artwork and no-artwork modes
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    my $s = Audio::Scan->scan( _f('v2.4-apic-unsync.mp3') );
+    my $tags = $s->{tags};
+    
+    # This is not the actual length but it's OK since we don't unsync in no-artwork mode
+    is( $tags->{APIC}->[3], 46240, 'v2.4 APIC unsync no-artwork length ok' );
+}
+
+{
+    my $s = Audio::Scan->scan( _f('v2.4-apic-unsync.mp3') );
+    my $tags = $s->{tags};
+    
+    is( length( $tags->{APIC}->[3] ), 45984, 'v2.4 APIC unsync actual length ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[3], 0, 4 ) ), 'ffd8ffe0', 'v2.4 APIC unsync JPEG data ok' );
+    is( unpack( 'H*', substr( $tags->{APIC}->[3], 45982, 2 ) ), 'ffd9', 'v2.4 APIC unsync JPEG end data ok' );
 }
 
 sub _f {    

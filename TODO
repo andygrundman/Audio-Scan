@@ -5,6 +5,8 @@ Large buffers will still be allocated with artwork disabled:
   ASF, Ogg (hard to fix these)
 Clean up various code by using buffer_get_bits
 Handle stuff done by expensive SC Unicode regexes
+Test under 64-bit Strawberry Perl 5.12.0-RC
+Add support for AC3 and DTS
 
 MP3
 ---
