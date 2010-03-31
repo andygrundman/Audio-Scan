@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.72
+        - Fixed Mac hints file to work properly on OSX Server 10.6.
+
 0.71    2010-03-30 00:00:00
         - Added find_frame_return_info method for MP4 that returns the seek offset as well
           as a rewritten header that can be placed before the seeked audio to construct a
