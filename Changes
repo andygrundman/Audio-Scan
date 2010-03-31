@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.72
+0.72    2010-03-31 10:50:00
         - Fixed bug in reading unsynchronized APIC frames, the APIC data returned was not
           the correct size.
         - Fixed Mac hints file to work properly on OSX Server 10.6.
