@@ -1271,14 +1271,14 @@ _id3_get_utf8_string(id3info *id3, SV **string, uint32_t len, uint8_t encoding)
       
       switch ( (bptr[0] << 8) | bptr[1] ) {
       case 0xfeff:
-        //DEBUG_TRACE("    UTF-16 byte order detected as big-endian\n");
+        DEBUG_TRACE("    UTF-16 BOM is big-endian\n");
         byteorder = UTF16_BYTEORDER_BE;
         buffer_consume(id3->buf, 2);
         read += 2;
         break;
 
       case 0xfffe:
-        //DEBUG_TRACE("    UTF-16 byte order detected as little-endian\n");
+        DEBUG_TRACE("    UTF-16 BOM is little-endian\n");
         byteorder = UTF16_BYTEORDER_LE;
         buffer_consume(id3->buf, 2);
         read += 2;
@@ -1305,8 +1305,14 @@ _id3_get_utf8_string(id3info *id3, SV **string, uint32_t len, uint8_t encoding)
   }
   
   if (read) {
-    *string = newSVpv( buffer_ptr(id3->utf8), 0 );
-    sv_utf8_decode(*string);
+    if ( buffer_len(id3->utf8) ) {
+      *string = newSVpv( buffer_ptr(id3->utf8), 0 );
+      sv_utf8_decode(*string);
+      DEBUG_TRACE("    read utf8 string of %d bytes: %s\n", buffer_len(id3->utf8), SvPVX(*string));
+    }
+    else {
+      DEBUG_TRACE("    empty string\n");
+    }
   }
   
   return read;

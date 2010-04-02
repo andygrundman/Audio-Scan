@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.74
+        - ID3: Fixed bug where an empty text field could contain the text from the
+          previous frame.
+
 0.73    2010-03-31 12:30:00
         - Added find_frame_fh_return_info method for MP4 seeking from a filehandle.
 

@@ -157,6 +157,7 @@ t/mp3/v2.4-apic-png.mp3
 t/mp3/v2.4-apic-unsync.mp3
 t/mp3/v2.4-compressed-frame.mp3
 t/mp3/v2.4-corrupt-frame.mp3
+t/mp3/v2.4-empty-text.mp3
 t/mp3/v2.4-encrypted-frame.mp3
 t/mp3/v2.4-geob-multiple.mp3
 t/mp3/v2.4-geob.mp3

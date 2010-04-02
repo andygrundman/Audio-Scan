@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 344;
+use Test::More tests => 346;
 
 use Audio::Scan;
 
@@ -1143,6 +1143,15 @@ eval {
     is( length( $tags->{APIC}->[3] ), 45984, 'v2.4 APIC unsync actual length ok' );
     is( unpack( 'H*', substr( $tags->{APIC}->[3], 0, 4 ) ), 'ffd8ffe0', 'v2.4 APIC unsync JPEG data ok' );
     is( unpack( 'H*', substr( $tags->{APIC}->[3], 45982, 2 ) ), 'ffd9', 'v2.4 APIC unsync JPEG end data ok' );
+}
+
+# v2.4 with empty text frame, a bug would insert the text from the previous frame
+{
+    my $s = Audio::Scan->scan( _f('v2.4-empty-text.mp3') );
+    my $tags = $s->{tags};
+    
+    ok ( !exists $tags->{TPE3}, 'v2.4 empty text TPE3 frame not present' );
+    is( $tags->{CATALOGNUMBER}, 'DUKE149D', 'v2.4 empty text next frame ok' );
 }
 
 sub _f {    
