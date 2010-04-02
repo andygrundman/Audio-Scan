@@ -672,12 +672,13 @@ buffer_get_latin1_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint)
 {
   int i = 0;
   unsigned char *bptr = buffer_ptr(buffer);
+  uint8_t is_utf8;
   
   if (!len_hint) return 0;
   
   // We may get a valid UTF-8 string in here from ID3v1 or
   // elsewhere, if so we don't want to translate from ISO-8859-1
-  uint8_t is_utf8 = is_utf8_string(bptr, len_hint);
+  is_utf8 = is_utf8_string(bptr, len_hint);
   
   for (i = 0; i < len_hint; i++) {
     uint8_t c = bptr[i];
