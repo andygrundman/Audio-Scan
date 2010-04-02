@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.75    2010-04-02 15:50:00
+        - ID3: Really fixed empty text field bug this time.
+
 0.74    2010-04-02 12:15:00
         - ID3: Fixed bug where an empty text field could contain the text from the
           previous frame.

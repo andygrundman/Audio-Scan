@@ -251,26 +251,51 @@ buffer_ptr(Buffer *buffer)
   return buffer->buf + buffer->offset;
 }
 
-/* Dumps the contents of the buffer to stderr. */
+// Dumps the contents of the buffer to stderr.
+// Based on: http://sws.dett.de/mini/hexdump-c/
 #ifdef AUDIO_SCAN_DEBUG
 void
-buffer_dump(Buffer *buffer, uint32_t len)
+buffer_dump(Buffer *buffer, uint32_t size)
 {
-  uint32_t i;
-  u_char *ucp = buffer->buf;
+  unsigned char *data = buffer->buf;
+  unsigned char c;
+  int i = 1;
+  int n;
+  char bytestr[4] = {0};
+  char hexstr[ 16*3 + 5] = {0};
+  char charstr[16*1 + 5] = {0};
   
-  if (!len) {
-    len = buffer->end - buffer->offset;
+  if (!size) {
+    size = buffer->end - buffer->offset;
+  }
+  
+  for (n = buffer->offset; n < buffer->offset + size; n++) {
+    c = data[n];
+
+    /* store hex str (for left side) */
+    snprintf(bytestr, sizeof(bytestr), "%02x ", c);
+    strncat(hexstr, bytestr, sizeof(hexstr)-strlen(hexstr)-1);
+
+    /* store char str (for right side) */
+    if (isalnum(c) == 0) {
+      c = '.';
+    }
+    snprintf(bytestr, sizeof(bytestr), "%c", c);
+    strncat(charstr, bytestr, sizeof(charstr)-strlen(charstr)-1);
+
+    if (i % 16 == 0) { 
+      /* line completed */
+      fprintf(stderr, "%-50.50s  %s\n", hexstr, charstr);
+      hexstr[0] = 0;
+      charstr[0] = 0;
+    }
+    i++;
   }
 
-  for (i = buffer->offset; i < buffer->offset + len; i++) {
-    fprintf(stderr, "%02x ", ucp[i]);
-
-    if ((i-buffer->offset) % 16 == 15)
-      fprintf(stderr, "\r\n");
+  if (strlen(hexstr) > 0) {
+    /* print rest of buffer if not empty */
+    fprintf(stderr, "%-50.50s  %s\n", hexstr, charstr);
   }
-
-  fprintf(stderr, "\r\n");
 }
 #endif
 
@@ -609,6 +634,8 @@ buffer_get_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint)
   int i = 0;
   unsigned char *bptr = buffer_ptr(buffer);
   
+  if (!len_hint) return 0;
+  
   for (i = 0; i < len_hint; i++) {
     uint8_t c = bptr[i];
     
@@ -645,6 +672,8 @@ buffer_get_latin1_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len_hint)
 {
   int i = 0;
   unsigned char *bptr = buffer_ptr(buffer);
+  
+  if (!len_hint) return 0;
   
   // We may get a valid UTF-8 string in here from ID3v1 or
   // elsewhere, if so we don't want to translate from ISO-8859-1
@@ -701,6 +730,8 @@ buffer_get_utf16_as_utf8(Buffer *buffer, Buffer *utf8, uint32_t len, uint8_t byt
 {
   int i = 0;
   uint16_t wc = 0;
+  
+  if (!len) return 0;
   
   for (i = 0; i < len; i += 2) {
     // Check that we are not reading past the end of the buffer
