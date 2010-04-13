@@ -10,9 +10,7 @@ Add support for AC3 and DTS
 
 MP3
 ---
-Lyrics3 support
-APE tags from files with Lyric tags not read properly (apev2-lyricsv2.mp3)
-  http://www.id3.org/lyrics3200.html
+Lyricsv2/3 support
 Free-format support (not reading Xing/LAME tag properly)
 Support VBRI mono file with wrong offset?
 Refactor to remove use of mp3_frameinfo
@@ -65,6 +63,7 @@ Get test files for versions < 3
 
 APE
 ---
+Refactor, this code is messy and not consistent with the rest of the source
 
 Monkey's Audio Codec
 ---

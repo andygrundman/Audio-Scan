@@ -34,7 +34,7 @@ _check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
 
     New(0, tmp, max_wanted, unsigned char);
 
-    if ( (read = PerlIO_read(infile, tmp, max_wanted)) == 0 ) {
+    if ( (read = PerlIO_read(infile, tmp, max_wanted)) <= 0 ) {
       if ( PerlIO_error(infile) ) {
         warn("Error reading: %s (wanted %d)\n", strerror(errno), max_wanted);
       }

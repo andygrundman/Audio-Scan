@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 346;
+use Test::More tests => 350;
 
 use Audio::Scan;
 
@@ -1152,6 +1152,18 @@ eval {
     
     ok ( !exists $tags->{TPE3}, 'v2.4 empty text TPE3 frame not present' );
     is( $tags->{CATALOGNUMBER}, 'DUKE149D', 'v2.4 empty text next frame ok' );
+}
+
+# v2.3 + v1.1 + APEv2 + Lyricsv2
+{
+    my $s = Audio::Scan->scan( _f('v2.3-apev2-lyricsv2.mp3') );
+    my $info = $s->{info};
+    my $tags = $s->{tags};
+    
+    is( $info->{id3_version}, 'ID3v2.3.0, ID3v1.1', 'v2.3 APEv2+Lyricsv2 id3_version ok' );
+    is( $info->{ape_version}, 'APEv2', 'v2.3 APEv2+Lyricsv2 ape_version ok' );
+    is( $tags->{TIT2}, 'Fifteen Floors', 'v2.3 APEv2+Lyricsv2 TIT2 ok' );
+    is( $tags->{REPLAYGAIN_TRACK_PEAK}, '1.077664', 'v2.3 APEv2+Lyricsv2 REPLAYGAIN_TRACK_PEAK ok' );
 }
 
 sub _f {    

@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.76
+        - APE: Bug 15992, fixed reading of APE tags when file also has a Lyricsv2 tag.
+
 0.75    2010-04-02 15:50:00
         - ID3: Really fixed empty text field bug this time.
 

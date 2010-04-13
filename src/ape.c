@@ -53,6 +53,7 @@ int _ape_parse(ApeTag* tag) {
 // Returns 0 on success, <0 on error;
 int _ape_get_tag_info(ApeTag* tag) {
   int id3_length = 0;
+  uint32_t lyrics_size = 0;
   long data_size = 0;
   off_t file_size = 0;
   unsigned char compare[12];
@@ -116,10 +117,44 @@ int _ape_get_tag_info(ApeTag* tag) {
 
   buffer_get(&tag->tag_footer, &compare, 8);
 
+  // XXX this is pretty messy, but will work until I can refactor this whole file
   if (memcmp(APE_PREAMBLE, &compare, 8)) {
-    tag->flags &= ~APE_HAS_APE;
-    tag->flags |= APE_CHECKED_APE;
-    return 0;
+    // Check for Lyricsv2 tag between APE and ID3
+    char *bptr;
+    
+    buffer_consume(&tag->tag_footer, 15);
+    bptr = buffer_ptr(&tag->tag_footer);
+    if ( bptr[0] == 'L' && bptr[1] == 'Y' && bptr[2] == 'R'
+      && bptr[3] == 'I' && bptr[4] == 'C' && bptr[5] == 'S'
+      && bptr[6] == '2' && bptr[7] == '0' && bptr[8] == '0'
+    ) {
+      // read Lyrics tag size, stored as a 6-digit number (!?)
+      // http://www.id3.org/Lyrics3v2      
+      bptr -= 6;
+      lyrics_size = atoi(bptr);
+      
+      if ( (PerlIO_seek(tag->fd, file_size - (160 + lyrics_size + 15), SEEK_SET)) == -1 ) {
+        return _ape_error(tag, "Couldn't seek (tag footer)", -1);
+      }
+      
+      buffer_clear(&tag->tag_footer);
+      if ( !_check_buf(tag->fd, &tag->tag_footer, APE_TAG_FOOTER_LEN, APE_TAG_FOOTER_LEN) ) {
+        return _ape_error(tag, "Couldn't read tag footer", -2);
+      }
+      
+      buffer_get(&tag->tag_footer, &compare, 8);
+      
+      if (memcmp(APE_PREAMBLE, &compare, 8)) {    
+        tag->flags &= ~APE_HAS_APE;
+        tag->flags |= APE_CHECKED_APE;
+        return 0;
+      }
+    }
+    else {
+      tag->flags &= ~APE_HAS_APE;
+      tag->flags |= APE_CHECKED_APE;
+      return 0;
+    }
   }
   
   tag->version      = buffer_get_int_le(&tag->tag_footer) / 1000;
@@ -154,7 +189,7 @@ int _ape_get_tag_info(ApeTag* tag) {
     return _ape_error(tag, "Tag item count larger than possible", -3);
   }
 
-  if (PerlIO_seek(tag->fd, (-(long)tag->size - id3_length), SEEK_END) == -1) {
+  if (PerlIO_seek(tag->fd, (-(long)tag->size - id3_length - (lyrics_size ? (lyrics_size + 15) : 0)), SEEK_END) == -1) {
     return _ape_error(tag, "Couldn't seek to tag offset", -1);
   }
 

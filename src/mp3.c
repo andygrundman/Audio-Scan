@@ -37,6 +37,19 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 }
 
 static int
+_is_ape_header(char *bptr)
+{
+  if ( bptr[0] == 'A' && bptr[1] == 'P' && bptr[2] == 'E'
+    && bptr[3] == 'T' && bptr[4] == 'A' && bptr[5] == 'G'
+    && bptr[6] == 'E' && bptr[7] == 'X'
+  ) {
+    return 1;
+  }
+  
+  return 0;
+}
+
+static int
 _has_ape(PerlIO *infile)
 {
   Buffer buf;
@@ -58,23 +71,51 @@ _has_ape(PerlIO *infile)
   
   bptr = buffer_ptr(&buf);
   
-  if ( bptr[0] == 'A' && bptr[1] == 'P' && bptr[2] == 'E'
-    && bptr[3] == 'T' && bptr[4] == 'A' && bptr[5] == 'G'
-    && bptr[6] == 'E' && bptr[7] == 'X'
-  ) {
+  if ( _is_ape_header(bptr) ) {
     DEBUG_TRACE("APE tag found at -160 (with ID3v1)\n");
     ret = 1;
   }
   else {
+    // Look for Lyrics tag which may possibly be between APE and ID3v1
+    bptr += 23;
+    if ( bptr[0] == 'L' && bptr[1] == 'Y' && bptr[2] == 'R'
+      && bptr[3] == 'I' && bptr[4] == 'C' && bptr[5] == 'S'
+      && bptr[6] == '2' && bptr[7] == '0' && bptr[8] == '0'
+    ) {
+      // read Lyrics tag size, stored as a 6-digit number (!?)
+      // http://www.id3.org/Lyrics3v2
+      uint32_t lyrics_size = 0;
+      off_t file_size = _file_size(infile);
+      
+      bptr -= 6;
+      lyrics_size = atoi(bptr);
+      
+      DEBUG_TRACE("LYRICS200 tag found (size %d), adjusting APE offset (%d)\n", lyrics_size, -(160 + lyrics_size + 15));
+      
+      if ( (PerlIO_seek(infile, file_size - (160 + lyrics_size + 15), SEEK_SET)) == -1 ) {
+        goto out;
+      }
+      
+      DEBUG_TRACE("Seeked before Lyrics tag to %d\n", (int)PerlIO_tell(infile));
+      
+      buffer_clear(&buf);
+      if ( !_check_buf(infile, &buf, 136, 136) ) {
+        goto out;
+      }
+      
+      if ( _is_ape_header( buffer_ptr(&buf) ) ) {
+        DEBUG_TRACE("APE tag found at %d (ID3v1 + Lyricsv2)\n", -(160 + lyrics_size + 15));
+        ret = 1;
+        goto out;
+      }
+    }
+    
     // APE tag without ID3v1 tag will be -32 bytes from end
     buffer_consume(&buf, 128);
     
     bptr = buffer_ptr(&buf);
 
-    if ( bptr[0] == 'A' && bptr[1] == 'P' && bptr[2] == 'E'
-      && bptr[3] == 'T' && bptr[4] == 'A' && bptr[5] == 'G'
-      && bptr[6] == 'E' && bptr[7] == 'X'
-    ) {
+    if ( _is_ape_header(bptr) ) {
       DEBUG_TRACE("APE tag found at -32 (no ID3v1)\n");
       ret = 1;
     }
