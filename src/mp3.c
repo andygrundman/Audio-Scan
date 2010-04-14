@@ -25,13 +25,15 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
   int ret;
   
+  off_t file_size = _file_size(infile);
+  
   // See if this file has an APE tag as fast as possible
   // This is still a big performance hit :(
-  if ( _has_ape(infile) ) {
+  if ( _has_ape(infile, file_size) ) {
     get_ape_metadata(infile, file, info, tags);
   }
   
-  ret = parse_id3(infile, file, info, tags, 0);
+  ret = parse_id3(infile, file, info, tags, 0, file_size);
 
   return ret;
 }
@@ -50,13 +52,13 @@ _is_ape_header(char *bptr)
 }
 
 static int
-_has_ape(PerlIO *infile)
+_has_ape(PerlIO *infile, off_t file_size)
 {
   Buffer buf;
   uint8_t ret = 0;
   char *bptr;
   
-  if ( (PerlIO_seek(infile, -160, SEEK_END)) == -1 ) {
+  if ( (PerlIO_seek(infile, file_size - 160, SEEK_SET)) == -1 ) {
     return 0;
   }
   
@@ -286,7 +288,6 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
   buffer_clear(mp3->buf);
 
   // Seek to offset
-  PerlIO_seek(mp3->infile, 0, SEEK_END);
   PerlIO_seek(mp3->infile, offset, SEEK_SET);
   
   while ( done < audio_size - 4 ) {

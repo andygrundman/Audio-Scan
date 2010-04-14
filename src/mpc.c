@@ -298,13 +298,8 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
   }
 
   si->tag_offset = PerlIO_tell(infile);
-
-  if (PerlIO_seek(infile, 0, SEEK_END) < 0) {
-    PerlIO_printf(PerlIO_stderr(), "Musepack: [Couldn't seek to end of file.]: %s\n", file);
-    goto out;
-  }
-
-  si->total_file_length = PerlIO_tell(infile);
+  
+  si->total_file_length = _file_size(infile);
   
   bptr = buffer_ptr(&buf);
 

@@ -93,7 +93,7 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
   
   // Parse ID3 at end
   if (id3_size) {
-    parse_id3(infile, file, info, tags, 0);
+    parse_id3(infile, file, info, tags, 0, file_size);
   }
   
 out:

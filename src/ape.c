@@ -80,7 +80,7 @@ int _ape_get_tag_info(ApeTag* tag) {
       char id3[APE_ID3_MIN_TAG_SIZE];
 
       /* Check for id3 tag. We need to seek past it if it exists. */
-      if ((PerlIO_seek(tag->fd, -APE_ID3_MIN_TAG_SIZE, SEEK_END)) == -1) {
+      if ((PerlIO_seek(tag->fd, file_size - APE_ID3_MIN_TAG_SIZE, SEEK_SET)) == -1) {
         return _ape_error(tag, "Couldn't seek (id3 offset)", -1);
       }
 
@@ -105,7 +105,7 @@ int _ape_get_tag_info(ApeTag* tag) {
   }
   
   /* Check for existance of ape tag footer */
-  if (PerlIO_seek(tag->fd, -APE_TAG_FOOTER_LEN-id3_length, SEEK_END) == -1) {
+  if (PerlIO_seek(tag->fd, file_size - APE_TAG_FOOTER_LEN - id3_length, SEEK_SET) == -1) {
     return _ape_error(tag, "Couldn't seek (tag footer)", -1);
   }
 
@@ -189,7 +189,7 @@ int _ape_get_tag_info(ApeTag* tag) {
     return _ape_error(tag, "Tag item count larger than possible", -3);
   }
 
-  if (PerlIO_seek(tag->fd, (-(long)tag->size - id3_length - (lyrics_size ? (lyrics_size + 15) : 0)), SEEK_END) == -1) {
+  if (PerlIO_seek(tag->fd, (file_size -(long)tag->size - id3_length - (lyrics_size ? (lyrics_size + 15) : 0)), SEEK_SET) == -1) {
     return _ape_error(tag, "Couldn't seek to tag offset", -1);
   }
 

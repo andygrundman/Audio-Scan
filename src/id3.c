@@ -40,7 +40,7 @@ _varint(unsigned char *buf, int length)
 }
 
 int
-parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
+parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek, off_t file_size)
 {
   int err = 0;
   unsigned char *bptr;
@@ -57,16 +57,18 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek)
   
   buffer_init(id3->buf, ID3_BLOCK_SIZE);
   
-  // Check for ID3v1 tag first
-  PerlIO_seek(infile, -128, SEEK_END);
-  if ( !_check_buf(infile, id3->buf, 128, 128) ) {
-    err = -1;
-    goto out;
-  }
+  if ( !seek ) {
+    // Check for ID3v1 tag first
+    PerlIO_seek(infile, file_size - 128, SEEK_SET);
+    if ( !_check_buf(infile, id3->buf, 128, 128) ) {
+      err = -1;
+      goto out;
+    }
   
-  bptr = buffer_ptr(id3->buf);
-  if (bptr[0] == 'T' && bptr[1] == 'A' && bptr[2] == 'G') {
-    _id3_parse_v1(id3);
+    bptr = buffer_ptr(id3->buf);
+    if (bptr[0] == 'T' && bptr[1] == 'A' && bptr[2] == 'G') {
+      _id3_parse_v1(id3);
+    }
   }
   
   // Check for ID3v2 tag

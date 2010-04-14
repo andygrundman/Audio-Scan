@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.77
+        - PerlIO_seek with SEEK_END sometimes does not work correctly, changed all seeks
+          to use SEEK_SET instead.
+
 0.76    2010-04-14 10:30:00
         - APE: Bug 15992, fixed reading of APE tags when file also has a Lyricsv2 tag.
         - APE: Bug 16056, fixed reading of APE tags with certain kinds of invalid tags.

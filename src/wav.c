@@ -158,7 +158,7 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
         bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
       ) {        
         // Start parsing ID3 from offset
-        parse_id3(infile, file, info, tags, offset);
+        parse_id3(infile, file, info, tags, offset, file_size);
       }
       
       // Seek past ID3 and clear buffer
@@ -391,7 +391,7 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
         bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
       ) {        
         // Start parsing ID3 from offset
-        parse_id3(infile, file, info, tags, offset);
+        parse_id3(infile, file, info, tags, offset, file_size);
       }
       
       // Seen ID3 chunks with the chunk size in little-endian instead of big-endian

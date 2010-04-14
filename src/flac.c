@@ -253,7 +253,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   // Parse ID3 last, due to an issue with libid3tag screwing
   // up the filehandle
   if (id3_size && !seeking) {
-    parse_id3(infile, file, info, tags, 0);
+    parse_id3(infile, file, info, tags, 0, flac->file_size);
   }
 
 out:

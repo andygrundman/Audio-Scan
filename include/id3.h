@@ -115,7 +115,7 @@ extern struct id3_frametype const id3_frametype_experimental;
 extern struct id3_frametype const id3_frametype_unknown;
 extern struct id3_frametype const id3_frametype_obsolete;
 
-int parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek);
+int parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek, off_t file_size);
 int _id3_parse_v1(id3info *id3);
 int _id3_parse_v2(id3info *id3);
 int _id3_parse_v2_frame(id3info *id3);
