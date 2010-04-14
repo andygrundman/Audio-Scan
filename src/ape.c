@@ -300,7 +300,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
     tmp_ptr    += 1;
   }
   
-  DEBUG_TRACE("val_length: %d / size: %d / flags %x\n", val_length, size, flags);
+  DEBUG_TRACE("key_length: %d / val_length: %d / size: %d / flags %x\n", key_length, val_length, size, flags);
   
   if (flags & APE_TAG_TYPE_BINARY) {
     // Binary data, just copy it as-is
@@ -337,6 +337,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
     }
     else {
       sv_utf8_decode(value);
+      DEBUG_TRACE("  %s = %s\n", SvPVX(key), SvPVX(value));
     }
   }
   else {
@@ -355,19 +356,21 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
       }
       
       tmp_val = newSVpvn( buffer_ptr(&tag->tag_data), val_length );
+      buffer_consume(&tag->tag_data, val_length);
     
       // Don't add invalid items
       if (_ape_check_validity(tag, flags, SvPVX(key), SvPVX(tmp_val)) != 0) {
         // skip this item
+        buffer_consume(&tag->tag_data, size - done);
         return 0;
       }
       else {
         sv_utf8_decode(tmp_val);
       }
+      
+      DEBUG_TRACE("  %s = %s\n", SvPVX(key), SvPVX(tmp_val));
     
       av_push(av, tmp_val);
-      
-      buffer_consume(&tag->tag_data, val_length);
       
       if ( done < size ) {
         // Still more to read, consume the null separator
@@ -439,7 +442,7 @@ int _ape_check_validity(ApeTag* tag, uint32_t flags, char* key, char* value) {
 
   for (c = key; c < key_end; c++) {
     if ((unsigned char)(*c) < 0x20 || (unsigned char)(*c) > 0x7f) {
-      return _ape_error(tag, "Invalid item key character", -3);
+      return _ape_error(tag, "Invalid or non-ASCII key character", -3);
     }
   }
   

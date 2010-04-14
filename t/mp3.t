@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 350;
+use Test::More tests => 351;
 
 use Audio::Scan;
 
@@ -1154,7 +1154,7 @@ eval {
     is( $tags->{CATALOGNUMBER}, 'DUKE149D', 'v2.4 empty text next frame ok' );
 }
 
-# v2.3 + v1.1 + APEv2 + Lyricsv2
+# Bug 15992, v2.3 + v1.1 + APEv2 + Lyricsv2
 {
     my $s = Audio::Scan->scan( _f('v2.3-apev2-lyricsv2.mp3') );
     my $info = $s->{info};
@@ -1164,6 +1164,23 @@ eval {
     is( $info->{ape_version}, 'APEv2', 'v2.3 APEv2+Lyricsv2 ape_version ok' );
     is( $tags->{TIT2}, 'Fifteen Floors', 'v2.3 APEv2+Lyricsv2 TIT2 ok' );
     is( $tags->{REPLAYGAIN_TRACK_PEAK}, '1.077664', 'v2.3 APEv2+Lyricsv2 REPLAYGAIN_TRACK_PEAK ok' );
+}
+
+# Bug 16056, v2.4 + APEv2 with invalid key
+{
+    # Hide stderr
+    no strict 'subs';
+    no warnings;
+    open OLD_STDERR, '>&', STDERR;
+    close STDERR;
+    
+    my $s = Audio::Scan->scan( _f('v2.4-ape-invalid-key.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{REPLAYGAIN_ALBUM_GAIN}, '-1.720000 dB', 'v2.4 APE invalid key tag read ok' );
+    
+    # Restore stderr
+    open STDERR, '>&', OLD_STDERR;
 }
 
 sub _f {    

@@ -7,6 +7,7 @@ Clean up various code by using buffer_get_bits
 Handle stuff done by expensive SC Unicode regexes
 Test under 64-bit Strawberry Perl 5.12.0-RC
 Add support for AC3 and DTS
+Standardize error messages
 
 MP3
 ---
