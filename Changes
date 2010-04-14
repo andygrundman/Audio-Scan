@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.77
+0.77    2010-04-14 11:30:00
         - PerlIO_seek with SEEK_END sometimes does not work correctly, changed all seeks
           to use SEEK_SET instead.
 
