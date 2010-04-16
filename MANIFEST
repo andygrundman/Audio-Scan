@@ -150,6 +150,7 @@ t/mp3/v2.3-utf16any.mp3
 t/mp3/v2.3-utf16be.mp3
 t/mp3/v2.3-utf16le.mp3
 t/mp3/v2.3-xsop.mp3
+t/mp3/v2.3-zero-frame.mp3
 t/mp3/v2.3.mp3
 t/mp3/v2.4-ape.mp3
 t/mp3/v2.4-ape-invalid-key.mp3
