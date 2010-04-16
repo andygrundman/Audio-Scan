@@ -42,6 +42,19 @@ buffer_init(Buffer *buffer, uint32_t len)
 #endif
 }
 
+/* Allows easy reuse of a buffer, will init or clear buffer if it already exists */
+
+void
+buffer_init_or_clear(Buffer *buffer, uint32_t len)
+{
+  if (!buffer->alloc) {
+    buffer_init(buffer, len);
+  }
+  else {
+    buffer_clear(buffer);
+  }
+}
+
 /* Frees any memory used for the buffer. */
 
 void

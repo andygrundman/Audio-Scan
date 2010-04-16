@@ -72,6 +72,7 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   
   Newz(0, asf, sizeof(asfinfo), asfinfo);
   Newz(0, asf->buf, sizeof(Buffer), Buffer);
+  Newz(0, asf->scratch, sizeof(Buffer), Buffer);
   
   asf->file_size    = _file_size(infile);
   asf->audio_offset = 0;
@@ -123,39 +124,39 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     
     if ( IsEqualGUID(&tmp.ID, &ASF_Content_Description) ) {
       DEBUG_TRACE("Content_Description\n");
-      _parse_content_description(asf->buf, info, tags);
+      _parse_content_description(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_File_Properties) ) {
       DEBUG_TRACE("File_Properties\n");
-      _parse_file_properties(asf->buf, info, tags);
+      _parse_file_properties(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Properties) ) {
       DEBUG_TRACE("Stream_Properties\n");
-      _parse_stream_properties(asf->buf, info, tags);
+      _parse_stream_properties(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Description) ) {
       DEBUG_TRACE("Extended_Content_Description\n");
-      _parse_extended_content_description(asf->buf, info, tags);
+      _parse_extended_content_description(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Codec_List) ) {
       DEBUG_TRACE("Codec_List\n");
-      _parse_codec_list(asf->buf, info, tags);
+      _parse_codec_list(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Bitrate_Properties) ) {
       DEBUG_TRACE("Stream_Bitrate_Properties\n");
-      _parse_stream_bitrate_properties(asf->buf, info, tags);
+      _parse_stream_bitrate_properties(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Content_Encryption) ) {
       DEBUG_TRACE("Content_Encryption\n");
-      _parse_content_encryption(asf->buf, info, tags);
+      _parse_content_encryption(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Encryption) ) {
       DEBUG_TRACE("Extended_Content_Encryption\n");
-      _parse_extended_content_encryption(asf->buf, info, tags);
+      _parse_extended_content_encryption(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Script_Command) ) {
       DEBUG_TRACE("Script_Command\n");
-      _parse_script_command(asf->buf, info, tags);
+      _parse_script_command(asf);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Digital_Signature) ) {
       DEBUG_TRACE("Skipping Digital_Signature\n");
@@ -163,7 +164,7 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Header_Extension) ) {
       DEBUG_TRACE("Header_Extension\n");
-      if ( !_parse_header_extension(asf->buf, tmp.size, info, tags) ) {
+      if ( !_parse_header_extension(asf, tmp.size) ) {
         PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (invalid header extension object)\n", file);
         goto out;
       }
@@ -201,9 +202,11 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   
   my_hv_store( info, "file_size", newSVuv(asf->file_size) );
   
-  if (seeking) {
-    data.size = buffer_get_int64_le(asf->buf);
+  data.size = buffer_get_int64_le(asf->buf);
+  asf->audio_size = data.size;
+  my_hv_store( info, "audio_size", newSVuv(asf->audio_size) );
   
+  if (seeking) {  
     if ( hdr.size + data.size < asf->file_size ) {
       DEBUG_TRACE("Seeking past data: %llu\n", hdr.size + data.size);
       
@@ -224,16 +227,19 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
 out:
   buffer_free(asf->buf);
   Safefree(asf->buf);
+  
+  if (asf->scratch->alloc)
+    buffer_free(asf->scratch);
+  Safefree(asf->scratch);
 
   return asf;
 }
 
 void
-_parse_content_description(Buffer *buf, HV *info, HV *tags)
+_parse_content_description(asfinfo *asf)
 {
   int i;
   uint16_t len[5];
-  Buffer utf8_buf;
   char fields[5][12] = {
     { "Title" },
     { "Author" },
@@ -243,34 +249,31 @@ _parse_content_description(Buffer *buf, HV *info, HV *tags)
   };
   
   for (i = 0; i < 5; i++) {
-    len[i] = buffer_get_short_le(buf);
+    len[i] = buffer_get_short_le(asf->buf);
   }
   
-  buffer_init(&utf8_buf, len[0]);
+  buffer_init_or_clear(asf->scratch, len[0]);
   
   for (i = 0; i < 5; i++) {
     SV *value;
     
     if ( len[i] ) {
-      buffer_clear(&utf8_buf); 
-      buffer_get_utf16_as_utf8(buf, &utf8_buf, len[i], UTF16_BYTEORDER_LE);
-      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      buffer_clear(asf->scratch); 
+      buffer_get_utf16_as_utf8(asf->buf, asf->scratch, len[i], UTF16_BYTEORDER_LE);
+      value = newSVpv( buffer_ptr(asf->scratch), 0 );
       sv_utf8_decode(value);
     
-      _store_tag( tags, newSVpv(fields[i], 0), value );
+      _store_tag( asf->tags, newSVpv(fields[i], 0), value );
     }
   }
-  
-  buffer_free(&utf8_buf);
 }
 
 void
-_parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
+_parse_extended_content_description(asfinfo *asf)
 {
-  Buffer utf8_buf;
-  uint16_t count = buffer_get_short_le(buf);
+  uint16_t count = buffer_get_short_le(asf->buf);
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
   while ( count-- ) {
     uint16_t name_len;
@@ -279,47 +282,47 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
     SV *key = NULL;
     SV *value = NULL;
     
-    name_len = buffer_get_short_le(buf);
+    name_len = buffer_get_short_le(asf->buf);
      
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
-    key = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, name_len, UTF16_BYTEORDER_LE);
+    key = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(key);
     
-    data_type = buffer_get_short_le(buf);
-    value_len = buffer_get_short_le(buf);
+    data_type = buffer_get_short_le(asf->buf);
+    value_len = buffer_get_short_le(asf->buf);
     
     if (data_type == TYPE_UNICODE) {
-      buffer_clear(&utf8_buf);
-      buffer_get_utf16_as_utf8(buf, &utf8_buf, value_len, UTF16_BYTEORDER_LE);
-      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      buffer_clear(asf->scratch);
+      buffer_get_utf16_as_utf8(asf->buf, asf->scratch, value_len, UTF16_BYTEORDER_LE);
+      value = newSVpv( buffer_ptr(asf->scratch), 0 );
       sv_utf8_decode(value);
     }
     else if (data_type == TYPE_BYTE) {
       // handle picture data, interestingly it is compatible with the ID3v2 APIC frame
       if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
-        value = _parse_picture(buf);
+        value = _parse_picture(asf);
       }
       else {
-        value = newSVpvn( buffer_ptr(buf), value_len );
-        buffer_consume(buf, value_len);
+        value = newSVpvn( buffer_ptr(asf->buf), value_len );
+        buffer_consume(asf->buf, value_len);
       }
     }
     else if (data_type == TYPE_BOOL) {
-      value = newSViv( buffer_get_int_le(buf) );
+      value = newSViv( buffer_get_int_le(asf->buf) );
     }
     else if (data_type == TYPE_DWORD) {
-      value = newSViv( buffer_get_int_le(buf) );
+      value = newSViv( buffer_get_int_le(asf->buf) );
     }
     else if (data_type == TYPE_QWORD) {
-      value = newSViv( buffer_get_int64_le(buf) );
+      value = newSViv( buffer_get_int64_le(asf->buf) );
     }
     else if (data_type == TYPE_WORD) {
-      value = newSViv( buffer_get_short_le(buf) );
+      value = newSViv( buffer_get_short_le(asf->buf) );
     }
     else {
       PerlIO_printf(PerlIO_stderr(), "Unknown extended content description data type %d\n", data_type);
-      buffer_consume(buf, value_len);
+      buffer_consume(asf->buf, value_len);
     }
     
     if (value != NULL) {
@@ -335,15 +338,13 @@ _parse_extended_content_description(Buffer *buf, HV *info, HV *tags)
       }
 #endif
       
-      _store_tag( tags, key, value );
+      _store_tag( asf->tags, key, value );
     }
   }
-
-  buffer_free(&utf8_buf);
 }
   
 void
-_parse_file_properties(Buffer *buf, HV *info, HV *tags)
+_parse_file_properties(asfinfo *asf)
 {
   GUID file_id;
   uint64_t file_size;
@@ -359,25 +360,25 @@ _parse_file_properties(Buffer *buf, HV *info, HV *tags)
   uint8_t broadcast;
   uint8_t seekable;
   
-  buffer_get_guid(buf, &file_id);
+  buffer_get_guid(asf->buf, &file_id);
   my_hv_store( 
-    info, "file_id", newSVpvf( "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+    asf->info, "file_id", newSVpvf( "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
       file_id.Data1, file_id.Data2, file_id.Data3,
       file_id.Data4[0], file_id.Data4[1], file_id.Data4[2], file_id.Data4[3],
       file_id.Data4[4], file_id.Data4[5], file_id.Data4[6], file_id.Data4[7]
     )
   );
   
-  file_size       = buffer_get_int64_le(buf);
-  creation_date   = buffer_get_int64_le(buf);
-  data_packets    = buffer_get_int64_le(buf);
-  play_duration   = buffer_get_int64_le(buf);
-  send_duration   = buffer_get_int64_le(buf);
-  preroll         = buffer_get_int64_le(buf);
-  flags           = buffer_get_int_le(buf);
-  min_packet_size = buffer_get_int_le(buf);
-  max_packet_size = buffer_get_int_le(buf);
-  max_bitrate     = buffer_get_int_le(buf);
+  file_size       = buffer_get_int64_le(asf->buf);
+  creation_date   = buffer_get_int64_le(asf->buf);
+  data_packets    = buffer_get_int64_le(asf->buf);
+  play_duration   = buffer_get_int64_le(asf->buf);
+  send_duration   = buffer_get_int64_le(asf->buf);
+  preroll         = buffer_get_int64_le(asf->buf);
+  flags           = buffer_get_int_le(asf->buf);
+  min_packet_size = buffer_get_int_le(asf->buf);
+  max_packet_size = buffer_get_int_le(asf->buf);
+  max_bitrate     = buffer_get_int_le(asf->buf);
   
   broadcast = flags & 0x01 ? 1 : 0;
   seekable  = flags & 0x02 ? 1 : 0;
@@ -390,25 +391,25 @@ _parse_file_properties(Buffer *buf, HV *info, HV *tags)
     // Don't overwrite the actual file size we found from stat
     //my_hv_store( info, "file_size", newSViv(file_size) );
     
-    my_hv_store( info, "creation_date", newSViv(creation_date) );
-    my_hv_store( info, "data_packets", newSViv(data_packets) );
-    my_hv_store( info, "play_duration_ms", newSViv(play_duration) );
-    my_hv_store( info, "send_duration_ms", newSViv(send_duration) );
+    my_hv_store( asf->info, "creation_date", newSViv(creation_date) );
+    my_hv_store( asf->info, "data_packets", newSViv(data_packets) );
+    my_hv_store( asf->info, "play_duration_ms", newSViv(play_duration) );
+    my_hv_store( asf->info, "send_duration_ms", newSViv(send_duration) );
     
     // Calculate actual song duration
-    my_hv_store( info, "song_length_ms", newSViv( play_duration - preroll ) );
+    my_hv_store( asf->info, "song_length_ms", newSViv( play_duration - preroll ) );
   }
   
-  my_hv_store( info, "preroll", newSViv(preroll) );
-  my_hv_store( info, "broadcast", newSViv(broadcast) );
-  my_hv_store( info, "seekable", newSViv(seekable) );
-  my_hv_store( info, "min_packet_size", newSViv(min_packet_size) );
-  my_hv_store( info, "max_packet_size", newSViv(max_packet_size) );
-  my_hv_store( info, "max_bitrate", newSViv(max_bitrate) );
+  my_hv_store( asf->info, "preroll", newSViv(preroll) );
+  my_hv_store( asf->info, "broadcast", newSViv(broadcast) );
+  my_hv_store( asf->info, "seekable", newSViv(seekable) );
+  my_hv_store( asf->info, "min_packet_size", newSViv(min_packet_size) );
+  my_hv_store( asf->info, "max_packet_size", newSViv(max_packet_size) );
+  my_hv_store( asf->info, "max_bitrate", newSViv(max_bitrate) );
 }
 
 void
-_parse_stream_properties(Buffer *buf, HV *info, HV *tags)
+_parse_stream_properties(asfinfo *asf)
 {
   GUID stream_type;
   GUID ec_type;
@@ -419,30 +420,30 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
   uint16_t stream_number;
   Buffer type_data_buf;
   
-  buffer_get_guid(buf, &stream_type);
-  buffer_get_guid(buf, &ec_type);
-  time_offset = buffer_get_int64_le(buf);
-  type_data_len = buffer_get_int_le(buf);
-  ec_data_len   = buffer_get_int_le(buf);
-  flags         = buffer_get_short_le(buf);
+  buffer_get_guid(asf->buf, &stream_type);
+  buffer_get_guid(asf->buf, &ec_type);
+  time_offset = buffer_get_int64_le(asf->buf);
+  type_data_len = buffer_get_int_le(asf->buf);
+  ec_data_len   = buffer_get_int_le(asf->buf);
+  flags         = buffer_get_short_le(asf->buf);
   stream_number = flags & 0x007f;
   
   // skip reserved bytes
-  buffer_consume(buf, 4);
+  buffer_consume(asf->buf, 4);
   
   // type-specific data
   buffer_init(&type_data_buf, type_data_len);
-  buffer_append(&type_data_buf, buffer_ptr(buf), type_data_len);
-  buffer_consume(buf, type_data_len);
+  buffer_append(&type_data_buf, buffer_ptr(asf->buf), type_data_len);
+  buffer_consume(asf->buf, type_data_len);
   
   // skip error-correction data
-  buffer_consume(buf, ec_data_len);
+  buffer_consume(asf->buf, ec_data_len);
   
   if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
     uint8_t is_wma = 0;
     uint16_t codec_id;
     
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Audio_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_Audio_Media", 0) );
     
     // Parse WAVEFORMATEX data
     codec_id = buffer_get_short_le(&type_data_buf);
@@ -455,89 +456,89 @@ _parse_stream_properties(Buffer *buf, HV *info, HV *tags)
         break;
     }
     
-    _store_stream_info( stream_number, info, newSVpv("codec_id", 0), newSViv(codec_id) );
-    _store_stream_info( stream_number, info, newSVpv("channels", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, info, newSVpv("samplerate", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, info, newSVpv("avg_bytes_per_sec", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, info, newSVpv("block_alignment", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, info, newSVpv("bits_per_sample", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("codec_id", 0), newSViv(codec_id) );
+    _store_stream_info( stream_number, asf->info, newSVpv("channels", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("samplerate", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("avg_bytes_per_sec", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("block_alignment", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("bits_per_sample", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
     
     // Read WMA-specific data
     if (is_wma) {
       buffer_consume(&type_data_buf, 2);
-      _store_stream_info( stream_number, info, newSVpv("samples_per_block", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
-      _store_stream_info( stream_number, info, newSVpv("encode_options", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
-      _store_stream_info( stream_number, info, newSVpv("super_block_align", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+      _store_stream_info( stream_number, asf->info, newSVpv("samples_per_block", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+      _store_stream_info( stream_number, asf->info, newSVpv("encode_options", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
+      _store_stream_info( stream_number, asf->info, newSVpv("super_block_align", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
     }
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Video_Media) ) {
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Video_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_Video_Media", 0) );
     
     DEBUG_TRACE("type_data_len: %d\n", type_data_len);
     
     // Read video-specific data
-    _store_stream_info( stream_number, info, newSVpv("width", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, info, newSVpv("height", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("width", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("height", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
         
     // Skip format size, width, height, reserved
     buffer_consume(&type_data_buf, 17);
     
-    _store_stream_info( stream_number, info, newSVpv("bpp", 0), newSVuv( buffer_get_short_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("bpp", 0), newSVuv( buffer_get_short_le(&type_data_buf) ) );
     
-    _store_stream_info( stream_number, info, newSVpv("compression_id", 0), newSVpv( buffer_ptr(&type_data_buf), 4 ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("compression_id", 0), newSVpv( buffer_ptr(&type_data_buf), 4 ) );
 
     // Rest of the data does not seem to apply to video    
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Command_Media) ) {
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Command_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_Command_Media", 0) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_JFIF_Media) ) {
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_JFIF_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_JFIF_Media", 0) );
     
     // type-specific data
-    _store_stream_info( stream_number, info, newSVpv("width", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, info, newSVpv("height", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("width", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("height", 0), newSVuv( buffer_get_int_le(&type_data_buf) ) );
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Degradable_JPEG_Media) ) {
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Degradable_JPEG_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_Degradable_JPEG_Media", 0) );
     
     // XXX: type-specific data (section 9.4.2)
   }
   else if ( IsEqualGUID(&stream_type, &ASF_File_Transfer_Media) ) {
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_File_Transfer_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_File_Transfer_Media", 0) );
     
     // XXX: type-specific data (section 9.5)
   }
   else if ( IsEqualGUID(&stream_type, &ASF_Binary_Media) ) {
-    _store_stream_info( stream_number, info, newSVpv("stream_type", 0), newSVpv("ASF_Binary_Media", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_Binary_Media", 0) );
     
     // XXX: type-specific data (section 9.5)
   }
   
   if ( IsEqualGUID(&ec_type, &ASF_No_Error_Correction) ) {
-    _store_stream_info( stream_number, info, newSVpv("error_correction_type", 0), newSVpv("ASF_No_Error_Correction", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("error_correction_type", 0), newSVpv("ASF_No_Error_Correction", 0) );
   }
   else if ( IsEqualGUID(&ec_type, &ASF_Audio_Spread) ) {
-    _store_stream_info( stream_number, info, newSVpv("error_correction_type", 0), newSVpv("ASF_Audio_Spread", 0) );
+    _store_stream_info( stream_number, asf->info, newSVpv("error_correction_type", 0), newSVpv("ASF_Audio_Spread", 0) );
   }
   
-  _store_stream_info( stream_number, info, newSVpv("time_offset", 0), newSViv(time_offset) );
-  _store_stream_info( stream_number, info, newSVpv("encrypted", 0), newSVuv( flags & 0x8000 ? 1 : 0 ) );
+  _store_stream_info( stream_number, asf->info, newSVpv("time_offset", 0), newSViv(time_offset) );
+  _store_stream_info( stream_number, asf->info, newSVpv("encrypted", 0), newSVuv( flags & 0x8000 ? 1 : 0 ) );
   
   buffer_free(&type_data_buf);
 }
 
 int
-_parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
+_parse_header_extension(asfinfo *asf, uint64_t len)
 {
   int ext_size;
   GUID hdr;
   uint64_t hdr_size;
   
   // Skip reserved fields
-  buffer_consume(buf, 18);
+  buffer_consume(asf->buf, 18);
   
-  ext_size = buffer_get_int_le(buf);
+  ext_size = buffer_get_int_le(asf->buf);
   
   // Sanity check ext size
   // Must be 0 or 24+, and 46 less than header extension object size
@@ -553,48 +554,48 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
   DEBUG_TRACE("  size: %d\n", ext_size);
   
   while (ext_size > 0) {
-    buffer_get_guid(buf, &hdr);
-    hdr_size = buffer_get_int64_le(buf);
+    buffer_get_guid(asf->buf, &hdr);
+    hdr_size = buffer_get_int64_le(asf->buf);
     ext_size -= hdr_size;
     
     if ( IsEqualGUID(&hdr, &ASF_Metadata) ) {
       DEBUG_TRACE("  Metadata\n");
-      _parse_metadata(buf, info, tags);
+      _parse_metadata(asf);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Extended_Stream_Properties) ) {
       DEBUG_TRACE("  Extended_Stream_Properties size %llu\n", hdr_size);
-      _parse_extended_stream_properties(buf, hdr_size, info, tags);
+      _parse_extended_stream_properties(asf, hdr_size);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Language_List) ) {
       DEBUG_TRACE("  Language_List\n");
-      _parse_language_list(buf, info, tags);
+      _parse_language_list(asf);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Advanced_Mutual_Exclusion) ) {
       DEBUG_TRACE("  Advanced_Mutual_Exclusion\n");
-      _parse_advanced_mutual_exclusion(buf, info, tags);
+      _parse_advanced_mutual_exclusion(asf);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Metadata_Library) ) {
       DEBUG_TRACE("  Metadata_Library\n");
-      _parse_metadata_library(buf, info, tags);
+      _parse_metadata_library(asf);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Index_Parameters) ) {
       DEBUG_TRACE("  Index_Parameters\n");
-      _parse_index_parameters(buf, info, tags);
+      _parse_index_parameters(asf);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Compatibility) ) {
       // reserved for future use, just ignore
       DEBUG_TRACE("  Skipping Compatibility\n");
-      buffer_consume(buf, 2);
+      buffer_consume(asf->buf, 2);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Padding) ) {
       // skip padding
       DEBUG_TRACE("  Skipping Padding\n");
-      buffer_consume(buf, hdr_size - 24);
+      buffer_consume(asf->buf, hdr_size - 24);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Index_Placeholder) ) {
       // skip undocumented placeholder
       DEBUG_TRACE("  Skipping Index_Placeholder\n");
-      buffer_consume(buf, hdr_size - 24);
+      buffer_consume(asf->buf, hdr_size - 24);
     }
     else {
       // Unhandled
@@ -602,7 +603,7 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
       print_guid(hdr);
       PerlIO_printf(PerlIO_stderr(), "size: %llu\n", hdr_size);
       
-      buffer_consume(buf, hdr_size - 24);
+      buffer_consume(asf->buf, hdr_size - 24);
     }
   }
   
@@ -610,12 +611,11 @@ _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags)
 }
 
 void
-_parse_metadata(Buffer *buf, HV *info, HV *tags)
+_parse_metadata(asfinfo *asf)
 {
-  Buffer utf8_buf;
-  uint16_t count = buffer_get_short_le(buf);
+  uint16_t count = buffer_get_short_le(asf->buf);
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
   while ( count-- ) {
     uint16_t stream_number;
@@ -626,40 +626,40 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
     SV *value = NULL;
     
     // Skip reserved
-    buffer_consume(buf, 2);
+    buffer_consume(asf->buf, 2);
     
-    stream_number = buffer_get_short_le(buf);
-    name_len      = buffer_get_short_le(buf);
-    data_type     = buffer_get_short_le(buf);
-    data_len      = buffer_get_int_le(buf);
+    stream_number = buffer_get_short_le(asf->buf);
+    name_len      = buffer_get_short_le(asf->buf);
+    data_type     = buffer_get_short_le(asf->buf);
+    data_len      = buffer_get_int_le(asf->buf);
     
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
-    key = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, name_len, UTF16_BYTEORDER_LE);
+    key = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(key);
     
     if (data_type == TYPE_UNICODE) {
-      buffer_clear(&utf8_buf);
-      buffer_get_utf16_as_utf8(buf, &utf8_buf, data_len, UTF16_BYTEORDER_LE);
-      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      buffer_clear(asf->scratch);
+      buffer_get_utf16_as_utf8(asf->buf, asf->scratch, data_len, UTF16_BYTEORDER_LE);
+      value = newSVpv( buffer_ptr(asf->scratch), 0 );
       sv_utf8_decode(value);
     }
     else if (data_type == TYPE_BYTE) {
-      value = newSVpvn( buffer_ptr(buf), data_len );
-      buffer_consume(buf, data_len);
+      value = newSVpvn( buffer_ptr(asf->buf), data_len );
+      buffer_consume(asf->buf, data_len);
     }
     else if (data_type == TYPE_BOOL || data_type == TYPE_WORD) {
-      value = newSViv( buffer_get_short_le(buf) );
+      value = newSViv( buffer_get_short_le(asf->buf) );
     }
     else if (data_type == TYPE_DWORD) {
-      value = newSViv( buffer_get_int_le(buf) );
+      value = newSViv( buffer_get_int_le(asf->buf) );
     }
     else if (data_type == TYPE_QWORD) {
-      value = newSViv( buffer_get_int64_le(buf) );
+      value = newSViv( buffer_get_int64_le(asf->buf) );
     }
     else {
       DEBUG_TRACE("Unknown metadata data type %d\n", data_type);
-      buffer_consume(buf, data_len);
+      buffer_consume(asf->buf, data_len);
     }
     
     if (value != NULL) {
@@ -677,86 +677,84 @@ _parse_metadata(Buffer *buf, HV *info, HV *tags)
       
       // If stream_number is available, store the data with the stream info
       if (stream_number > 0) {
-        _store_stream_info( stream_number, info, key, value );
+        _store_stream_info( stream_number, asf->info, key, value );
       }
       else {
-        my_hv_store_ent( info, key, value );
+        my_hv_store_ent( asf->info, key, value );
         SvREFCNT_dec(key);
       }
     }
   }
-
-  buffer_free(&utf8_buf);
 }
 
 void
-_parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
+_parse_extended_stream_properties(asfinfo *asf, uint64_t len)
 {
-  uint64_t start_time          = buffer_get_int64_le(buf);
-  uint64_t end_time            = buffer_get_int64_le(buf);
-  uint32_t bitrate             = buffer_get_int_le(buf);
-  uint32_t buffer_size         = buffer_get_int_le(buf);
-  uint32_t buffer_fullness     = buffer_get_int_le(buf);
-  uint32_t alt_bitrate         = buffer_get_int_le(buf);
-  uint32_t alt_buffer_size     = buffer_get_int_le(buf);
-  uint32_t alt_buffer_fullness = buffer_get_int_le(buf);
-  uint32_t max_object_size     = buffer_get_int_le(buf);
-  uint32_t flags               = buffer_get_int_le(buf);
-  uint16_t stream_number       = buffer_get_short_le(buf);
-  uint16_t lang_id             = buffer_get_short_le(buf);
-  uint64_t avg_time_per_frame  = buffer_get_int64_le(buf);
-  uint16_t stream_name_count   = buffer_get_short_le(buf);
-  uint16_t payload_ext_count   = buffer_get_short_le(buf);
+  uint64_t start_time          = buffer_get_int64_le(asf->buf);
+  uint64_t end_time            = buffer_get_int64_le(asf->buf);
+  uint32_t bitrate             = buffer_get_int_le(asf->buf);
+  uint32_t buffer_size         = buffer_get_int_le(asf->buf);
+  uint32_t buffer_fullness     = buffer_get_int_le(asf->buf);
+  uint32_t alt_bitrate         = buffer_get_int_le(asf->buf);
+  uint32_t alt_buffer_size     = buffer_get_int_le(asf->buf);
+  uint32_t alt_buffer_fullness = buffer_get_int_le(asf->buf);
+  uint32_t max_object_size     = buffer_get_int_le(asf->buf);
+  uint32_t flags               = buffer_get_int_le(asf->buf);
+  uint16_t stream_number       = buffer_get_short_le(asf->buf);
+  uint16_t lang_id             = buffer_get_short_le(asf->buf);
+  uint64_t avg_time_per_frame  = buffer_get_int64_le(asf->buf);
+  uint16_t stream_name_count   = buffer_get_short_le(asf->buf);
+  uint16_t payload_ext_count   = buffer_get_short_le(asf->buf);
   
   len -= 88;
   
   if (start_time > 0) {
-    _store_stream_info( stream_number, info, newSVpv("start_time", 0), newSViv(start_time) );
+    _store_stream_info( stream_number, asf->info, newSVpv("start_time", 0), newSViv(start_time) );
   }
   
   if (end_time > 0) {
-    _store_stream_info( stream_number, info, newSVpv("end_time", 0), newSViv(end_time) );
+    _store_stream_info( stream_number, asf->info, newSVpv("end_time", 0), newSViv(end_time) );
   }
   
-  _store_stream_info( stream_number, info, newSVpv("bitrate", 0), newSViv(bitrate) );
-  _store_stream_info( stream_number, info, newSVpv("buffer_size", 0), newSViv(buffer_size) );
-  _store_stream_info( stream_number, info, newSVpv("buffer_fullness", 0), newSViv(buffer_fullness) );
-  _store_stream_info( stream_number, info, newSVpv("alt_bitrate", 0), newSViv(alt_bitrate) );
-  _store_stream_info( stream_number, info, newSVpv("alt_buffer_size", 0), newSViv(alt_buffer_size) );
-  _store_stream_info( stream_number, info, newSVpv("alt_buffer_fullness", 0), newSViv(alt_buffer_fullness) );
-  _store_stream_info( stream_number, info, newSVpv("alt_buffer_size", 0), newSViv(alt_buffer_size) );
-  _store_stream_info( stream_number, info, newSVpv("max_object_size", 0), newSViv(max_object_size) );
+  _store_stream_info( stream_number, asf->info, newSVpv("bitrate", 0), newSViv(bitrate) );
+  _store_stream_info( stream_number, asf->info, newSVpv("buffer_size", 0), newSViv(buffer_size) );
+  _store_stream_info( stream_number, asf->info, newSVpv("buffer_fullness", 0), newSViv(buffer_fullness) );
+  _store_stream_info( stream_number, asf->info, newSVpv("alt_bitrate", 0), newSViv(alt_bitrate) );
+  _store_stream_info( stream_number, asf->info, newSVpv("alt_buffer_size", 0), newSViv(alt_buffer_size) );
+  _store_stream_info( stream_number, asf->info, newSVpv("alt_buffer_fullness", 0), newSViv(alt_buffer_fullness) );
+  _store_stream_info( stream_number, asf->info, newSVpv("alt_buffer_size", 0), newSViv(alt_buffer_size) );
+  _store_stream_info( stream_number, asf->info, newSVpv("max_object_size", 0), newSViv(max_object_size) );
   
   if ( flags & 0x01 )
-    _store_stream_info( stream_number, info, newSVpv("flag_reliable", 0), newSViv(1) );
+    _store_stream_info( stream_number, asf->info, newSVpv("flag_reliable", 0), newSViv(1) );
   
   if ( flags & 0x02 )
-    _store_stream_info( stream_number, info, newSVpv("flag_seekable", 0), newSViv(1) );
+    _store_stream_info( stream_number, asf->info, newSVpv("flag_seekable", 0), newSViv(1) );
   
   if ( flags & 0x04 )
-    _store_stream_info( stream_number, info, newSVpv("flag_no_cleanpoint", 0), newSViv(1) );
+    _store_stream_info( stream_number, asf->info, newSVpv("flag_no_cleanpoint", 0), newSViv(1) );
   
   if ( flags & 0x08 )
-    _store_stream_info( stream_number, info, newSVpv("flag_resend_cleanpoints", 0), newSViv(1) );
+    _store_stream_info( stream_number, asf->info, newSVpv("flag_resend_cleanpoints", 0), newSViv(1) );
   
-  _store_stream_info( stream_number, info, newSVpv("language_index", 0), newSViv(lang_id) );
+  _store_stream_info( stream_number, asf->info, newSVpv("language_index", 0), newSViv(lang_id) );
   
   if (avg_time_per_frame > 0) {
     // XXX: can't get this to divide properly (?!)
-    //_store_stream_info( stream_number, info, newSVpv("avg_time_per_frame", 0), newSVuv(avg_time_per_frame / 10000) );
+    //_store_stream_info( stream_number, asf->info, newSVpv("avg_time_per_frame", 0), newSVuv(avg_time_per_frame / 10000) );
   }
   
   while ( stream_name_count-- ) {
     uint16_t stream_name_len;
     
     // stream_name_lang_id
-    buffer_consume(buf, 2);
-    stream_name_len = buffer_get_short_le(buf);
+    buffer_consume(asf->buf, 2);
+    stream_name_len = buffer_get_short_le(asf->buf);
     
     DEBUG_TRACE("stream_name_len: %d\n", stream_name_len);
     
     // XXX, store this?
-    buffer_consume(buf, stream_name_len);
+    buffer_consume(asf->buf, stream_name_len);
     
     len -= 4 + stream_name_len;
   }
@@ -765,9 +763,9 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
     // Skip
     uint32_t payload_len;
     
-    buffer_consume(buf, 18);
-    payload_len = buffer_get_int_le(buf);
-    buffer_consume(buf, payload_len);
+    buffer_consume(asf->buf, 18);
+    payload_len = buffer_get_int_le(asf->buf);
+    buffer_consume(asf->buf, payload_len);
     
     len -= 22 + payload_len;
   }
@@ -775,39 +773,36 @@ _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags)
   if (len) {
     // Anything left over means we have an embedded Stream Properties Object
     DEBUG_TRACE("      embedded Stream_Properties, size %llu\n", len);
-    buffer_consume(buf, 24);
-    _parse_stream_properties(buf, info, tags);
+    buffer_consume(asf->buf, 24);
+    _parse_stream_properties(asf);
   }
 }
 
 void
-_parse_language_list(Buffer *buf, HV *info, HV *tags)
+_parse_language_list(asfinfo *asf)
 {
-  Buffer utf8_buf;
   AV *list = newAV();
-  uint16_t count = buffer_get_short_le(buf);
+  uint16_t count = buffer_get_short_le(asf->buf);
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
   while ( count-- ) {
     SV *value;
     
-    uint8_t len = buffer_get_char(buf);
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, len, UTF16_BYTEORDER_LE);
-    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    uint8_t len = buffer_get_char(asf->buf);
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, len, UTF16_BYTEORDER_LE);
+    value = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(value);
     
     av_push( list, value );
   }
   
-  buffer_free(&utf8_buf);
-  
-  my_hv_store( info, "language_list", newRV_noinc( (SV*)list ) );
+  my_hv_store( asf->info, "language_list", newRV_noinc( (SV*)list ) );
 }
 
 void
-_parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
+_parse_advanced_mutual_exclusion(asfinfo *asf)
 {
   GUID mutex_type;
   uint16_t count;
@@ -816,8 +811,8 @@ _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
   SV *mutex_type_sv;
   AV *mutex_streams = newAV();
   
-  buffer_get_guid(buf, &mutex_type);
-  count = buffer_get_short_le(buf);
+  buffer_get_guid(asf->buf, &mutex_type);
+  count = buffer_get_short_le(asf->buf);
   
   if ( IsEqualGUID(&mutex_type, &ASF_Mutex_Language) ) {
     mutex_type_sv = newSVpv( "ASF_Mutex_Language", 0 );
@@ -830,19 +825,19 @@ _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
   }
   
   while ( count-- ) {
-    av_push( mutex_streams, newSViv( buffer_get_short_le(buf) ) );
+    av_push( mutex_streams, newSViv( buffer_get_short_le(asf->buf) ) );
   }
   
   my_hv_store_ent( mutex_hv, mutex_type_sv, newRV_noinc( (SV *)mutex_streams ) );
   SvREFCNT_dec(mutex_type_sv);
   
-  if ( !my_hv_exists( info, "mutex_list" ) ) {
+  if ( !my_hv_exists( asf->info, "mutex_list" ) ) {
     mutex_list = newAV();
     av_push( mutex_list, newRV_noinc( (SV *)mutex_hv ) );
-    my_hv_store( info, "mutex_list", newRV_noinc( (SV *)mutex_list ) );
+    my_hv_store( asf->info, "mutex_list", newRV_noinc( (SV *)mutex_list ) );
   }
   else {
-    SV **entry = my_hv_fetch( info, "mutex_list" );
+    SV **entry = my_hv_fetch( asf->info, "mutex_list" );
     if (entry != NULL) {
       mutex_list = (AV *)SvRV(*entry);
     }
@@ -855,18 +850,17 @@ _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags)
 }
 
 void
-_parse_codec_list(Buffer *buf, HV *info, HV *tags)
+_parse_codec_list(asfinfo *asf)
 {
-  Buffer utf8_buf;
   uint32_t count;
   AV *list = newAV();
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
   // Skip reserved
-  buffer_consume(buf, 16);
+  buffer_consume(asf->buf, 16);
   
-  count = buffer_get_int_le(buf);
+  count = buffer_get_int_le(asf->buf);
   
   while ( count-- ) {
     HV *codec_info = newHV();
@@ -875,7 +869,7 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
     SV *name = NULL;
     SV *desc = NULL;
     
-    uint16_t codec_type = buffer_get_short_le(buf);
+    uint16_t codec_type = buffer_get_short_le(asf->buf);
     
     switch (codec_type) {
       case 0x0001:
@@ -890,55 +884,52 @@ _parse_codec_list(Buffer *buf, HV *info, HV *tags)
     
     // Unlike other objects, these lengths are the
     // "number of Unicode chars", not bytes, so we need to double it
-    name_len = buffer_get_short_le(buf) * 2;
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
-    name = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    name_len = buffer_get_short_le(asf->buf) * 2;
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, name_len, UTF16_BYTEORDER_LE);
+    name = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(name);
     my_hv_store( codec_info, "name", name );
     
     // Set a 'lossless' flag in info if Lossless codec is used
-    if ( strstr( buffer_ptr(&utf8_buf), "Lossless" ) ) {
-      my_hv_store( info, "lossless", newSVuv(1) );
+    if ( strstr( buffer_ptr(asf->scratch), "Lossless" ) ) {
+      my_hv_store( asf->info, "lossless", newSVuv(1) );
     }
     
-    desc_len = buffer_get_short_le(buf) * 2;
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, desc_len, UTF16_BYTEORDER_LE);
-    desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    desc_len = buffer_get_short_le(asf->buf) * 2;
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, desc_len, UTF16_BYTEORDER_LE);
+    desc = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(desc);
     my_hv_store( codec_info, "description", desc );
     
     // Skip info
-    buffer_consume(buf, buffer_get_short_le(buf));
+    buffer_consume(asf->buf, buffer_get_short_le(asf->buf));
     
     av_push( list, newRV_noinc( (SV *)codec_info ) );
   }
   
-  buffer_free(&utf8_buf);
-  
-  my_hv_store( info, "codec_list", newRV_noinc( (SV *)list ) );
+  my_hv_store( asf->info, "codec_list", newRV_noinc( (SV *)list ) );
 }
 
 void
-_parse_stream_bitrate_properties(Buffer *buf, HV *info, HV *tags)
+_parse_stream_bitrate_properties(asfinfo *asf)
 {
-  uint16_t count = buffer_get_short_le(buf);
+  uint16_t count = buffer_get_short_le(asf->buf);
   
   while ( count-- ) {
-    uint16_t stream_number = buffer_get_short_le(buf) & 0x007f;
+    uint16_t stream_number = buffer_get_short_le(asf->buf) & 0x007f;
     
-    _store_stream_info( stream_number, info, newSVpv("avg_bitrate", 0), newSViv( buffer_get_int_le(buf) ) );
+    _store_stream_info( stream_number, asf->info, newSVpv("avg_bitrate", 0), newSViv( buffer_get_int_le(asf->buf) ) );
   }
 }
 
 void
-_parse_metadata_library(Buffer *buf, HV *info, HV *tags)
+_parse_metadata_library(asfinfo *asf)
 {
-  Buffer utf8_buf;
-  uint16_t count = buffer_get_short_le(buf);
+  uint16_t count = buffer_get_short_le(asf->buf);
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
   while ( count-- ) {
     SV *key = NULL;
@@ -947,49 +938,49 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     uint32_t data_len;
     
 #ifdef AUDIO_SCAN_DEBUG
-    uint16_t lang_index    = buffer_get_short_le(buf);
+    uint16_t lang_index    = buffer_get_short_le(asf->buf);
 #else
-    buffer_consume(buf, 2);
+    buffer_consume(asf->buf, 2);
 #endif
 
-    stream_number = buffer_get_short_le(buf);
-    name_len      = buffer_get_short_le(buf);
-    data_type     = buffer_get_short_le(buf);
-    data_len      = buffer_get_int_le(buf);
+    stream_number = buffer_get_short_le(asf->buf);
+    name_len      = buffer_get_short_le(asf->buf);
+    data_type     = buffer_get_short_le(asf->buf);
+    data_len      = buffer_get_int_le(asf->buf);
     
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len, UTF16_BYTEORDER_LE);
-    key = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, name_len, UTF16_BYTEORDER_LE);
+    key = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(key);
     
     if (data_type == TYPE_UNICODE) {
-      buffer_clear(&utf8_buf);
-      buffer_get_utf16_as_utf8(buf, &utf8_buf, data_len, UTF16_BYTEORDER_LE);
-      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      buffer_clear(asf->scratch);
+      buffer_get_utf16_as_utf8(asf->buf, asf->scratch, data_len, UTF16_BYTEORDER_LE);
+      value = newSVpv( buffer_ptr(asf->scratch), 0 );
       sv_utf8_decode(value);
     }
     else if (data_type == TYPE_BYTE) {
       // handle picture data
       if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
-        value = _parse_picture(buf);
+        value = _parse_picture(asf);
       }
       else {
-        value = newSVpvn( buffer_ptr(buf), data_len );
-        buffer_consume(buf, data_len);
+        value = newSVpvn( buffer_ptr(asf->buf), data_len );
+        buffer_consume(asf->buf, data_len);
       }
     }
     else if (data_type == TYPE_BOOL || data_type == TYPE_WORD) {
-      value = newSViv( buffer_get_short_le(buf) );
+      value = newSViv( buffer_get_short_le(asf->buf) );
     }
     else if (data_type == TYPE_DWORD) {
-      value = newSViv( buffer_get_int_le(buf) );
+      value = newSViv( buffer_get_int_le(asf->buf) );
     }
     else if (data_type == TYPE_QWORD) {
-      value = newSViv( buffer_get_int64_le(buf) );
+      value = newSViv( buffer_get_int64_le(asf->buf) );
     }
     else if (data_type == TYPE_GUID) {
       GUID g;
-      buffer_get_guid(buf, &g);
+      buffer_get_guid(asf->buf, &g);
       value = newSVpvf(
         "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
         g.Data1, g.Data2, g.Data3,
@@ -999,7 +990,7 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
     }
     else {
       PerlIO_printf(PerlIO_stderr(), "Unknown metadata library data type %d\n", data_type);
-      buffer_consume(buf, data_len);
+      buffer_consume(asf->buf, data_len);
     }
     
     if (value != NULL) {
@@ -1018,42 +1009,40 @@ _parse_metadata_library(Buffer *buf, HV *info, HV *tags)
       // If stream_number is available, store the data with the stream info
       // XXX: should store lang_index?
       if (stream_number > 0) {
-        _store_stream_info( stream_number, info, key, value );
+        _store_stream_info( stream_number, asf->info, key, value );
       }
       else {
-        _store_tag( tags, key, value );
+        _store_tag( asf->tags, key, value );
       }
     }
   }
-
-  buffer_free(&utf8_buf);
 }
 
 void
-_parse_index_parameters(Buffer *buf, HV *info, HV *tags)
+_parse_index_parameters(asfinfo *asf)
 {
   uint16_t count;
   
-  my_hv_store( info, "index_entry_interval", newSViv( buffer_get_int_le(buf) ) );
+  my_hv_store( asf->info, "index_entry_interval", newSViv( buffer_get_int_le(asf->buf) ) );
   
-  count = buffer_get_short_le(buf);
+  count = buffer_get_short_le(asf->buf);
   
   while ( count-- ) {
-    uint16_t stream_number = buffer_get_short_le(buf);
-    uint16_t index_type    = buffer_get_short_le(buf);
+    uint16_t stream_number = buffer_get_short_le(asf->buf);
+    uint16_t index_type    = buffer_get_short_le(asf->buf);
     
     switch (index_type) {
       case 0x0001:
-        _store_stream_info( stream_number, info, newSVpv("index_type", 0), newSVpv("Nearest Past Data Packet", 0) );
+        _store_stream_info( stream_number, asf->info, newSVpv("index_type", 0), newSVpv("Nearest Past Data Packet", 0) );
         break;
       case 0x0002:
-        _store_stream_info( stream_number, info, newSVpv("index_type", 0), newSVpv("Nearest Past Media Object", 0) );
+        _store_stream_info( stream_number, asf->info, newSVpv("index_type", 0), newSVpv("Nearest Past Media Object", 0) );
         break;
       case 0x0003:
-        _store_stream_info( stream_number, info, newSVpv("index_type", 0), newSVpv("Nearest Past Cleanpoint", 0) );
+        _store_stream_info( stream_number, asf->info, newSVpv("index_type", 0), newSVpv("Nearest Past Cleanpoint", 0) );
         break;
       default:
-        _store_stream_info( stream_number, info, newSVpv("index_type", 0), newSViv(index_type) );
+        _store_stream_info( stream_number, asf->info, newSVpv("index_type", 0), newSViv(index_type) );
     }
   }
 }  
@@ -1214,6 +1203,7 @@ _parse_index(asfinfo *asf, uint64_t size)
   for (i = 0; i < spec_count; i++) {
     asf->specs[i].stream_number = buffer_get_short_le(asf->buf);
     asf->specs[i].index_type    = buffer_get_short_le(asf->buf);
+    asf->specs[i].time_interval = time_interval;
     DEBUG_TRACE("    stream_number %d, index_type %d\n", asf->specs[i].stream_number, asf->specs[i].index_type);
   }
   
@@ -1222,7 +1212,8 @@ _parse_index(asfinfo *asf, uint64_t size)
   DEBUG_TRACE("  entry_count %d\n", entry_count);
   
   for (i = 0; i < spec_count; i++) {
-    asf->specs[i].block_pos = buffer_get_int64_le(asf->buf);
+    asf->specs[i].block_pos   = buffer_get_int64_le(asf->buf);
+    asf->specs[i].entry_count = entry_count;
     DEBUG_TRACE("  specs[%d].block_pos %llu\n", i, asf->specs[i].block_pos);
     
     // allocate space for this spec's offsets
@@ -1241,75 +1232,72 @@ _parse_index(asfinfo *asf, uint64_t size)
 }
 
 void
-_parse_content_encryption(Buffer *buf, HV *info, HV *tags)
+_parse_content_encryption(asfinfo *asf)
 {
   uint32_t protection_type_len;
   uint32_t key_len;
   uint32_t license_url_len;
   
   // Skip secret data
-  buffer_consume(buf, buffer_get_int_le(buf));
+  buffer_consume(asf->buf, buffer_get_int_le(asf->buf));
   
-  protection_type_len = buffer_get_int_le(buf);
-  my_hv_store( info, "drm_protection_type", newSVpvn( buffer_ptr(buf), protection_type_len - 1 ) );
-  buffer_consume(buf, protection_type_len);
+  protection_type_len = buffer_get_int_le(asf->buf);
+  my_hv_store( asf->info, "drm_protection_type", newSVpvn( buffer_ptr(asf->buf), protection_type_len - 1 ) );
+  buffer_consume(asf->buf, protection_type_len);
   
-  key_len = buffer_get_int_le(buf);
-  my_hv_store( info, "drm_key", newSVpvn( buffer_ptr(buf), key_len - 1 ) );
-  buffer_consume(buf, key_len);
+  key_len = buffer_get_int_le(asf->buf);
+  my_hv_store( asf->info, "drm_key", newSVpvn( buffer_ptr(asf->buf), key_len - 1 ) );
+  buffer_consume(asf->buf, key_len);
   
-  license_url_len = buffer_get_int_le(buf);
-  my_hv_store( info, "drm_license_url", newSVpvn( buffer_ptr(buf), license_url_len - 1 ) );
-  buffer_consume(buf, license_url_len);
+  license_url_len = buffer_get_int_le(asf->buf);
+  my_hv_store( asf->info, "drm_license_url", newSVpvn( buffer_ptr(asf->buf), license_url_len - 1 ) );
+  buffer_consume(asf->buf, license_url_len);
 }
 
 void
-_parse_extended_content_encryption(Buffer *buf, HV *info, HV *tags)
+_parse_extended_content_encryption(asfinfo *asf)
 {
-  uint32_t len = buffer_get_int_le(buf);
-  Buffer utf8_buf;
+  uint32_t len = buffer_get_int_le(asf->buf);
   SV *value;
-  unsigned char *tmp_ptr = buffer_ptr(buf);
+  unsigned char *tmp_ptr = buffer_ptr(asf->buf);
   
   if ( tmp_ptr[0] == 0xFF && tmp_ptr[1] == 0xFE ) {
-    buffer_consume(buf, 2);
-    buffer_init(&utf8_buf, len - 2);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, len - 2, UTF16_BYTEORDER_LE);
-    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    buffer_consume(asf->buf, 2);
+    buffer_init_or_clear(asf->scratch, len - 2);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, len - 2, UTF16_BYTEORDER_LE);
+    value = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(value);
-    buffer_free(&utf8_buf);
     
-    my_hv_store( info, "drm_data", value );
+    my_hv_store( asf->info, "drm_data", value );
   }
   else {
-    buffer_consume(buf, len);
+    buffer_consume(asf->buf, len);
   }
 }
 
 void
-_parse_script_command(Buffer *buf, HV *info, HV *tags)
+_parse_script_command(asfinfo *asf)
 {
   uint16_t command_count;
   uint16_t type_count;
-  Buffer utf8_buf;
   AV *types = newAV();
   AV *commands = newAV();
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
   // Skip reserved
-  buffer_consume(buf, 16);
+  buffer_consume(asf->buf, 16);
   
-  command_count = buffer_get_short_le(buf);
-  type_count    = buffer_get_short_le(buf);
+  command_count = buffer_get_short_le(asf->buf);
+  type_count    = buffer_get_short_le(asf->buf);
   
   while ( type_count-- ) {
     SV *value;
-    uint16_t len = buffer_get_short_le(buf);
+    uint16_t len = buffer_get_short_le(asf->buf);
     
-    buffer_clear(&utf8_buf);
-    buffer_get_utf16_as_utf8(buf, &utf8_buf, len * 2, UTF16_BYTEORDER_LE);
-    value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+    buffer_clear(asf->scratch);
+    buffer_get_utf16_as_utf8(asf->buf, asf->scratch, len * 2, UTF16_BYTEORDER_LE);
+    value = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(value);
     
     av_push( types, value );
@@ -1319,14 +1307,14 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     HV *command = newHV();
     SV *value;
     
-    uint32_t pres_time  = buffer_get_int_le(buf);
-    uint16_t type_index = buffer_get_short_le(buf);
-    uint16_t name_len   = buffer_get_short_le(buf);
+    uint32_t pres_time  = buffer_get_int_le(asf->buf);
+    uint16_t type_index = buffer_get_short_le(asf->buf);
+    uint16_t name_len   = buffer_get_short_le(asf->buf);
     
     if (name_len) {
-      buffer_clear(&utf8_buf);
-      buffer_get_utf16_as_utf8(buf, &utf8_buf, name_len * 2, UTF16_BYTEORDER_LE);
-      value = newSVpv( buffer_ptr(&utf8_buf), 0 );
+      buffer_clear(asf->scratch);
+      buffer_get_utf16_as_utf8(asf->buf, asf->scratch, name_len * 2, UTF16_BYTEORDER_LE);
+      value = newSVpv( buffer_ptr(asf->scratch), 0 );
       sv_utf8_decode(value);
       my_hv_store( command, "command", value );
     }
@@ -1337,14 +1325,12 @@ _parse_script_command(Buffer *buf, HV *info, HV *tags)
     av_push( commands, newRV_noinc( (SV *)command ) );
   }
   
-  buffer_free(&utf8_buf);
-  
-  my_hv_store( info, "script_types", newRV_noinc( (SV *)types ) );
-  my_hv_store( info, "script_commands", newRV_noinc( (SV *)commands ) );
+  my_hv_store( asf->info, "script_types", newRV_noinc( (SV *)types ) );
+  my_hv_store( asf->info, "script_commands", newRV_noinc( (SV *)commands ) );
 }
 
 SV *
-_parse_picture(Buffer *buf)
+_parse_picture(asfinfo *asf)
 {
   char *tmp_ptr;
   uint16_t mime_len = 2; // to handle double-null
@@ -1353,36 +1339,35 @@ _parse_picture(Buffer *buf)
   SV *mime;
   SV *desc;
   HV *picture = newHV();
-  Buffer utf8_buf;
   
-  buffer_init(&utf8_buf, 32);
+  buffer_init_or_clear(asf->scratch, 32);
   
-  my_hv_store( picture, "image_type", newSVuv( buffer_get_char(buf) ) );
+  my_hv_store( picture, "image_type", newSVuv( buffer_get_char(asf->buf) ) );
 
-  image_len = buffer_get_int_le(buf);
+  image_len = buffer_get_int_le(asf->buf);
   
   // MIME type is a double-null-terminated UTF-16 string
-  tmp_ptr = buffer_ptr(buf);
+  tmp_ptr = buffer_ptr(asf->buf);
   while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
     mime_len += 2;
     tmp_ptr += 2;
   }
   
-  buffer_get_utf16_as_utf8(buf, &utf8_buf, mime_len, UTF16_BYTEORDER_LE);
-  mime = newSVpv( buffer_ptr(&utf8_buf), 0 );
+  buffer_get_utf16_as_utf8(asf->buf, asf->scratch, mime_len, UTF16_BYTEORDER_LE);
+  mime = newSVpv( buffer_ptr(asf->scratch), 0 );
   sv_utf8_decode(mime);
   my_hv_store( picture, "mime_type", mime );
   
   // Description is a double-null-terminated UTF-16 string
-  tmp_ptr = buffer_ptr(buf);
+  tmp_ptr = buffer_ptr(asf->buf);
   while ( tmp_ptr[0] != '\0' || tmp_ptr[1] != '\0' ) {
     desc_len += 2;
     tmp_ptr += 2;
   }
   
-  buffer_clear(&utf8_buf);
-  buffer_get_utf16_as_utf8(buf, &utf8_buf, desc_len, UTF16_BYTEORDER_LE);
-  desc = newSVpv( buffer_ptr(&utf8_buf), 0 );
+  buffer_clear(asf->scratch);
+  buffer_get_utf16_as_utf8(asf->buf, asf->scratch, desc_len, UTF16_BYTEORDER_LE);
+  desc = newSVpv( buffer_ptr(asf->scratch), 0 );
   sv_utf8_decode(desc);
   my_hv_store( picture, "description", desc );
   
@@ -1390,12 +1375,10 @@ _parse_picture(Buffer *buf)
     my_hv_store( picture, "image", newSVuv(image_len) );
   }
   else {
-    my_hv_store( picture, "image", newSVpvn( buffer_ptr(buf), image_len ) );
+    my_hv_store( picture, "image", newSVpvn( buffer_ptr(asf->buf), image_len ) );
   }
   
-  buffer_consume(buf, image_len);
-  
-  buffer_free(&utf8_buf);
+  buffer_consume(asf->buf, image_len);
   
   return newRV_noinc( (SV *)picture );
 }
@@ -1403,86 +1386,121 @@ _parse_picture(Buffer *buf)
 // offset is in ms
 // Based on some code from Rockbox
 int
-asf_find_frame(PerlIO *infile, char *file, int offset)
+asf_find_frame(PerlIO *infile, char *file, int time_offset)
 {
   int frame_offset = -1;
-  uint32_t max_packet_size, max_bitrate;
-  uint64_t data_packets;
-  uint32_t packet_num;
-  uint8_t count = 0;
+  uint32_t song_length_ms;
+  uint32_t offset_index = 0;
+  uint32_t min_packet_size, max_packet_size;
+  uint8_t found = 0;
   
   // We need to read all info first to get some data we need to calculate
   HV *info = newHV();
   HV *tags = newHV();
   asfinfo *asf = _asf_parse(infile, file, info, tags, 1);
   
-  if ( !my_hv_exists(info, "data_packets") ) {
-    // Can't seek in file without data_packets value
+  // We'll need to reuse the scratch buffer
+  Newz(0, asf->scratch, sizeof(Buffer), Buffer);
+  
+  // Only support seeking if index is available
+  // XXX try to seek anyway without an index, using FLAC binary search method
+  if ( !asf->spec_count ) {
+    DEBUG_TRACE("No ASF_Index object available, not seeking\n");
     goto out;
   }
   
-  // XXX rewrite all this to use index if available to find initial position
-  
-  data_packets    = SvIV( *(my_hv_fetch( info, "data_packets" )) );
-  max_packet_size = SvIV( *(my_hv_fetch( info, "max_packet_size" )) );
-  max_bitrate     = SvIV( *(my_hv_fetch( info, "max_bitrate" )) );
-  
-  packet_num = ( ( ((int64_t)offset) * (max_bitrate>>3) ) / max_packet_size / 1000 ) + 1;
-  
-  if (packet_num > data_packets) {
-    packet_num = data_packets;
+  // No seeking without at least 1 stream
+  if ( !my_hv_exists(info, "streams") ) {
+    DEBUG_TRACE("No streams found in file, not seeking\n");
+    goto out;
   }
   
-  frame_offset = asf->audio_offset + ( (packet_num - 1) * max_packet_size);
+  min_packet_size = SvIV( *(my_hv_fetch(info, "min_packet_size")) );
+  max_packet_size = SvIV( *(my_hv_fetch(info, "max_packet_size")) );
   
-  // Double-check above packet, make sure we have the right one
-  // with a timestamp within our desired range
-  DEBUG_TRACE("Looking for packet with timestamp %d (total packets %llu)\n", offset, data_packets);
+  // No seeking if min != max, according to the ASF spec these must be the same
+  // and without this value we can't find the data packets properly
+  if (min_packet_size != max_packet_size) {
+    DEBUG_TRACE("min_packet_size != max_packet_size, cannot seek\n");
+    goto out;
+  }
   
-  while ( count < 10 ) {
-    int time, duration;
+  if (asf->spec_count) {
+    // Use the index to find the nearest offset    
+    song_length_ms = SvIV( *(my_hv_fetch( info, "song_length_ms" )) );
     
-    if ( frame_offset > asf->file_size - 64 ) {
-      DEBUG_TRACE("  Offset too large: %d\n", frame_offset);
-      break;
-    }
+    if (time_offset > song_length_ms)
+      time_offset = song_length_ms;
     
-    time = _timestamp(infile, frame_offset, &duration);
+    offset_index = time_offset / asf->specs[0].time_interval;
     
-    DEBUG_TRACE("  Timestamp for packet %d at %d: %d, duration: %d\n", packet_num, frame_offset, time, duration);
-    
-    if (time < 0) {
-      DEBUG_TRACE("  Invalid timestamp, giving up\n");
-      break;
-    }
-    
-    if ( time + duration >= offset && time <= offset ) {
-      DEBUG_TRACE("  Found packet at offset %d\n", frame_offset);
-      break;
-    }
-    else {
-      int delta = offset - time;
-      DEBUG_TRACE("  Wrong packet, delta: %d\n", delta);
+    if (offset_index >= asf->specs[0].entry_count)
+      offset_index = asf->specs[0].entry_count - 1;
       
-      // XXX: too simplistic, but the re-calc code from Rockbox is not correct either
-      if (delta > 0) {
-        packet_num++;
-      }
-      else {
-        packet_num--;
-      }
+    // An offset may be -1 so look backwards if we find one of those
+    while (frame_offset == -1 && offset_index >= 0) {
+      frame_offset = asf->specs[0].offsets[offset_index];
       
-      if (packet_num < 1 || packet_num > data_packets) {
-        // Probably we were passed an offset out of bounds for this file
-        frame_offset = -1;
+      // XXX should add asf->specs[0].block_pos here, but since we
+      // aren't supporting 64-bit it should always be 0
+    
+      DEBUG_TRACE(
+        "offset_index for %d / %d: %d = %d\n",
+        time_offset, asf->specs[0].time_interval, offset_index, frame_offset
+      );
+    
+      offset_index--;
+    }
+        
+    // Double-check above frame, make sure we have the right one
+    // with a timestamp within our desired range
+    while ( !found ) {
+      int time, duration;
+      
+      DEBUG_TRACE("Checking for frame with timestamp %d at %d\n", time_offset, frame_offset);
+    
+      if ( frame_offset > asf->file_size - 64 ) {
+        DEBUG_TRACE("  Offset too large: %d\n", frame_offset);
         break;
       }
-      
-      frame_offset = asf->audio_offset + ( (packet_num - 1) * max_packet_size);
-      
-      count++;
-      
-      DEBUG_TRACE("  Try #%d packet %d at frame offset %d\n", count, packet_num, frame_offset);
+    
+      time = _timestamp(asf, frame_offset, &duration);
+    
+      DEBUG_TRACE("  Timestamp for frame at %d: %d, duration: %d\n", frame_offset, time, duration);
+    
+      if (time < 0) {
+        DEBUG_TRACE("  Invalid timestamp, giving up\n");
+        break;
+      }
+    
+      if ( time + duration >= time_offset && time <= time_offset ) {
+        DEBUG_TRACE("  Found frame at offset %d\n", frame_offset);
+        found = 1;
+      }
+      else {
+        int delta = time_offset - time;
+        
+        DEBUG_TRACE("  Wrong frame, delta: %d\n", delta);
+        
+        if (
+          (delta < 0 && (frame_offset - max_packet_size) < asf->audio_offset)
+          ||
+          (delta > 0 && (frame_offset + max_packet_size) > (asf->audio_offset + asf->audio_size - 64))
+        ) {
+          // Reached the first/last audio packet, break out
+          DEBUG_TRACE("  Giving up, reached the beginning or end of audio\n");
+          break;
+        }
+        
+        // XXX probably could be more efficient using a binary search,
+        // but with the use of an index we should already be very close to the right place
+        if (delta > 0) {
+          frame_offset += max_packet_size;
+        }
+        else {
+          frame_offset -= max_packet_size;
+        }
+      }
     }
   }
   
@@ -1502,6 +1520,10 @@ out:
     Safefree(asf->specs);
   }
   
+  if (asf->scratch->alloc)
+    buffer_free(asf->scratch);
+  Safefree(asf->scratch);
+  
   Safefree(asf);
   
   return frame_offset;
@@ -1509,49 +1531,45 @@ out:
 
 // Return the timestamp of the data packet at offset
 int
-_timestamp(PerlIO *infile, int offset, int *duration)
+_timestamp(asfinfo *asf, int offset, int *duration)
 {
-  Buffer asf_buf;
   int timestamp = -1;
   uint8_t tmp;
   
-  DEBUG_TRACE("Seeking to %d to read timestamp\n", offset);
-  if ((PerlIO_seek(infile, offset, SEEK_SET)) != 0) {
+  if ((PerlIO_seek(asf->infile, offset, SEEK_SET)) != 0) {
     return -1;
   }
   
-  buffer_init(&asf_buf, 64);
+  buffer_init_or_clear(asf->scratch, 64);
   
-  if ( !_check_buf(infile, &asf_buf, 64, 64) ) {
+  if ( !_check_buf(asf->infile, asf->scratch, 64, 64) ) {
     goto out;
   }
   
   // Read Error Correction Flags
-  tmp = buffer_get_char(&asf_buf);
+  tmp = buffer_get_char(asf->scratch);
   
   if (tmp & 0x80) {
     // Skip error correction data
-    buffer_consume(&asf_buf, tmp & 0x0f);
+    buffer_consume(asf->scratch, tmp & 0x0f);
     
     // Read Length Type Flags
-    tmp = buffer_get_char(&asf_buf);
+    tmp = buffer_get_char(asf->scratch);
   }
   else {
     // The byte we already read is Length Type Flags
   }
   
   // Skip Property Flags, Packet Length, Sequence, Padding Length
-  buffer_consume( &asf_buf,
+  buffer_consume( asf->scratch,
     1 + GETLEN2b((tmp >> 1) & 0x03) +
         GETLEN2b((tmp >> 3) & 0x03) +
         GETLEN2b((tmp >> 5) & 0x03)
   );
   
-  timestamp = buffer_get_int_le(&asf_buf);
-  *duration = buffer_get_short_le(&asf_buf);
+  timestamp = buffer_get_int_le(asf->scratch);
+  *duration = buffer_get_short_le(asf->scratch);
   
 out:
-  buffer_free(&asf_buf);
-
   return timestamp;
 }

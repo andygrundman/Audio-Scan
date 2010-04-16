@@ -50,6 +50,7 @@ const uint32_t CacheMask[33] = {
 };
 
 void buffer_init(Buffer *buffer, uint32_t len);
+void buffer_init_or_clear(Buffer *buffer, uint32_t len);
 void buffer_free(Buffer *buffer);
 void buffer_clear(Buffer *buffer);
 void buffer_append(Buffer *buffer, const void *data, uint32_t len);

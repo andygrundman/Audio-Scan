@@ -14,7 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
  
-#define ASF_BLOCK_SIZE 4096
+#define ASF_BLOCK_SIZE 8192
 
 #undef DEFINE_GUID
 
@@ -151,7 +151,9 @@ typedef struct _asf_object_t {
 typedef struct asf_index_specs {
   uint16_t stream_number;
   uint16_t index_type;
+  uint32_t time_interval;
   uint64_t block_pos;
+  uint32_t entry_count;
   uint32_t *offsets;
 } asf_index_specs;
 
@@ -159,8 +161,10 @@ typedef struct asfinfo {
   PerlIO *infile;
   char *file;
   Buffer *buf;
+  Buffer *scratch;
   uint64_t file_size;
   uint64_t audio_offset;
+  uint64_t audio_size;
   HV *info;
   HV *tags;
   
@@ -181,26 +185,26 @@ enum types {
 
 int get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
 asfinfo * _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
-void _parse_content_description(Buffer *buf, HV *info, HV *tags);
-void _parse_extended_content_description(Buffer *buf, HV *info, HV *tags);
-void _parse_file_properties(Buffer *buf, HV *info, HV *tags);
-void _parse_stream_properties(Buffer *buf, HV *info, HV *tags);
+void _parse_content_description(asfinfo *asf);
+void _parse_extended_content_description(asfinfo *asf);
+void _parse_file_properties(asfinfo *asf);
+void _parse_stream_properties(asfinfo *asf);
 void _store_stream_info(int stream_number, HV *info, SV *key, SV *value);
 void _store_tag(HV *tags, SV *key, SV *value);
-int _parse_header_extension(Buffer *buf, uint64_t len, HV *info, HV *tags);
-void _parse_metadata(Buffer *buf, HV *info, HV *tags);
-void _parse_extended_stream_properties(Buffer *buf, uint64_t len, HV *info, HV *tags);
-void _parse_language_list(Buffer *buf, HV *info, HV *tags);
-void _parse_advanced_mutual_exclusion(Buffer *buf, HV *info, HV *tags);
-void _parse_codec_list(Buffer *buf, HV *info, HV *tags);
-void _parse_stream_bitrate_properties(Buffer *buf, HV *info, HV *tags);
-void _parse_metadata_library(Buffer *buf, HV *info, HV *tags);
-void _parse_index_parameters(Buffer *buf, HV *info, HV *tags);
+int _parse_header_extension(asfinfo *asf, uint64_t len);
+void _parse_metadata(asfinfo *asf);
+void _parse_extended_stream_properties(asfinfo *asf, uint64_t len);
+void _parse_language_list(asfinfo *asf);
+void _parse_advanced_mutual_exclusion(asfinfo *asf);
+void _parse_codec_list(asfinfo *asf);
+void _parse_stream_bitrate_properties(asfinfo *asf);
+void _parse_metadata_library(asfinfo *asf);
+void _parse_index_parameters(asfinfo *asf);
 int _parse_index_objects(asfinfo *asf, int index_size);
 void _parse_index(asfinfo *asf, uint64_t size);
-void _parse_content_encryption(Buffer *buf, HV *info, HV *tags);
-void _parse_extended_content_encryption(Buffer *buf, HV *info, HV *tags);
-void _parse_script_command(Buffer *buf, HV *info, HV *tags);
-SV *_parse_picture(Buffer *buf);
+void _parse_content_encryption(asfinfo *asf);
+void _parse_extended_content_encryption(asfinfo *asf);
+void _parse_script_command(asfinfo *asf);
+SV *_parse_picture(asfinfo *asf);
 int asf_find_frame(PerlIO *infile, char *file, int offset);
-int _timestamp(PerlIO *infile, int offset, int *duration);
+int _timestamp(asfinfo *asf, int offset, int *duration);

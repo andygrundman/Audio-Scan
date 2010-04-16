@@ -5,7 +5,7 @@ Large buffers will still be allocated with artwork disabled:
   ASF, Ogg (hard to fix these)
 Clean up various code by using buffer_get_bits
 Handle stuff done by expensive SC Unicode regexes
-Test under 64-bit Strawberry Perl 5.12.0-RC
+Test under 64-bit Strawberry Perl 5.12.0
 Add support for AC3 and DTS
 Standardize error messages
 
@@ -44,9 +44,6 @@ Test invalid picture data
 ASF
 ---
 Filter out duplicate tags if the same exact tag exists in Extended Content Description and Metadata Library?
-Refactor:
-  Use a scratch buffer instead of many utf8 buffers
-Seeking isn't correct sometimes
 
 MP4/AAC
 -------
@@ -60,16 +57,11 @@ Audio offset/bitrate are wrong when multiple mdat boxes are present (bug 15875)
 
 Wavpack
 ---
-Support seeking
-Get test files for rare cases such as ID_SAMPLE_RATE, ID_CHANNEL_INFO, empty blocks at start
-Get test files for versions < 3
+Support seeking, not necessary for SBS though
 
 APE
 ---
 Refactor, this code is messy and not consistent with the rest of the source
-
-Monkey's Audio Codec
----
 
 Musepack
 ---
