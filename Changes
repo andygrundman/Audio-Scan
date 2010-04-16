@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.78
+        - ID3: Bug 16073, properly handle illegal zero-byte frames.
+
 0.77    2010-04-14 11:30:00
         - PerlIO_seek with SEEK_END sometimes does not work correctly, changed all seeks
           to use SEEK_SET instead.

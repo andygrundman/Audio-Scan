@@ -710,6 +710,10 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
   uint8_t buffer_art = ( !strcmp(id, "APIC") ) ? 1 : 0;
   uint8_t skip_art   = ( buffer_art && _env_true("AUDIO_SCAN_NO_ARTWORK") ) ? 1 : 0;
   
+  // Bug 16703, a completely empty frame is against the rules, skip it
+  if (!size)
+    return 1;
+  
   if (skip_art) {
     // Only buffer enough for the APIC header fields, this is only a rough guess
     // because the description could technically be very long

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 351;
+use Test::More tests => 353;
 
 use Audio::Scan;
 
@@ -1181,6 +1181,15 @@ eval {
     
     # Restore stderr
     open STDERR, '>&', OLD_STDERR;
+}
+
+# Bug 16073, zero-byte frames
+{
+    my $s = Audio::Scan->scan( _f('v2.3-zero-frame.mp3') );
+    my $tags = $s->{tags};
+    
+    ok( !exists $tags->{WCOM}, 'v2.3 zero-frame WCOM not present ok' );
+    is( $tags->{TDRC}, 1982, 'v2.3 zero-frame TDRC ok' );
 }
 
 sub _f {    
