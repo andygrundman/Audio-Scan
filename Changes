@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.78
+0.78    2010-04-16 15:45:00
         - ASF: Fixed various issues when seeking, now uses the ASF_Index object correctly.
         - ASF: Refactored to clean up the code and make it more efficient.
         - ID3: Bug 16073, properly handle illegal zero-byte frames.
