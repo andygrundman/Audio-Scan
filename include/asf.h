@@ -14,7 +14,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
  
-#define ASF_BLOCK_SIZE 8192
+#define ASF_BLOCK_SIZE 4096
 
 #undef DEFINE_GUID
 
@@ -148,6 +148,27 @@ typedef struct _asf_object_t {
   uint8_t  reserved2;
 } _PACKED ASF_Object;
 
+typedef struct asf_index_specs {
+  uint16_t stream_number;
+  uint16_t index_type;
+  uint64_t block_pos;
+  uint32_t *offsets;
+} asf_index_specs;
+
+typedef struct asfinfo {
+  PerlIO *infile;
+  char *file;
+  Buffer *buf;
+  uint64_t file_size;
+  uint64_t audio_offset;
+  HV *info;
+  HV *tags;
+  
+  uint8_t seeking;      // flag if we're seeking
+  uint16_t spec_count;
+  struct asf_index_specs *specs;
+} asfinfo;
+
 enum types {
   TYPE_UNICODE,
   TYPE_BYTE,
@@ -158,7 +179,8 @@ enum types {
   TYPE_GUID
 };
 
-static int get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
+int get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
+asfinfo * _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
 void _parse_content_description(Buffer *buf, HV *info, HV *tags);
 void _parse_extended_content_description(Buffer *buf, HV *info, HV *tags);
 void _parse_file_properties(Buffer *buf, HV *info, HV *tags);
@@ -174,8 +196,8 @@ void _parse_codec_list(Buffer *buf, HV *info, HV *tags);
 void _parse_stream_bitrate_properties(Buffer *buf, HV *info, HV *tags);
 void _parse_metadata_library(Buffer *buf, HV *info, HV *tags);
 void _parse_index_parameters(Buffer *buf, HV *info, HV *tags);
-int _parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buffer *buf, HV *info, HV *tags);
-void _parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags);
+int _parse_index_objects(asfinfo *asf, int index_size);
+void _parse_index(asfinfo *asf, uint64_t size);
 void _parse_content_encryption(Buffer *buf, HV *info, HV *tags);
 void _parse_extended_content_encryption(Buffer *buf, HV *info, HV *tags);
 void _parse_script_command(Buffer *buf, HV *info, HV *tags);

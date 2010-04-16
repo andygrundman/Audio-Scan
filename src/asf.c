@@ -52,28 +52,42 @@ print_guid(GUID guid)
   );
 }
 
-static int
+int
 get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 {
-  Buffer asf_buf;
+  asfinfo *asf = _asf_parse(infile, file, info, tags, 0);
+  
+  Safefree(asf);
+  
+  return 0;
+}
+
+asfinfo *
+_asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
+{
   ASF_Object hdr;
   ASF_Object data;
   ASF_Object tmp;
+  asfinfo *asf;
   
-  off_t file_size;
+  Newz(0, asf, sizeof(asfinfo), asfinfo);
+  Newz(0, asf->buf, sizeof(Buffer), Buffer);
   
-  int err = 0;
+  asf->file_size    = _file_size(infile);
+  asf->audio_offset = 0;
+  asf->infile       = infile;
+  asf->file         = file;
+  asf->info         = info;
+  asf->tags         = tags;
+  asf->seeking      = seeking;
   
-  file_size = _file_size(infile);
+  buffer_init(asf->buf, ASF_BLOCK_SIZE);
   
-  buffer_init(&asf_buf, ASF_BLOCK_SIZE);
-  
-  if ( !_check_buf(infile, &asf_buf, 30, ASF_BLOCK_SIZE) ) {
-    err = -1;
+  if ( !_check_buf(infile, asf->buf, 30, ASF_BLOCK_SIZE) ) {
     goto out;
   }
   
-  buffer_get_guid(&asf_buf, &hdr.ID);
+  buffer_get_guid(asf->buf, &hdr.ID);
   
   if ( !IsEqualGUID(&hdr.ID, &ASF_Header_Object) ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF header: %s\n", file);
@@ -82,86 +96,81 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     PerlIO_printf(PerlIO_stderr(), "\n        Got: ");
       print_guid(hdr.ID);
     PerlIO_printf(PerlIO_stderr(), "\n");
-    err = -1;
     goto out;
   }
   
-  hdr.size        = buffer_get_int64_le(&asf_buf);
-  hdr.num_objects = buffer_get_int_le(&asf_buf);
-  hdr.reserved1   = buffer_get_char(&asf_buf);
-  hdr.reserved2   = buffer_get_char(&asf_buf);
+  hdr.size        = buffer_get_int64_le(asf->buf);
+  hdr.num_objects = buffer_get_int_le(asf->buf);
+  hdr.reserved1   = buffer_get_char(asf->buf);
+  hdr.reserved2   = buffer_get_char(asf->buf);
   
   if ( hdr.reserved2 != 0x02 ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF header: %s\n", file);
-    err = -1;
     goto out;
   }
   
   while ( hdr.num_objects-- ) {
-    if ( !_check_buf(infile, &asf_buf, 24, ASF_BLOCK_SIZE) ) {
-      err = -1;
+    if ( !_check_buf(infile, asf->buf, 24, ASF_BLOCK_SIZE) ) {
       goto out;
     }
     
-    buffer_get_guid(&asf_buf, &tmp.ID);
-    tmp.size = buffer_get_int64_le(&asf_buf);
+    buffer_get_guid(asf->buf, &tmp.ID);
+    tmp.size = buffer_get_int64_le(asf->buf);
     
-    if ( !_check_buf(infile, &asf_buf, tmp.size - 24, ASF_BLOCK_SIZE) ) {
-      err = -1;
+    if ( !_check_buf(infile, asf->buf, tmp.size - 24, ASF_BLOCK_SIZE) ) {
       goto out;
     }
     
     if ( IsEqualGUID(&tmp.ID, &ASF_Content_Description) ) {
       DEBUG_TRACE("Content_Description\n");
-      _parse_content_description(&asf_buf, info, tags);
+      _parse_content_description(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_File_Properties) ) {
       DEBUG_TRACE("File_Properties\n");
-      _parse_file_properties(&asf_buf, info, tags);
+      _parse_file_properties(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Properties) ) {
       DEBUG_TRACE("Stream_Properties\n");
-      _parse_stream_properties(&asf_buf, info, tags);
+      _parse_stream_properties(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Description) ) {
       DEBUG_TRACE("Extended_Content_Description\n");
-      _parse_extended_content_description(&asf_buf, info, tags);
+      _parse_extended_content_description(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Codec_List) ) {
       DEBUG_TRACE("Codec_List\n");
-      _parse_codec_list(&asf_buf, info, tags);
+      _parse_codec_list(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Stream_Bitrate_Properties) ) {
       DEBUG_TRACE("Stream_Bitrate_Properties\n");
-      _parse_stream_bitrate_properties(&asf_buf, info, tags);
+      _parse_stream_bitrate_properties(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Content_Encryption) ) {
       DEBUG_TRACE("Content_Encryption\n");
-      _parse_content_encryption(&asf_buf, info, tags);
+      _parse_content_encryption(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Extended_Content_Encryption) ) {
       DEBUG_TRACE("Extended_Content_Encryption\n");
-      _parse_extended_content_encryption(&asf_buf, info, tags);
+      _parse_extended_content_encryption(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Script_Command) ) {
       DEBUG_TRACE("Script_Command\n");
-      _parse_script_command(&asf_buf, info, tags);
+      _parse_script_command(asf->buf, info, tags);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Digital_Signature) ) {
       DEBUG_TRACE("Skipping Digital_Signature\n");
-      buffer_consume(&asf_buf, tmp.size - 24);
+      buffer_consume(asf->buf, tmp.size - 24);
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Header_Extension) ) {
       DEBUG_TRACE("Header_Extension\n");
-      if ( !_parse_header_extension(&asf_buf, tmp.size, info, tags) ) {
+      if ( !_parse_header_extension(asf->buf, tmp.size, info, tags) ) {
         PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (invalid header extension object)\n", file);
-        err = -1;
         goto out;
       }
     }
     else if ( IsEqualGUID(&tmp.ID, &ASF_Error_Correction) ) {
       DEBUG_TRACE("Skipping Error_Correction\n");
-      buffer_consume(&asf_buf, tmp.size - 24);
+      buffer_consume(asf->buf, tmp.size - 24);
     }
     else {
       // Unhandled GUID
@@ -169,61 +178,54 @@ get_asf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       print_guid(tmp.ID);
       PerlIO_printf(PerlIO_stderr(), "size: %llu\n", tmp.size);
       
-      buffer_consume(&asf_buf, tmp.size - 24);
+      buffer_consume(asf->buf, tmp.size - 24);
     }
   }
   
   // We should be at the start of the Data object.
   // Seek past it to find more objects
-  if ( !_check_buf(infile, &asf_buf, 24, ASF_BLOCK_SIZE) ) {
-    err = -1;
+  if ( !_check_buf(infile, asf->buf, 24, ASF_BLOCK_SIZE) ) {
     goto out;
   }
   
-  buffer_get_guid(&asf_buf, &data.ID);
+  buffer_get_guid(asf->buf, &data.ID);
   
   if ( !IsEqualGUID(&data.ID, &ASF_Data) ) {
     PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (no Data object after Header)\n", file);
-    err = -1;
     goto out;
   }
   
   // Store offset to beginning of data (50 goes past the top-level data packet)
-  my_hv_store( info, "audio_offset", newSVuv(hdr.size + 50) );
+  asf->audio_offset = hdr.size + 50;
+  my_hv_store( info, "audio_offset", newSVuv(asf->audio_offset) );
   
-  my_hv_store( info, "file_size", newSVuv(file_size) );
-
-/*
-  XXX: Not worth the overhead of skipping the data and parsing
-       the index objects, and can't compile it on Windows, so leave it out for now...
-       
-  data.size = buffer_get_int64_le(&asf_buf);
+  my_hv_store( info, "file_size", newSVuv(asf->file_size) );
   
-  if ( hdr.size + data.size < file_size ) {
-    DEBUG_TRACE("Seeking past data: %lu\n", hdr.size + data.size);
+  if (seeking) {
+    data.size = buffer_get_int64_le(asf->buf);
+  
+    if ( hdr.size + data.size < asf->file_size ) {
+      DEBUG_TRACE("Seeking past data: %llu\n", hdr.size + data.size);
       
-    if ( PerlIO_seek(infile, hdr.size + data.size, SEEK_SET) != 0 ) {
-      PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Data object size)\n", file);
-      err = -1;
-      goto out;
-    }
+      if ( PerlIO_seek(infile, hdr.size + data.size, SEEK_SET) != 0 ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Data object size)\n", file);
+        goto out;
+      }
     
-    buffer_clear(&asf_buf);
+      buffer_clear(asf->buf);
     
-    if ( !_parse_index_objects(infile, file_size - hdr.size - data.size, hdr.size + 50, &asf_buf, info, tags) ) {
-      PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Index object)\n", file);
-      err = -1;
-      goto out;
+      if ( !_parse_index_objects(asf, asf->file_size - hdr.size - data.size) ) {
+        PerlIO_printf(PerlIO_stderr(), "Invalid ASF file: %s (Invalid Index object)\n", file);
+        goto out;
+      }
     }
   }
-*/
   
 out:
-  buffer_free(&asf_buf);
+  buffer_free(asf->buf);
+  Safefree(asf->buf);
 
-  if (err) return err;
-
-  return 0;
+  return asf;
 }
 
 void
@@ -1140,42 +1142,41 @@ _store_tag(HV *tags, SV *key, SV *value)
   SvREFCNT_dec(key);
 }
 
-/*
 int
-_parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buffer *buf, HV *info, HV *tags)
+_parse_index_objects(asfinfo *asf, int index_size)
 {
   GUID tmp;
   uint64_t size;
   
   while (index_size > 0) {
     // Make sure we have enough data
-    if ( !_check_buf(infile, buf, 24, ASF_BLOCK_SIZE) ) {
+    if ( !_check_buf(asf->infile, asf->buf, 24, ASF_BLOCK_SIZE) ) {
       return 0;
     }
   
-    buffer_get_guid(buf, &tmp);    
-    size = buffer_get_int64_le(buf);
+    buffer_get_guid(asf->buf, &tmp);    
+    size = buffer_get_int64_le(asf->buf);
   
-    if ( !_check_buf(infile, buf, size - 24, ASF_BLOCK_SIZE) ) {
+    if ( !_check_buf(asf->infile, asf->buf, size - 24, ASF_BLOCK_SIZE) ) {
       return 0;
     }
     
     if ( IsEqualGUID(&tmp, &ASF_Index) ) {
-      DEBUG_TRACE("Index size %d\n", size);
-      _parse_index(buf, audio_offset, info, tags);
+      DEBUG_TRACE("Index size %llu\n", size);
+      _parse_index(asf, size - 24);
     }
     else if ( IsEqualGUID(&tmp, &ASF_Simple_Index) ) {
-      DEBUG_TRACE("Skipping Simple_Index size %d\n", size);
+      DEBUG_TRACE("Skipping Simple_Index size %llu\n", size);
       // Simple Index is used for video files only
-      buffer_consume(buf, size - 24);
+      buffer_consume(asf->buf, size - 24);
     }
     else {
       // Unhandled GUID
       PerlIO_printf(PerlIO_stderr(), "** Unhandled Index GUID: ");
       print_guid(tmp);
-      PerlIO_printf(PerlIO_stderr(), "size: %lu\n", size);
+      PerlIO_printf(PerlIO_stderr(), "size: %llu\n", size);
       
-      buffer_consume(buf, size - 24);
+      buffer_consume(asf->buf, size - 24);
     }
       
     index_size -= size;
@@ -1184,74 +1185,60 @@ _parse_index_objects(PerlIO *infile, int index_size, uint64_t audio_offset, Buff
   return 1;
 }
 
-// XXX: These don't really seem that useful for seeking after all...
 void
-_parse_index(Buffer *buf, uint64_t audio_offset, HV *info, HV *tags)
+_parse_index(asfinfo *asf, uint64_t size)
 {
-  AV *specs   = newAV();
-  AV *blocks  = newAV();
+  uint32_t time_interval;
   uint16_t spec_count;
-  uint32_t blocks_count;
-  int i;
+  uint32_t block_count;
+  uint32_t entry_count;
+  int i, ec;
   
-  // Skip index entry time interval, it is read from Index Parameters
-  buffer_consume(buf, 4);
+  time_interval = buffer_get_int_le(asf->buf);
+  spec_count    = buffer_get_short_le(asf->buf);
+  block_count   = buffer_get_int_le(asf->buf);
   
-  spec_count   = buffer_get_short_le(buf);
-  blocks_count = buffer_get_int_le(buf);
-  
-  for (i = 0; i < spec_count; i++) {
-    // Add stream number
-    av_push( specs, newSViv( buffer_get_short_le(buf) ) );
-    // Skip index type, this is already read from Index Parameters
-    buffer_consume(buf, 2);
+  // XXX ignore block_count > 1 for now, for files larger than 2^32
+  if (block_count > 1) {
+    buffer_consume(asf->buf, size);
+    return;
   }
   
-  my_hv_store( info, "index_specifiers", newRV_noinc( (SV *)specs ) );
+  DEBUG_TRACE("  time_interval %d, spec_count %d\n", time_interval, spec_count);
   
-  // XXX: if blocks_count > 1 the file is larger than 2^32 bytes and
-  // our stored index data is not valid.  This seems unlikely to occur in real life...
-  while ( blocks_count-- ) {
-    AV *offsets[spec_count];
-    uint32_t entry_count = buffer_get_int_le(buf);
+  asf->spec_count = spec_count;
+  
+  New(0, asf->specs, spec_count * sizeof(*asf->specs), struct asf_index_specs);
+  
+  DEBUG_TRACE("  Index Specifiers:\n");
+  for (i = 0; i < spec_count; i++) {
+    asf->specs[i].stream_number = buffer_get_short_le(asf->buf);
+    asf->specs[i].index_type    = buffer_get_short_le(asf->buf);
+    DEBUG_TRACE("    stream_number %d, index_type %d\n", asf->specs[i].stream_number, asf->specs[i].index_type);
+  }
+  
+  entry_count = buffer_get_int_le(asf->buf);
+  
+  DEBUG_TRACE("  entry_count %d\n", entry_count);
+  
+  for (i = 0; i < spec_count; i++) {
+    asf->specs[i].block_pos = buffer_get_int64_le(asf->buf);
+    DEBUG_TRACE("  specs[%d].block_pos %llu\n", i, asf->specs[i].block_pos);
     
+    // allocate space for this spec's offsets
+    New(0, asf->specs[i].offsets, entry_count * sizeof(uint32_t), uint32_t);
+  }
+  
+  for (ec = 0; ec < entry_count; ec++) {
     for (i = 0; i < spec_count; i++) {
-      uint64_t block_pos;
-      
-      // Init offsets array for each spec_count
-      offsets[i] = newAV();
-      
-      block_pos = buffer_get_int64_le(buf);
-      av_push( blocks, newSViv(block_pos) );
-    }
-    
-    my_hv_store( info, "index_blocks", newRV_noinc( (SV *)blocks ) );
-    
-    while ( entry_count-- ) {      
-      for (i = 0; i < spec_count; i++) {
-        // These are byte offsets relative to start of the first data packet,
-        // so we add audio_offset here.  An additional 50 bytes are added
-        // to skip past the top-level Data Object
-        av_push( offsets[i], newSViv( audio_offset + buffer_get_int_le(buf) ) );
-      }
-    }
-    
-    if (spec_count == 1) {
-      my_hv_store( info, "index_offsets", newRV_noinc( (SV *)offsets[0] ) );
-    }
-    else {
-      // Nested arrays, one per spec_count (stream)
-      AV *offset_list = newAV();
-          
-      for (i = 0; i < spec_count; i++) {
-        av_push( offset_list, newRV_noinc( (SV *)offsets[i] ) );
-      }
-      
-      my_hv_store( info, "index_offsets", newRV_noinc( (SV *)offset_list ) );
+      // These are byte offsets relative to start of the first data packet,
+      // so we add audio_offset here.  An additional 50 bytes are already added
+      // to skip past the top-level Data Object
+      asf->specs[i].offsets[ec] = asf->audio_offset + buffer_get_int_le(asf->buf);
+      DEBUG_TRACE("  entry %d spec %d offset: %d\n", ec, i, asf->specs[i].offsets[ec]);
     }
   }
 }
-*/
 
 void
 _parse_content_encryption(Buffer *buf, HV *info, HV *tags)
@@ -1419,23 +1406,23 @@ int
 asf_find_frame(PerlIO *infile, char *file, int offset)
 {
   int frame_offset = -1;
-  uint32_t audio_offset, max_packet_size, max_bitrate, file_size;
+  uint32_t max_packet_size, max_bitrate;
   uint64_t data_packets;
   uint32_t packet_num;
   uint8_t count = 0;
   
-  // We need to read all tags first to get some data we need to calculate
+  // We need to read all info first to get some data we need to calculate
   HV *info = newHV();
   HV *tags = newHV();
-  get_asf_metadata(infile, file, info, tags);
+  asfinfo *asf = _asf_parse(infile, file, info, tags, 1);
   
   if ( !my_hv_exists(info, "data_packets") ) {
     // Can't seek in file without data_packets value
     goto out;
   }
   
-  file_size       = SvIV( *(my_hv_fetch( info, "file_size" )) );
-  audio_offset    = SvIV( *(my_hv_fetch( info, "audio_offset" )) );
+  // XXX rewrite all this to use index if available to find initial position
+  
   data_packets    = SvIV( *(my_hv_fetch( info, "data_packets" )) );
   max_packet_size = SvIV( *(my_hv_fetch( info, "max_packet_size" )) );
   max_bitrate     = SvIV( *(my_hv_fetch( info, "max_bitrate" )) );
@@ -1446,7 +1433,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
     packet_num = data_packets;
   }
   
-  frame_offset = audio_offset + ( (packet_num - 1) * max_packet_size);
+  frame_offset = asf->audio_offset + ( (packet_num - 1) * max_packet_size);
   
   // Double-check above packet, make sure we have the right one
   // with a timestamp within our desired range
@@ -1455,7 +1442,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
   while ( count < 10 ) {
     int time, duration;
     
-    if ( frame_offset > file_size - 64 ) {
+    if ( frame_offset > asf->file_size - 64 ) {
       DEBUG_TRACE("  Offset too large: %d\n", frame_offset);
       break;
     }
@@ -1491,7 +1478,7 @@ asf_find_frame(PerlIO *infile, char *file, int offset)
         break;
       }
       
-      frame_offset = audio_offset + ( (packet_num - 1) * max_packet_size);
+      frame_offset = asf->audio_offset + ( (packet_num - 1) * max_packet_size);
       
       count++;
       
@@ -1503,6 +1490,19 @@ out:
   // Don't leak
   SvREFCNT_dec(info);
   SvREFCNT_dec(tags);
+  
+  if (asf->spec_count) {
+    int i;
+    for (i = 0; i < asf->spec_count; i++) {
+      DEBUG_TRACE("Freeing specs[%d] offsets\n", i);
+      Safefree(asf->specs[i].offsets);
+    }
+    
+    DEBUG_TRACE("Freeing specs\n");
+    Safefree(asf->specs);
+  }
+  
+  Safefree(asf);
   
   return frame_offset;
 }
