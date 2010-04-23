@@ -896,7 +896,8 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
     switch ( frametype->fields[i] ) {
       case ID3_FIELD_TYPE_LATIN1: // W* frames
         read += _id3_get_utf8_string(id3, &value, size - read, ISO_8859_1);
-        my_hv_store( id3->tags, id, value );
+        if (value != NULL && SvPOK(value))
+          my_hv_store( id3->tags, id, value );
         break;
       
       case ID3_FIELD_TYPE_STRINGLIST: // T* frames
@@ -912,7 +913,7 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
             
           read += _id3_get_utf8_string(id3, &value, size - read, encoding);
           
-          if (array != NULL) {
+          if (array != NULL && value != NULL && SvPOK(value)) {
             // second+ string, add to array
             av_push(array, value);
           }
@@ -997,7 +998,8 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
           }
           else {
             read += _id3_get_utf8_string(id3, &value, size - read, ISO_8859_1);
-            av_push( framedata, value );
+            if (value != NULL && SvPOK(value))
+              av_push( framedata, value );
           }
           break;
         
@@ -1006,7 +1008,8 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
         case ID3_FIELD_TYPE_LATIN1LIST: // LINK
           while (read < size) {
             read += _id3_get_utf8_string(id3, &value, size - read, ISO_8859_1);
-            av_push( framedata, value );
+            if (value != NULL && SvPOK(value))
+              av_push( framedata, value );
             value = NULL;
             DEBUG_TRACE("    latin1list, read %d\n", read);
           }
@@ -1029,8 +1032,10 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
           SV *tmp = newSVpvn( "", 0 );
           while (read < size) {
             read += _id3_get_utf8_string(id3, &value, size - read, encoding);
-            sv_catsv( tmp, value );
-            SvREFCNT_dec(value);
+            if (value != NULL && SvPOK(value)) {
+              sv_catsv( tmp, value );
+              SvREFCNT_dec(value);
+            }
             value = NULL;
           }
           av_push( framedata, tmp );
@@ -1484,7 +1489,7 @@ _id3_parse_sylt(id3info *id3, uint8_t encoding, uint32_t len, AV *framedata)
     HV *lyric = newHV();
     
     read += _id3_get_utf8_string(id3, &value, len - read, encoding);
-    if (SvPOK(value) && sv_len(value)) {
+    if (value != NULL && SvPOK(value) && sv_len(value)) {
       my_hv_store( lyric, "text", value );
     }
     else {
