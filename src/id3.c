@@ -799,70 +799,72 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
       // v2.4 handles multiple genres using null char separators (or $00 $00 in UTF-16),
       // this is handled by _id3_get_utf8_string      
       read += _id3_get_utf8_string(id3, &value, size - read, encoding);
-      sptr = SvPVX(value);
+      if (value != NULL && SvPOK(value)) {
+        sptr = SvPVX(value);
       
-      // Test if the string contains only a number,
-      // strtol will set tmp to end in this case
-      end = sptr + sv_len(value);
-      strtol(sptr, &tmp, 0);
+        // Test if the string contains only a number,
+        // strtol will set tmp to end in this case
+        end = sptr + sv_len(value);
+        strtol(sptr, &tmp, 0);
       
-      if ( tmp == end ) {
-        // Convert raw number to genre string
-        av_push( genres, newSVpv( _id3_genre_name((char *)sptr), 0 ) );
+        if ( tmp == end ) {
+          // Convert raw number to genre string
+          av_push( genres, newSVpv( _id3_genre_name((char *)sptr), 0 ) );
         
-        // value as an SV won't be used, must drop refcnt
-        SvREFCNT_dec(value);
-      }
-      else if ( *sptr == '(' ) {
-        // Handle (26), (26)Ambient, etc, only the number portion will be read
+          // value as an SV won't be used, must drop refcnt
+          SvREFCNT_dec(value);
+        }
+        else if ( *sptr == '(' ) {
+          // Handle (26), (26)Ambient, etc, only the number portion will be read
         
-        if (id3->version_major < 4) {
-          // v2.2/v2.3 handle multiple genres using parens for some reason, i.e. (51)(39) or (55)(Text)
-          char *ptr = sptr;
-          char *end = sptr + sv_len(value);
+          if (id3->version_major < 4) {
+            // v2.2/v2.3 handle multiple genres using parens for some reason, i.e. (51)(39) or (55)(Text)
+            char *ptr = sptr;
+            char *end = sptr + sv_len(value);
           
-          while (end - ptr > 0) {
-            if ( *ptr++ == '(' ) {
-              char *paren = strchr(ptr, ')');
-              if (paren == NULL)
-                paren = end;
+            while (end - ptr > 0) {
+              if ( *ptr++ == '(' ) {
+                char *paren = strchr(ptr, ')');
+                if (paren == NULL)
+                  paren = end;
               
-              if ( isdigit(*ptr) || !strncmp((char *)ptr, "RX", 2) || !strncmp((char *)ptr, "CR", 2) ) {
-                av_push( genres, newSVpv( _id3_genre_name((char *)ptr), 0 ) );
+                if ( isdigit(*ptr) || !strncmp((char *)ptr, "RX", 2) || !strncmp((char *)ptr, "CR", 2) ) {
+                  av_push( genres, newSVpv( _id3_genre_name((char *)ptr), 0 ) );
+                }
+                else {
+                  // Handle text within parens
+                  av_push( genres, newSVpvn(ptr,  paren - ptr) );
+                }
+                ptr = paren;
               }
-              else {
-                // Handle text within parens
-                av_push( genres, newSVpvn(ptr,  paren - ptr) );
-              }
-              ptr = paren;
             }
           }
-        }
-        else {
-          // v2.4, the (51) method is no longer valid but we will support it anyway
-          sptr++;
-          if ( isdigit(*sptr) || !strncmp(sptr, "RX", 2) || !strncmp(sptr, "CR", 2) ) {
-            av_push( genres, newSVpv( _id3_genre_name((char *)sptr), 0 ) );
-          }
           else {
-            av_push( genres, newSVpv( (char *)sptr, 0 ) );
+            // v2.4, the (51) method is no longer valid but we will support it anyway
+            sptr++;
+            if ( isdigit(*sptr) || !strncmp(sptr, "RX", 2) || !strncmp(sptr, "CR", 2) ) {
+              av_push( genres, newSVpv( _id3_genre_name((char *)sptr), 0 ) );
+            }
+            else {
+              av_push( genres, newSVpv( (char *)sptr, 0 ) );
+            }
           }
-        }
         
-        // value as an SV won't be used, must drop refcnt
-        SvREFCNT_dec(value);
-      }
-      else {
-        // Support raw RX/CR value
-        if ( !strncmp(sptr, "RX", 2) || !strncmp(sptr, "CR", 2) ) {
-          av_push( genres, newSVpv( _id3_genre_name((char *)sptr), 0 ) );
-          
           // value as an SV won't be used, must drop refcnt
           SvREFCNT_dec(value);
         }
         else {
-          // Store plain text genre
-          av_push( genres, value );
+          // Support raw RX/CR value
+          if ( !strncmp(sptr, "RX", 2) || !strncmp(sptr, "CR", 2) ) {
+            av_push( genres, newSVpv( _id3_genre_name((char *)sptr), 0 ) );
+          
+            // value as an SV won't be used, must drop refcnt
+            SvREFCNT_dec(value);
+          }
+          else {
+            // Store plain text genre
+            av_push( genres, value );
+          }
         }
       }
     }

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 353;
+use Test::More tests => 355;
 
 use Audio::Scan;
 
@@ -1190,6 +1190,15 @@ eval {
     
     ok( !exists $tags->{WCOM}, 'v2.3 zero-frame WCOM not present ok' );
     is( $tags->{TDRC}, 1982, 'v2.3 zero-frame TDRC ok' );
+}
+
+# Bug 16079, TCON with BOM but no text
+{
+    my $s = Audio::Scan->scan( _f('v2.3-empty-tcon2.mp3') );
+    my $tags = $s->{tags};
+    
+    ok( !exists $tags->{TCON}, 'v2.3 empty TCON not present ok' );
+    is( $tags->{TALB}, 'Unbekanntes Album', 'v2.3 empty TCON TALB ok' );
 }
 
 sub _f {    

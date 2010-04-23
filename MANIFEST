@@ -126,6 +126,7 @@ t/mp3/v2.2.mp3
 t/mp3/v2.3-apev2-lyricsv2.mp3
 t/mp3/v2.3-compressed-frame.mp3
 t/mp3/v2.3-empty-tcon.mp3
+t/mp3/v2.3-empty-tcon2.mp3
 t/mp3/v2.3-empty-wxxx.mp3
 t/mp3/v2.3-encrypted-frame.mp3
 t/mp3/v2.3-etco.mp3
