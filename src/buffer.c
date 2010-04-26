@@ -38,7 +38,7 @@ buffer_init(Buffer *buffer, uint32_t len)
   buffer->ncached = 0;
 
 #ifdef AUDIO_SCAN_DEBUG
-  fprintf(stderr, "Buffer allocated with %d bytes\n", len);
+  PerlIO_printf(PerlIO_stderr(), "Buffer allocated with %d bytes\n", len);
 #endif
 }
 
@@ -62,7 +62,7 @@ buffer_free(Buffer *buffer)
 {
   if (buffer->alloc > 0) {
 #ifdef AUDIO_SCAN_DEBUG
-    fprintf(stderr, "Buffer high water mark: %d\n", buffer->alloc);
+    PerlIO_printf(PerlIO_stderr(), "Buffer high water mark: %d\n", buffer->alloc);
 #endif
     memset(buffer->buf, 0, buffer->alloc);
     buffer->alloc = 0;
@@ -103,7 +103,7 @@ buffer_compact(Buffer *buffer)
    */
   if (buffer->offset > MIN(buffer->alloc, BUFFER_MAX_CHUNK)) {
 #ifdef AUDIO_SCAN_DEBUG
-    fprintf(stderr, "Buffer compacting (%d -> %d)\n", buffer->offset + buffer_len(buffer), buffer_len(buffer));
+    PerlIO_printf(PerlIO_stderr(), "Buffer compacting (%d -> %d)\n", buffer->offset + buffer_len(buffer), buffer_len(buffer));
 #endif
     Move(buffer->buf + buffer->offset, buffer->buf, (int)(buffer->end - buffer->offset), u_char);
     buffer->end -= buffer->offset;
@@ -157,7 +157,7 @@ restart:
     croak("buffer_append_space: alloc %u too large (max %u)",
         newlen, BUFFER_MAX_LEN);
 #ifdef AUDIO_SCAN_DEBUG
-  fprintf(stderr, "Buffer extended to %d\n", newlen);
+  PerlIO_printf(PerlIO_stderr(), "Buffer extended to %d\n", newlen);
 #endif
   Renew(buffer->buf, (int)newlen, u_char);
   buffer->alloc = newlen;
@@ -298,7 +298,7 @@ buffer_dump(Buffer *buffer, uint32_t size)
 
     if (i % 16 == 0) { 
       /* line completed */
-      fprintf(stderr, "%-50.50s  %s\n", hexstr, charstr);
+      PerlIO_printf(PerlIO_stderr(), "%-50.50s  %s\n", hexstr, charstr);
       hexstr[0] = 0;
       charstr[0] = 0;
     }
@@ -307,7 +307,7 @@ buffer_dump(Buffer *buffer, uint32_t size)
 
   if (strlen(hexstr) > 0) {
     /* print rest of buffer if not empty */
-    fprintf(stderr, "%-50.50s  %s\n", hexstr, charstr);
+    PerlIO_printf(PerlIO_stderr(), "%-50.50s  %s\n", hexstr, charstr);
   }
 }
 #endif
