@@ -68,7 +68,7 @@ _check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
     }
 
 #ifdef _MSC_VER
-    // Bug 11950, weird off-by-one bug seen only on Win32 and only when reading a filehandle
+    // Bug 16095, weird off-by-one bug seen only on Win32 and only when reading a filehandle
     if (PerlIO_tell(infile) != pos_check + read) {
       //PerlIO_printf(PerlIO_stderr(), "Win32 bug, pos should be %d, but was %d\n", pos_check + read, PerlIO_tell(infile));
       PerlIO_seek(infile, pos_check + read, SEEK_SET);
