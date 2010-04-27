@@ -898,14 +898,14 @@ _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen)
     i = 6;
   }
   else {
-    *val = 0xffffffffffffffffUL;
+    *val = 0xffffffffffffffffULL;
     return 1;
   }
   
   for( ; i; i--) {
     x = raw[(*rawlen)++];
     if(!(x & 0x80) || (x & 0x40)) { /* 10xxxxxx */
-      *val = 0xffffffffffffffffUL;
+      *val = 0xffffffffffffffffULL;
       return 1;
     }
     v <<= 6;
