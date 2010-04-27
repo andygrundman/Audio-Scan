@@ -3,7 +3,7 @@
 
 #define APE_HEADER_LEN              32
 #define MAC_397_HEADER_LEN          24
-#define MAC_398_HEADER_LEN          64
+#define MAC_398_HEADER_LEN          70
 
 /* 1000 base. */
 const char *mac_profile_names[] = {
