@@ -109,7 +109,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   // Parse all metadata blocks
   while ( !done ) {
     uint8_t type;
-    unsigned int len;
+    off_t len;
     
     if ( !_check_buf(infile, flac->buf, 4, FLAC_BLOCK_SIZE) ) {
       err = -1;
@@ -235,7 +235,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
         if ( _flac_first_last_sample(flac, flac->file_size - flac->max_framesize, &frame_offset, &tmp, &last_sample) ) {
           SV **samplerate = my_hv_fetch( info, "samplerate" );
           if (samplerate != NULL) {
-            song_length_ms = ( ((last_sample - first_sample) * 1.0) / SvIV(*samplerate)) * 1000;
+            song_length_ms = (uint32_t)(( ((last_sample - first_sample) * 1.0) / SvIV(*samplerate)) * 1000);
             my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
             my_hv_store( info, "bitrate", newSVuv( _bitrate(flac->file_size - flac->audio_offset, song_length_ms) ) );
             my_hv_store( info, "total_samples", newSVuv( last_sample - first_sample ) );
@@ -290,9 +290,9 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
   if (flac->num_seekpoints) {
     // Use seektable to find seek point
     // Start looking at seekpoint 1
-    int i;
-    uint32_t start_point;
-    uint32_t stop_point;
+    uint32_t i;
+    uint64_t start_point;
+    uint64_t stop_point;
     
     for ( i = 1; i < flac->num_seekpoints; i++ ) {
       // Skip placeholder entries
@@ -301,7 +301,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
       }
       
       if ( flac->seekpoints[i].sample_number >= target_sample ) {
-        uint32_t diff = target_sample - flac->seekpoints[i - 1].sample_number;
+        uint64_t diff = target_sample - flac->seekpoints[i - 1].sample_number;
         
         DEBUG_TRACE("  using seekpoint %d, diff %d samples\n", i - 1, diff);
         
@@ -309,7 +309,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
         
         if ( diff < flac->seekpoints[i - 1].frame_samples ) {
           // Target sample is within the seekpoint frame, shortcut and use it
-          frame_offset = start_point;
+          frame_offset = (int)start_point;
         }
         else {
           // Search for frame containing this sample, between 2 seekpoints
@@ -395,7 +395,7 @@ _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, 
   unsigned char *bptr;
   unsigned int buf_size;
   int ret = 1;
-  int i;
+  uint32_t i;
   
   buffer_init(&buf, flac->max_framesize);
   
@@ -582,12 +582,12 @@ _flac_parse_streaminfo(flacinfo *flac)
   
   tmp = buffer_get_int64(flac->buf);
   
-  samplerate = (tmp >> 44) & 0xFFFFF;
+  samplerate = (uint32_t)((tmp >> 44) & 0xFFFFF);
   total_samples = tmp & 0xFFFFFFFFFLL;
   
   my_hv_store( flac->info, "samplerate", newSVuv(samplerate) );
-  my_hv_store( flac->info, "channels", newSVuv( ((tmp >> 41) & 0x7) + 1 ) );
-  my_hv_store( flac->info, "bits_per_sample", newSVuv( ((tmp >> 36) & 0x1F) + 1 ) );
+  my_hv_store( flac->info, "channels", newSVuv( (uint32_t)(((tmp >> 41) & 0x7) + 1) ) );
+  my_hv_store( flac->info, "bits_per_sample", newSVuv( (uint32_t)(((tmp >> 36) & 0x1F) + 1) ) );
   my_hv_store( flac->info, "total_samples", newSVnv(total_samples) );
   
   bptr = buffer_ptr(flac->buf);
@@ -600,7 +600,7 @@ _flac_parse_streaminfo(flacinfo *flac)
   my_hv_store(flac->info, "md5", md5);
   buffer_consume(flac->buf, 16);
   
-  song_length_ms = ( (total_samples * 1.0) / samplerate) * 1000;
+  song_length_ms = (uint32_t)(( (total_samples * 1.0) / samplerate) * 1000);
   my_hv_store( flac->info, "song_length_ms", newSVuv(song_length_ms) );
 }
 
@@ -634,7 +634,7 @@ _flac_parse_application(flacinfo *flac, int len)
 void
 _flac_parse_seektable(flacinfo *flac, int len)
 {
-  int i;
+  uint32_t i;
   uint32_t count = len / 18;
   
   flac->num_seekpoints = count;
@@ -738,11 +738,11 @@ _flac_parse_cuesheet(flacinfo *flac)
         uint64_t frame = ((track_offset + index_offset) / (samplerate / 75));
         uint8_t m, s, f;
         
-        f = frame % 75;
+        f = (uint8_t)(frame % 75);
         frame /= 75;
-        s = frame % 60;
+        s = (uint8_t)(frame % 60);
         frame /= 60;
-        m = frame;
+        m = (uint8_t)frame;
 
         sv_catpvf(index, "%02u:%02u:%02u\n", m, s, f);
       }
@@ -898,14 +898,14 @@ _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen)
     i = 6;
   }
   else {
-    *val = 0xffffffffffffffffLL;
+    *val = 0xffffffffffffffffUL;
     return 1;
   }
   
   for( ; i; i--) {
     x = raw[(*rawlen)++];
     if(!(x & 0x80) || (x & 0x40)) { /* 10xxxxxx */
-      *val = 0xffffffffffffffffLL;
+      *val = 0xffffffffffffffffUL;
       return 1;
     }
     v <<= 6;
