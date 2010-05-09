@@ -20,7 +20,21 @@
 
 #include "mp3.h"
 
-static int
+int
+get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
+{
+ mp3info *mp3 = _mp3_parse(infile, file, info);
+
+ buffer_free(mp3->buf);
+ Safefree(mp3->buf);
+ Safefree(mp3->first_frame);
+ Safefree(mp3->xing_frame);
+ Safefree(mp3);
+
+ return 0;
+}
+
+int
 get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
 {
   int ret;
@@ -38,7 +52,7 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
   return ret;
 }
 
-static int
+int
 _is_ape_header(char *bptr)
 {
   if ( bptr[0] == 'A' && bptr[1] == 'P' && bptr[2] == 'E'
@@ -51,7 +65,7 @@ _is_ape_header(char *bptr)
   return 0;
 }
 
-static int
+int
 _has_ape(PerlIO *infile, off_t file_size)
 {
   Buffer buf;
@@ -129,140 +143,68 @@ out:
   return ret;
 }
 
-// _decode_mp3_frame
-static int
-_decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
+// _decode_mp3_frame, based on pcutmp3 FrameHeader.decode()
+int
+_decode_mp3_frame(unsigned char *bptr, struct mp3frame *frame)
 {
-  int ver;
-  int layer_index;
-  int sample_index;
-  int bitrate_index;
-  int samplerate_index;
-
-  if ((frame[0] != 0xFF) || (frame[1] < 224)) {
-    return -1;
-  }
-
-  ver = (frame[1] & 0x18) >> 3;
-  if (ver == 1) return -1;
-    
-  pfi->layer = 4 - ((frame[1] & 0x6) >> 1);
-  if (pfi->layer == 4) return -1;
+  int i;
   
-  pfi->crc_protected = !(frame[1] & 0x1);
-
-  layer_index = sample_index = -1;
-
-  switch(ver) {
-  case 0:
-    pfi->mpeg_version = 0x25;			// 2.5
-    sample_index = 2;
-    if (pfi->layer == 1)
-      layer_index = 3;
-    if ((pfi->layer == 2) || (pfi->layer == 3))
-      layer_index = 4;
-	break;
-  case 2:
-    pfi->mpeg_version = 0x20;			// 2.0
-    sample_index = 1;
-    if (pfi->layer == 1)
-      layer_index = 3;
-    if ((pfi->layer == 2) || (pfi->layer == 3))
-      layer_index = 4;
-    break;
-  case 3:
-    pfi->mpeg_version = 0x10;			// 1.0
-    sample_index = 0;
-    if (pfi->layer == 1)
-      layer_index = 0;
-    if (pfi->layer == 2)
-      layer_index = 1;
-    if (pfi->layer == 3)
-      layer_index = 2;
-    break;
-  }
-
-  if ((layer_index < 0) || (layer_index > 4)) {
-    return -1;
-  }
-
-  if ((sample_index < 0) || (sample_index > 2)) {
-    return -1;
-  }
-
-  if (pfi->layer==1) pfi->samples_per_frame = 384;
-  if (pfi->layer==2) pfi->samples_per_frame = 1152;
-  if (pfi->layer==3) {
-    if (pfi->mpeg_version == 0x10)
-      pfi->samples_per_frame = 1152;
-    else
-      pfi->samples_per_frame = 576;
-  }
-
-  bitrate_index = (frame[2] & 0xF0) >> 4;
-  samplerate_index = (frame[2] & 0x0C) >> 2;
-
-  if ((bitrate_index == 0xF) || (bitrate_index==0x0)) {
-    return -1;
-  }
-
-  if (samplerate_index == 3) {
-    return -1;
-  }
-
-  pfi->bitrate = bitrate_tbl[layer_index][bitrate_index];
-  pfi->samplerate = sample_rate_tbl[sample_index][samplerate_index];
+  frame->header32 = GET_INT32BE(bptr);
   
-  // Validate emphasis is not reserved
-  if ((frame[3] & 0x3) == 2) return -1;
-
-  if (((frame[3] & 0xC0) >> 6) == 3)
-    pfi->stereo = 0;
-  else
-    pfi->stereo = 1;
-
-  if (frame[2] & 0x02)
-    pfi->padding = 1;
-  else
-    pfi->padding=0;
-
-  if (pfi->mpeg_version == 0x10) {
-    if (pfi->stereo)
-      pfi->xing_offset = 36;
-    else
-      pfi->xing_offset = 21;
+  frame->mpegID             = (frame->header32 >> 19) & 3;
+  frame->layerID            = (frame->header32 >> 17) & 3;
+  frame->crc16_used         = (frame->header32 & 0x00010000) == 0;
+  frame->bitrate_index      = (frame->header32 >> 12) & 0xF;
+  frame->samplingrate_index = (frame->header32 >> 10) & 3;
+  frame->padding            = (frame->header32 & 0x00000200) != 0;
+  frame->private_bit_set    = (frame->header32 & 0x00000100) != 0;
+  frame->mode               = (frame->header32 >> 6) & 3;
+  frame->mode_extension     = (frame->header32 >> 4) & 3;
+  frame->copyrighted        = (frame->header32 & 0x00000008) != 0;
+  frame->original           = (frame->header32 & 0x00000004) == 0; // bit set -> copy
+  frame->emphasis           = frame->header32 & 3;
+  
+  frame->valid = (frame->mpegID != ILLEGAL_MPEG_ID) 
+    && (frame->layerID != ILLEGAL_LAYER_ID)
+    && (frame->bitrate_index != 0)
+    && (frame->bitrate_index != 15)
+    && (frame->samplingrate_index != ILLEGAL_SR);
+  
+  if (!frame->valid) {
+    return -1;
+  }
+  
+  frame->samplerate = sample_rate_tbl[ frame->samplingrate_index ];
+  
+  if (frame->mpegID == MPEG2_ID)
+    frame->samplerate >>= 1; // 16,22,48 kHz
+  
+  if (frame->mpegID == MPEG25_ID)
+    frame->samplerate >>= 2; // 8,11,24 kHz
+  
+  frame->channels = (frame->mode == MODE_MONO) ? 1 : 2;
+  
+  frame->bitrate_kbps = bitrate_map[ frame->mpegID ][ frame->layerID ][ frame->bitrate_index ];
+  
+  if (frame->layerID == LAYER1_ID) {
+    // layer 1: always 384 samples/frame and 4byte-slots
+    frame->samples_per_frame = 384;
+    frame->bytes_per_slot = 4;
   }
   else {
-    if (pfi->stereo)
-      pfi->xing_offset = 21;
-    else
-      pfi->xing_offset = 13;
-  }
-
-  if (pfi->layer == 3) {
-    if (pfi->mpeg_version == 0x10)
-      pfi->frame_length = (144 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding);
-    else
-      pfi->frame_length = (72 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding);
-  }
-  else if (pfi->layer == 2)
-    pfi->frame_length = 144 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding;
-  else
-    pfi->frame_length = (12 * pfi->bitrate * 1000 / pfi->samplerate + pfi->padding) * 4;
-
-  if ((pfi->frame_length > 2880) || (pfi->frame_length <= 0)) {
-    return -1;
+    // layer 2: always 1152 samples/frame
+    // layer 3: MPEG1: 1152 samples/frame, MPEG2/2.5: 576 samples/frame
+    frame->samples_per_frame = ((frame->mpegID == MPEG1_ID) || (frame->layerID == LAYER2_ID)) ? 1152 : 576;
+    frame->bytes_per_slot = 1;
   }
   
-  /*
-  DEBUG_TRACE("frame: len %d, ver: 0x%x, layer %d, bitrate, %d, samplerate %d\n",
-    pfi->frame_length,
-    pfi->mpeg_version,
-    pfi->layer,
-    pfi->bitrate,
-    pfi->samplerate
-  );
-  */
+  frame->frame_size = ((frame->bitrate_kbps * 125) * frame->samples_per_frame) / frame->samplerate;
+  
+  if (frame->bytes_per_slot > 1)
+    frame->frame_size -= frame->frame_size % frame->bytes_per_slot;
+  
+  if (frame->padding)
+    frame->frame_size += frame->bytes_per_slot;
 
   return 0;
 }
@@ -274,7 +216,7 @@ _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi)
 // be detected as a real frame
 static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t audio_size)
 {
-  struct mp3_frameinfo fi;
+  struct mp3frame frame;
   int frame_count   = 0;
   int bitrate_total = 0;
   int err = 0;
@@ -319,16 +261,16 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
         bptr = buffer_ptr(mp3->buf);
       }
 
-      if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &fi ) ) {
+      if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &frame ) ) {
         // Found a valid frame
         frame_count++;
-        bitrate_total += fi.bitrate;
+        bitrate_total += frame.bitrate_kbps;
         
         if ( !vbr ) {
           // If we see the bitrate changing, we have a VBR file, and read
           // the entire file.  Otherwise, if we see 20 frames with the same
           // bitrate, assume CBR and stop
-          if (prev_bitrate > 0 && prev_bitrate != fi.bitrate) {
+          if (prev_bitrate > 0 && prev_bitrate != frame.bitrate_kbps) {
             DEBUG_TRACE("Bitrate changed, assuming file is VBR\n");
             vbr = TRUE;
           }
@@ -338,19 +280,19 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
               goto out;
             }
             
-            prev_bitrate = fi.bitrate;
+            prev_bitrate = frame.bitrate_kbps;
           }
         }
         
-        //DEBUG_TRACE("  Frame %d: %dkbps\n", frame_count, fi.bitrate);
+        //DEBUG_TRACE("  Frame %d: %dkbps\n", frame_count, frame.bitrate_kbps);
 
-        if (fi.frame_length > buffer_len(mp3->buf)) {
+        if (frame.frame_size > buffer_len(mp3->buf)) {
           // Partial frame in buffer
-          wrap_skip = fi.frame_length - buffer_len(mp3->buf);
+          wrap_skip = frame.frame_size - buffer_len(mp3->buf);
           buffer_consume(mp3->buf, buffer_len(mp3->buf));
         }
         else {
-          buffer_consume(mp3->buf, fi.frame_length);
+          buffer_consume(mp3->buf, frame.frame_size);
         }
       }
       else {
@@ -371,17 +313,24 @@ out:
 }
 
 static int
-_parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
+_parse_xing(mp3info *mp3)
 {
   int i;
-  int xing_flags;
   unsigned char *bptr;
+  int xing_offset = 4;
   
-  if ( !_check_buf(mp3->infile, mp3->buf, 4 + pfi->xing_offset, MP3_BLOCK_SIZE) ) {
+  if (mp3->first_frame->mpegID == MPEG1_ID) {
+    xing_offset += mp3->first_frame->channels == 2 ? 32 : 17;
+  }
+  else {
+    xing_offset += mp3->first_frame->channels == 2 ? 17 : 9;
+  }
+  
+  if ( !_check_buf(mp3->infile, mp3->buf, 4 + xing_offset, MP3_BLOCK_SIZE) ) {
     return 0;
   }
   
-  buffer_consume(mp3->buf, pfi->xing_offset);
+  buffer_consume(mp3->buf, xing_offset);
   
   bptr = buffer_ptr(mp3->buf);
 
@@ -393,74 +342,80 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
     ) {
       DEBUG_TRACE("Found Xing/Info tag\n");
       
+      mp3->xing_frame->xing_tag   = bptr[0] == 'X';
+      mp3->xing_frame->info_tag   = bptr[0] == 'I';
+      mp3->xing_frame->frame_size = mp3->first_frame->frame_size;
+      
       if ( !_check_buf(mp3->infile, mp3->buf, 160, MP3_BLOCK_SIZE) ) {
         return 0;
       }
       
       // It's VBR if tag is Xing, and CBR if Info
-      pfi->vbr = bptr[1] == 'i' ? VBR : CBR;
+      mp3->vbr = bptr[1] == 'i' ? VBR : CBR;
 
       buffer_consume(mp3->buf, 4);
 
-      xing_flags = buffer_get_int(mp3->buf);
+      mp3->xing_frame->flags = buffer_get_int(mp3->buf);
 
-      if (xing_flags & XING_FRAMES) {
-        pfi->xing_frames = buffer_get_int(mp3->buf);
+      if (mp3->xing_frame->flags & XING_FRAMES) {
+        mp3->xing_frame->xing_frames = buffer_get_int(mp3->buf);
       }
 
-      if (xing_flags & XING_BYTES) {
-        pfi->xing_bytes = buffer_get_int(mp3->buf);
+      if ( mp3->xing_frame->flags & XING_BYTES) {
+        mp3->xing_frame->xing_bytes = buffer_get_int(mp3->buf);
       }
 
-      if (xing_flags & XING_TOC) {
+      if (mp3->xing_frame->flags & XING_TOC) {
         uint8_t i;
         bptr = buffer_ptr(mp3->buf);
         for (i = 0; i < 100; i++) {
-          pfi->xing_toc[i] = bptr[i];
+          mp3->xing_frame->xing_toc[i] = bptr[i];
         }
         
-        pfi->xing_has_toc = 1;
+        mp3->xing_frame->has_toc = 1;
         
         buffer_consume(mp3->buf, 100);
       }
 
-      if (xing_flags & XING_QUALITY) {
-        pfi->xing_quality = buffer_get_int(mp3->buf);
+      if (mp3->xing_frame->flags & XING_QUALITY) {
+        mp3->xing_frame->xing_quality = buffer_get_int(mp3->buf);
       }
 
       // LAME tag
       bptr = buffer_ptr(mp3->buf);
       if ( bptr[0] == 'L' && bptr[1] == 'A' && bptr[2] == 'M' && bptr[3] == 'E' ) {
-        strncpy(pfi->lame_encoder_version, (char *)bptr, 9);
+        mp3->xing_frame->lame_tag = true;
+        
+        strncpy(mp3->xing_frame->lame_encoder_version, (char *)bptr, 9);
         bptr += 9;
 
         // revision/vbr method byte
-        pfi->lame_tag_revision = bptr[0] >> 4;
-        pfi->lame_vbr_method   = bptr[0] & 15;
+        mp3->xing_frame->lame_tag_revision = bptr[0] >> 4;
+        mp3->xing_frame->lame_vbr_method   = bptr[0] & 15;
         buffer_consume(mp3->buf, 10);
 
         // Determine vbr status
-        switch (pfi->lame_vbr_method) {
+        switch (mp3->xing_frame->lame_vbr_method) {
           case 1:
           case 8:
-            pfi->vbr = CBR;
+            mp3->vbr = CBR;
             break;
           case 2:
           case 9:
-            pfi->vbr = ABR;
+            mp3->vbr = ABR;
             break;
           default:
-            pfi->vbr = VBR;
+            mp3->vbr = VBR;
         }
 
-        pfi->lame_lowpass = buffer_get_char(mp3->buf) * 100;
+        mp3->xing_frame->lame_lowpass = buffer_get_char(mp3->buf) * 100;
 
         // Skip peak
         buffer_consume(mp3->buf, 4);
 
         // Replay Gain, code from mpg123
-        pfi->lame_replay_gain[0] = 0;
-        pfi->lame_replay_gain[1] = 0;
+        mp3->xing_frame->lame_replay_gain[0] = 0;
+        mp3->xing_frame->lame_replay_gain[1] = 0;
 
         for (i=0; i<2; i++) {
           // Originator
@@ -479,7 +434,7 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
             else
               continue;
 
-            pfi->lame_replay_gain[gt]
+            mp3->xing_frame->lame_replay_gain[gt]
               = (( (bptr[0] & 0x4) >> 2 ) ? -0.1 : 0.1)
               * ( (bptr[0] & 0x3) | bptr[1] );
           }
@@ -491,27 +446,27 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
         buffer_consume(mp3->buf, 1);
 
         // ABR rate/VBR minimum
-        pfi->lame_abr_rate = buffer_get_char(mp3->buf);
+        mp3->xing_frame->lame_abr_rate = buffer_get_char(mp3->buf);
 
         // Encoder delay/padding
         bptr = buffer_ptr(mp3->buf);
-        pfi->lame_encoder_delay = ((((int)bptr[0]) << 4) | (((int)bptr[1]) >> 4));
-        pfi->lame_encoder_padding = (((((int)bptr[1]) << 8) | (((int)bptr[2]))) & 0xfff);
+        mp3->xing_frame->lame_encoder_delay = ((((int)bptr[0]) << 4) | (((int)bptr[1]) >> 4));
+        mp3->xing_frame->lame_encoder_padding = (((((int)bptr[1]) << 8) | (((int)bptr[2]))) & 0xfff);
         // sanity check
-        if (pfi->lame_encoder_delay < 0 || pfi->lame_encoder_delay > 3000) {
-          pfi->lame_encoder_delay = -1;
+        if (mp3->xing_frame->lame_encoder_delay < 0 || mp3->xing_frame->lame_encoder_delay > 3000) {
+          mp3->xing_frame->lame_encoder_delay = -1;
         }
-        if (pfi->lame_encoder_padding < 0 || pfi->lame_encoder_padding > 3000) {
-          pfi->lame_encoder_padding = -1;
+        if (mp3->xing_frame->lame_encoder_padding < 0 || mp3->xing_frame->lame_encoder_padding > 3000) {
+          mp3->xing_frame->lame_encoder_padding = -1;
         }
         buffer_consume(mp3->buf, 3);
 
         // Misc
         bptr = buffer_ptr(mp3->buf);
-        pfi->lame_noise_shaping = bptr[0] & 0x3;
-        pfi->lame_stereo_mode   = (bptr[0] & 0x1C) >> 2;
-        pfi->lame_unwise        = (bptr[0] & 0x20) >> 5;
-        pfi->lame_source_freq   = (bptr[0] & 0xC0) >> 6;
+        mp3->xing_frame->lame_noise_shaping = bptr[0] & 0x3;
+        mp3->xing_frame->lame_stereo_mode   = (bptr[0] & 0x1C) >> 2;
+        mp3->xing_frame->lame_unwise        = (bptr[0] & 0x20) >> 5;
+        mp3->xing_frame->lame_source_freq   = (bptr[0] & 0xC0) >> 6;
         buffer_consume(mp3->buf, 1);
 
         // XXX MP3 Gain, can't find a test file, current
@@ -519,22 +474,22 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
 /*
         bptr = buffer_ptr(mp3->buf);
         unsigned char sign = (bptr[0] & 0x80) >> 7;
-        pfi->lame_mp3gain = bptr[0] & 0x7F;
+        mp3->xing_frame->lame_mp3gain = bptr[0] & 0x7F;
         if (sign) {
-          pfi->lame_mp3gain *= -1;
+          mp3->xing_frame->lame_mp3gain *= -1;
         }
-        pfi->lame_mp3gain_db = pfi->lame_mp3gain * 1.5;
+        mp3->xing_frame->lame_mp3gain_db = mp3->xing_frame->lame_mp3gain * 1.5;
 */
         buffer_consume(mp3->buf, 1);
 
         // Preset/Surround
         bptr = buffer_ptr(mp3->buf);
-        pfi->lame_surround = (bptr[0] & 0x38) >> 3;
-        pfi->lame_preset   = ((bptr[0] << 8) | bptr[1]) & 0x7ff;
+        mp3->xing_frame->lame_surround = (bptr[0] & 0x38) >> 3;
+        mp3->xing_frame->lame_preset   = ((bptr[0] << 8) | bptr[1]) & 0x7ff;
         buffer_consume(mp3->buf, 2);
 
         // Music Length
-        pfi->lame_music_length = buffer_get_int(mp3->buf);
+        mp3->xing_frame->lame_music_length = buffer_get_int(mp3->buf);
 
         // Skip CRCs
       }
@@ -544,6 +499,8 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
   else if ( bptr[0] == 'V' && bptr[1] == 'B' && bptr[2] == 'R' && bptr[3] == 'I' ) {
     DEBUG_TRACE("Found VBRI tag\n");
     
+    mp3->xing_frame->vbri_tag = true;
+    
     if ( !_check_buf(mp3->infile, mp3->buf, 14, MP3_BLOCK_SIZE) ) {
       return 0;
     }
@@ -551,52 +508,48 @@ _parse_xing(mp3info *mp3, struct mp3_frameinfo *pfi)
     // Skip tag and version ID
     buffer_consume(mp3->buf, 6);
 
-    pfi->vbri_delay   = buffer_get_short(mp3->buf);
-    pfi->vbri_quality = buffer_get_short(mp3->buf);
-    pfi->vbri_bytes   = buffer_get_int(mp3->buf);
-    pfi->vbri_frames  = buffer_get_int(mp3->buf);
+    mp3->xing_frame->vbri_delay   = buffer_get_short(mp3->buf);
+    mp3->xing_frame->vbri_quality = buffer_get_short(mp3->buf);
+    mp3->xing_frame->vbri_bytes   = buffer_get_int(mp3->buf);
+    mp3->xing_frame->vbri_frames  = buffer_get_int(mp3->buf);
   }
   
   return 1;
 }
 
-static int
-get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
+mp3info *
+_mp3_parse(PerlIO *infile, char *file, HV *info)
 {
-  struct mp3_frameinfo fi;
   unsigned char *bptr;
   char id3v1taghdr[4];
 
-  unsigned int id3_size = 0; // size of leading ID3 data
-
-  off_t file_size;           // total file size
-  off_t audio_offset = 0;    // offset to first audio frame
-  off_t audio_size;          // size of all audio frames
-
-  int song_length_ms = 0;    // duration of song in ms
-  int bitrate        = 0;    // actual bitrate of song
-
-  int found;
-  int err = 0;
+  uint32_t song_length_ms = 0;
+  uint64_t total_samples = 0;
+  struct mp3frame frame;
+  
+  bool found_first_frame = false;
   
   mp3info *mp3;
   Newz(0, mp3, sizeof(mp3info), mp3info);
   Newz(0, mp3->buf, sizeof(Buffer), Buffer);
+  Newz(0, mp3->first_frame, sizeof(mp3frame), mp3frame);
+  Newz(0, mp3->xing_frame, sizeof(xingframe), xingframe);
   
-  mp3->infile = infile;
-  mp3->file   = file;
-  mp3->info   = info;
+  mp3->infile       = infile;
+  mp3->file         = file;
+  mp3->info         = info;
+  
+  mp3->file_size    = _file_size(infile);
+  mp3->id3_size     = 0;
+  mp3->audio_offset = 0;
+  mp3->audio_size   = 0;
+  mp3->bitrate      = 0;
   
   buffer_init(mp3->buf, MP3_BLOCK_SIZE);
   
-  file_size = _file_size(infile);
-  
-  my_hv_store( info, "file_size", newSVuv(file_size) );
-
-  memset((void*)&fi, 0, sizeof(fi));
+  my_hv_store( info, "file_size", newSVuv(mp3->file_size) );
   
   if ( !_check_buf(mp3->infile, mp3->buf, 10, MP3_BLOCK_SIZE) ) {
-    err = -1;
     goto out;
   }
   
@@ -608,49 +561,43 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
     bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
   ) {
     /* found an ID3 header... */
-    id3_size = 10 + (bptr[6]<<21) + (bptr[7]<<14) + (bptr[8]<<7) + bptr[9];
+    mp3->id3_size = 10 + (bptr[6]<<21) + (bptr[7]<<14) + (bptr[8]<<7) + bptr[9];
 
     if (bptr[5] & 0x10) {
       // footer present
-      id3_size += 10;
+      mp3->id3_size += 10;
     }
     
-    DEBUG_TRACE("Found ID3v2.%d.%d tag, size %d\n", bptr[3], bptr[4], id3_size);
+    DEBUG_TRACE("Found ID3v2.%d.%d tag, size %d\n", bptr[3], bptr[4], mp3->id3_size);
 
     // Always seek past the ID3 tags
-    buffer_clear(mp3->buf);
-    
-    PerlIO_seek(infile, id3_size, SEEK_SET);
+    _mp3_skip(mp3, mp3->id3_size);
     
     if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
-      err = -1;
       goto out;
     }
 
-    audio_offset += id3_size;
+    mp3->audio_offset += mp3->id3_size;
   }
 
-  found = 0;
-
   // Find an MP3 frame
-  while ( !found && buffer_len(mp3->buf) ) {
+  while ( !found_first_frame && buffer_len(mp3->buf) ) {
     bptr = buffer_ptr(mp3->buf);
     
     while ( *bptr != 0xFF ) {
       buffer_consume(mp3->buf, 1);
      
-      audio_offset++;
+      mp3->audio_offset++;
 
       if ( !buffer_len(mp3->buf) ) {
-        if (audio_offset >= file_size - 4) {
+        if (mp3->audio_offset >= mp3->file_size - 4) {
           // No audio frames in file
-          err = -1;
+          PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
           goto out;
         }
         
         if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
           PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
-          err = -1;
           goto out;
         }
       }
@@ -658,273 +605,263 @@ get_mp3fileinfo(PerlIO *infile, char *file, HV *info)
       bptr = buffer_ptr(mp3->buf);
     }
     
-    DEBUG_TRACE("Found FF sync at offset %d\n", (int)audio_offset);
+    DEBUG_TRACE("Found FF sync at offset %d\n", (int)mp3->audio_offset);
     
     // Make sure we have 4 bytes
     if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
-      err = -1;
       goto out;
     }
 
-    if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &fi ) ) {
+    if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &frame ) ) {
       // Found a valid frame
       DEBUG_TRACE("  valid frame\n");
       
-      found = 1;
+      found_first_frame = 1;
     }
     else {
       // Not a valid frame, stray 0xFF
       DEBUG_TRACE("  invalid frame\n");
       
       buffer_consume(mp3->buf, 1);
-      audio_offset++;
+      mp3->audio_offset++;
     }
   }
 
-  if ( !found ) {
+  if ( !found_first_frame ) {
     PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
-    err = -1;
     goto out;
   }
 
-  audio_size = file_size - audio_offset;
+  mp3->audio_size = mp3->file_size - mp3->audio_offset;
+  
+  memcpy(mp3->first_frame, &frame, sizeof(mp3frame));
 
   // now check for Xing/Info/VBRI/LAME headers
-  if ( !_parse_xing(mp3, &fi) ) {
-    err = -1;
+  if ( !_parse_xing(mp3) ) {
     goto out;
   }
 
   // use LAME CBR/ABR value for bitrate if available
-  if ( (fi.vbr == CBR || fi.vbr == ABR) && fi.lame_abr_rate ) {
-    if (fi.lame_abr_rate >= 255) {
+  if ( (mp3->vbr == CBR || mp3->vbr == ABR) && mp3->xing_frame->lame_abr_rate ) {
+    if (mp3->xing_frame->lame_abr_rate >= 255) {
       // ABR rate field only codes up to 255, use preset value instead
-      if (fi.lame_preset <= 320) {
-        bitrate = fi.lame_preset;
-        DEBUG_TRACE("bitrate from lame_preset: %d\n", bitrate);
+      if (mp3->xing_frame->lame_preset <= 320) {
+        mp3->bitrate = mp3->xing_frame->lame_preset;
+        DEBUG_TRACE("bitrate from lame_preset: %d\n", mp3->bitrate);
       }
     }
     else {
-      bitrate = fi.lame_abr_rate;
-      DEBUG_TRACE("bitrate from lame_abr_rate: %d\n", bitrate);
+      mp3->bitrate = mp3->xing_frame->lame_abr_rate;
+      DEBUG_TRACE("bitrate from lame_abr_rate: %d\n", mp3->bitrate);
     }
   }
 
   // Or if we have a Xing header, use it to determine bitrate
-  else if (fi.xing_frames && fi.xing_bytes) {
-    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x20 || fi.mpeg_version == 0x25 ? 72000. : 144000. );
-    bitrate = ( fi.xing_bytes / fi.xing_frames * mfs );
-    DEBUG_TRACE("bitrate from Xing header: %d\n", bitrate);
+  if (!mp3->bitrate && (mp3->xing_frame->xing_frames && mp3->xing_frame->xing_bytes)) {
+    float mfs = (float)frame.samplerate / ( frame.mpegID == MPEG2_ID || frame.mpegID == MPEG25_ID ? 72000. : 144000. );
+    mp3->bitrate = ( mp3->xing_frame->xing_bytes / mp3->xing_frame->xing_frames * mfs );
+    DEBUG_TRACE("bitrate from Xing header: %d\n", mp3->bitrate);
   }
 
   // Or use VBRI header
-  else if (fi.vbri_frames && fi.vbri_bytes) {
-    float mfs = (float)fi.samplerate / ( fi.mpeg_version == 0x20 || fi.mpeg_version == 0x25 ? 72000. : 144000. );
-    bitrate = ( fi.vbri_bytes / fi.vbri_frames * mfs );
-    DEBUG_TRACE("bitrate from VBRI header: %d\n", bitrate);
+  else if (mp3->xing_frame->vbri_frames && mp3->xing_frame->vbri_bytes) {
+    float mfs = (float)frame.samplerate / ( frame.mpegID == MPEG2_ID || frame.mpegID == MPEG25_ID ? 72000. : 144000. );
+    mp3->bitrate = ( mp3->xing_frame->vbri_bytes / mp3->xing_frame->vbri_frames * mfs );
+    DEBUG_TRACE("bitrate from VBRI header: %d\n", mp3->bitrate);
   }
 
   // check if last 128 bytes is ID3v1.0 or ID3v1.1 tag
-  PerlIO_seek(infile, file_size - 128, SEEK_SET);
+  PerlIO_seek(infile, mp3->file_size - 128, SEEK_SET);
   if (PerlIO_read(infile, id3v1taghdr, 4) == 4) {
     if (id3v1taghdr[0]=='T' && id3v1taghdr[1]=='A' && id3v1taghdr[2]=='G') {
       DEBUG_TRACE("ID3v1 tag found\n");
-      audio_size -= 128;
+      mp3->audio_size -= 128;
     }
   }
 
   // If we don't know the bitrate from Xing/LAME/VBRI, calculate average
-  if ( !bitrate ) {    
-    DEBUG_TRACE("Calculating average bitrate starting from %d...\n", (int)audio_offset);
-    bitrate = _mp3_get_average_bitrate(mp3, audio_offset, audio_size);
+  if ( !mp3->bitrate ) {    
+    DEBUG_TRACE("Calculating average bitrate starting from %d...\n", (int)mp3->audio_offset);
+    mp3->bitrate = _mp3_get_average_bitrate(mp3, mp3->audio_offset, mp3->audio_size);
 
-    if (bitrate <= 0) {
+    if (mp3->bitrate <= 0) {
       // Couldn't determine bitrate, just use
       // the bitrate from the last frame we parsed
-      DEBUG_TRACE("Unable to determine bitrate, using bitrate of most recent frame (%d)\n", fi.bitrate);
-      bitrate = fi.bitrate;
+      DEBUG_TRACE("Unable to determine bitrate, using bitrate of most recent frame (%d)\n", frame.bitrate_kbps);
+      mp3->bitrate = frame.bitrate_kbps;
     }
   }
 
   if (!song_length_ms) {
-    if (fi.xing_frames) {
-      song_length_ms = (int) ((double)(fi.xing_frames * fi.samples_per_frame * 1000.)/
-				  (double) fi.samplerate);
+    if (mp3->xing_frame->xing_frames) {
+      song_length_ms = (int) ((double)(mp3->xing_frame->xing_frames * frame.samples_per_frame * 1000.)/
+				(double) frame.samplerate);
+      total_samples = mp3->xing_frame->xing_frames * frame.samples_per_frame;
     }
-    else if (fi.vbri_frames) {
-      song_length_ms = (int) ((double)(fi.vbri_frames * fi.samples_per_frame * 1000.)/
-				  (double) fi.samplerate);
+    else if (mp3->xing_frame->vbri_frames) {
+      song_length_ms = (int) ((double)(mp3->xing_frame->vbri_frames * frame.samples_per_frame * 1000.)/
+				(double) frame.samplerate);
+      total_samples = mp3->xing_frame->vbri_frames * frame.samples_per_frame;
 		}
     else {
-      song_length_ms = (int) ((double)audio_size * 8. /
-				  (double)bitrate);
+      song_length_ms = (int) ((double)mp3->audio_size * 8. /
+				(double)mp3->bitrate);
     }
   }
+  
+  mp3->song_length_ms = song_length_ms;
+  mp3->total_samples = total_samples;
+  my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
+  my_hv_store( info, "total_samples", newSVuv(total_samples) );
 
-  my_hv_store( info, "song_length_ms", newSViv(song_length_ms) );
+  my_hv_store( info, "layer", newSVuv(frame.layerID) );
+  my_hv_store( info, "stereo", newSVuv(frame.channels == 2 ? 1 : 0) );
+  my_hv_store( info, "samples_per_frame", newSVuv(frame.samples_per_frame) );
+  my_hv_store( info, "padding", newSVuv(frame.padding) );
+  my_hv_store( info, "audio_size", newSVuv(mp3->audio_size) );
+  my_hv_store( info, "audio_offset", newSVuv(mp3->audio_offset) );
+  my_hv_store( info, "bitrate", newSVuv( mp3->bitrate * 1000 ) );
+  my_hv_store( info, "samplerate", newSVuv( frame.samplerate ) );
 
-  my_hv_store( info, "layer", newSViv(fi.layer) );
-  my_hv_store( info, "stereo", newSViv(fi.stereo) );
-  my_hv_store( info, "samples_per_frame", newSViv(fi.samples_per_frame) );
-  my_hv_store( info, "padding", newSViv(fi.padding) );
-  my_hv_store( info, "audio_size", newSViv(audio_size) );
-  my_hv_store( info, "audio_offset", newSViv(audio_offset) );
-  my_hv_store( info, "bitrate", newSViv( bitrate * 1000 ) );
-  my_hv_store( info, "samplerate", newSViv( fi.samplerate ) );
+  if (mp3->xing_frame->xing_tag || mp3->xing_frame->info_tag) {
+    if (mp3->xing_frame->xing_frames) {
+      my_hv_store( info, "xing_frames", newSVuv(mp3->xing_frame->xing_frames) );
+    }
 
-  if (fi.xing_frames) {
-    my_hv_store( info, "xing_frames", newSViv(fi.xing_frames) );
-  }
-
-  if (fi.xing_bytes) {
-    my_hv_store( info, "xing_bytes", newSViv(fi.xing_bytes) );
+    if (mp3->xing_frame->xing_bytes) {
+      my_hv_store( info, "xing_bytes", newSVuv(mp3->xing_frame->xing_bytes) );
+    }
     
-    if (fi.xing_has_toc) {
+    if (mp3->xing_frame->has_toc) {
       uint8_t i;
       AV *xing_toc = newAV();
 
       for (i = 0; i < 100; i++) {
-        av_push( xing_toc, newSVuv(fi.xing_toc[i]) );
+        av_push( xing_toc, newSVuv(mp3->xing_frame->xing_toc[i]) );
       }
 
       my_hv_store( info, "xing_toc", newRV_noinc( (SV *)xing_toc ) );
     }
+
+    if (mp3->xing_frame->xing_quality) {
+      my_hv_store( info, "xing_quality", newSVuv(mp3->xing_frame->xing_quality) );
+    }
   }
 
-  if (fi.xing_quality) {
-    my_hv_store( info, "xing_quality", newSViv(fi.xing_quality) );
+  if (mp3->xing_frame->vbri_tag) {
+    my_hv_store( info, "vbri_delay", newSVuv(mp3->xing_frame->vbri_delay) );
+    my_hv_store( info, "vbri_frames", newSVuv(mp3->xing_frame->vbri_frames) );
+    my_hv_store( info, "vbri_bytes", newSVuv(mp3->xing_frame->vbri_bytes) );
+    my_hv_store( info, "vbri_quality", newSVuv(mp3->xing_frame->vbri_quality) );
   }
 
-  if (fi.vbri_frames) {
-    my_hv_store( info, "vbri_delay", newSViv(fi.vbri_delay) );
-    my_hv_store( info, "vbri_frames", newSViv(fi.vbri_frames) );
-    my_hv_store( info, "vbri_bytes", newSViv(fi.vbri_bytes) );
-    my_hv_store( info, "vbri_quality", newSViv(fi.vbri_quality) );
-  }
+  if (mp3->xing_frame->lame_tag) {
+    my_hv_store( info, "lame_encoder_version", newSVpvn(mp3->xing_frame->lame_encoder_version, 9) );
+    my_hv_store( info, "lame_tag_revision", newSViv(mp3->xing_frame->lame_tag_revision) );
+    my_hv_store( info, "lame_vbr_method", newSVpv( vbr_methods[mp3->xing_frame->lame_vbr_method], 0 ) );
+    my_hv_store( info, "lame_lowpass", newSViv(mp3->xing_frame->lame_lowpass) );
 
-  if (fi.lame_encoder_version[0]) {
-    my_hv_store( info, "lame_encoder_version", newSVpvn(fi.lame_encoder_version, 9) );
-    my_hv_store( info, "lame_tag_revision", newSViv(fi.lame_tag_revision) );
-    my_hv_store( info, "lame_vbr_method", newSVpv( vbr_methods[fi.lame_vbr_method], 0 ) );
-    my_hv_store( info, "lame_lowpass", newSViv(fi.lame_lowpass) );
-
-    if (fi.lame_replay_gain[0]) {
-      my_hv_store( info, "lame_replay_gain_radio", newSVpvf( "%.1f dB", fi.lame_replay_gain[0] ) );
+    if (mp3->xing_frame->lame_replay_gain[0]) {
+      my_hv_store( info, "lame_replay_gain_radio", newSVpvf( "%.1f dB", mp3->xing_frame->lame_replay_gain[0] ) );
     }
 
-    if (fi.lame_replay_gain[1]) {
-      my_hv_store( info, "lame_replay_gain_audiophile", newSVpvf( "%.1f dB", fi.lame_replay_gain[1] ) );
+    if (mp3->xing_frame->lame_replay_gain[1]) {
+      my_hv_store( info, "lame_replay_gain_audiophile", newSVpvf( "%.1f dB", mp3->xing_frame->lame_replay_gain[1] ) );
     }
 
-    my_hv_store( info, "lame_encoder_delay", newSViv(fi.lame_encoder_delay) );
-    my_hv_store( info, "lame_encoder_padding", newSViv(fi.lame_encoder_padding) );
+    my_hv_store( info, "lame_encoder_delay", newSViv(mp3->xing_frame->lame_encoder_delay) );
+    my_hv_store( info, "lame_encoder_padding", newSViv(mp3->xing_frame->lame_encoder_padding) );
 
-    my_hv_store( info, "lame_noise_shaping", newSViv(fi.lame_noise_shaping) );
-    my_hv_store( info, "lame_stereo_mode", newSVpv( stereo_modes[fi.lame_stereo_mode], 0 ) );
-    my_hv_store( info, "lame_unwise_settings", newSViv(fi.lame_unwise) );
-    my_hv_store( info, "lame_source_freq", newSVpv( source_freqs[fi.lame_source_freq], 0 ) );
+    my_hv_store( info, "lame_noise_shaping", newSViv(mp3->xing_frame->lame_noise_shaping) );
+    my_hv_store( info, "lame_stereo_mode", newSVpv( stereo_modes[mp3->xing_frame->lame_stereo_mode], 0 ) );
+    my_hv_store( info, "lame_unwise_settings", newSViv(mp3->xing_frame->lame_unwise) );
+    my_hv_store( info, "lame_source_freq", newSVpv( source_freqs[mp3->xing_frame->lame_source_freq], 0 ) );
 
-/*
-    my_hv_store( info, "lame_mp3gain", newSViv(fi.lame_mp3gain) );
-    my_hv_store( info, "lame_mp3gain_db", newSVnv(fi.lame_mp3gain_db) );
-*/
+//    my_hv_store( info, "lame_mp3gain", newSViv(mp3->xing_frame->lame_mp3gain) );
+//    my_hv_store( info, "lame_mp3gain_db", newSVnv(mp3->xing_frame->lame_mp3gain_db) );
 
-    my_hv_store( info, "lame_surround", newSVpv( surround[fi.lame_surround], 0 ) );
+    my_hv_store( info, "lame_surround", newSVpv( surround[mp3->xing_frame->lame_surround], 0 ) );
 
-    if (fi.lame_preset < 8) {
+    if (mp3->xing_frame->lame_preset < 8) {
       my_hv_store( info, "lame_preset", newSVpvn( "Unknown", 7 ) );
     }
-    else if (fi.lame_preset <= 320) {
-      my_hv_store( info, "lame_preset", newSVpvf( "ABR %d", fi.lame_preset ) );
+    else if (mp3->xing_frame->lame_preset <= 320) {
+      my_hv_store( info, "lame_preset", newSVpvf( "ABR %d", mp3->xing_frame->lame_preset ) );
     }
-    else if (fi.lame_preset <= 500) {
-      fi.lame_preset /= 10;
-      fi.lame_preset -= 41;
-      if ( presets_v[fi.lame_preset] ) {
-        my_hv_store( info, "lame_preset", newSVpv( presets_v[fi.lame_preset], 0 ) );
+    else if (mp3->xing_frame->lame_preset <= 500) {
+      mp3->xing_frame->lame_preset /= 10;
+      mp3->xing_frame->lame_preset -= 41;
+      if ( presets_v[mp3->xing_frame->lame_preset] ) {
+        my_hv_store( info, "lame_preset", newSVpv( presets_v[mp3->xing_frame->lame_preset], 0 ) );
       }
     }
-    else if (fi.lame_preset >= 1000 && fi.lame_preset <= 1007) {
-      fi.lame_preset -= 1000;
-      if ( presets_old[fi.lame_preset] ) {
-        my_hv_store( info, "lame_preset", newSVpv( presets_old[fi.lame_preset], 0 ) );
+    else if (mp3->xing_frame->lame_preset >= 1000 && mp3->xing_frame->lame_preset <= 1007) {
+      mp3->xing_frame->lame_preset -= 1000;
+      if ( presets_old[mp3->xing_frame->lame_preset] ) {
+        my_hv_store( info, "lame_preset", newSVpv( presets_old[mp3->xing_frame->lame_preset], 0 ) );
       }
     }
 
-    if (fi.vbr == ABR || fi.vbr == VBR) {
+    if (mp3->vbr == ABR || mp3->vbr == VBR) {
       my_hv_store( info, "vbr", newSViv(1) );
     }
   }
 
 out:
-  buffer_free(mp3->buf);
-  Safefree(mp3->buf);
-  Safefree(mp3);
 
-  if (err) return err;
-
-  return 0;
+  return mp3;
 }
 
-static int
+int
 mp3_find_frame(PerlIO *infile, char *file, int offset)
 {
   Buffer mp3_buf;
   unsigned char *bptr;
   unsigned int buf_size;
-  struct mp3_frameinfo fi;
+  struct mp3frame frame;
   int frame_offset = -1;
-  off_t file_size;
-  off_t audio_offset;
-  uint32_t song_length_ms;
   HV *info = newHV();
+  
+  mp3info *mp3 = _mp3_parse(infile, file, info);
   
   buffer_init(&mp3_buf, MP3_BLOCK_SIZE);
   
-  if ( (get_mp3fileinfo(infile, file, info)) != 0 ) {
+  if (!mp3->song_length_ms)
     goto out;
-  }
-  
-  file_size      = SvIV( *(my_hv_fetch(info, "file_size")) );
-  audio_offset   = SvIV( *(my_hv_fetch(info, "audio_offset")) );
-  song_length_ms = SvIV( *(my_hv_fetch(info, "song_length_ms")) );
   
   // (undocumented) If offset is negative, treat it as an absolute file offset in bytes
   // This is a bit ugly but avoids the need to write an entirely new method
   if (offset < 0) {
     frame_offset = abs(offset);
-    if (frame_offset < audio_offset) {
+    if (frame_offset < mp3->audio_offset) {
       // Force offset to be at least audio_offset, so we don't end up in an ID3 tag
-      frame_offset = audio_offset;
+      frame_offset = mp3->audio_offset;
     }
     DEBUG_TRACE("find_frame: using absolute offset value %d\n", frame_offset);
   }
   else {
-    if (offset >= song_length_ms) {
+    if (offset >= mp3->song_length_ms) {
       goto out;
     }
     
     // Use Xing TOC if available
-    if ( my_hv_exists(info, "xing_toc") ) {
+    if ( mp3->xing_frame->has_toc ) {
       float percent;
       uint8_t ipercent;
       uint16_t tva;
       uint16_t tvb;
       float tvx;
-    
-      AV *xing_toc        = (AV *)SvRV( *(my_hv_fetch(info, "xing_toc")) );
-      uint32_t xing_bytes = SvIV( *(my_hv_fetch(info, "xing_bytes")) );
   
-      percent = (offset * 1.0 / song_length_ms) * 100;
+      percent = (offset * 1.0 / mp3->song_length_ms) * 100;
       ipercent = (int)percent;
   
       if (ipercent > 99)
         ipercent = 99;
       
       // Interpolate between 2 TOC points
-      tva = SvIV( *(av_fetch(xing_toc, ipercent, 0)) );
+      tva = mp3->xing_frame->xing_toc[ipercent];
       if (ipercent < 99) {
-        tvb = SvIV( *(av_fetch(xing_toc, ipercent + 1, 0)) );
+        tvb = mp3->xing_frame->xing_toc[ipercent + 1];
       }
       else {
         tvb = 256;
@@ -932,38 +869,37 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
     
       tvx = tva + (tvb - tva) * (percent - ipercent);
   
-      frame_offset = (int)((1.0/256.0) * tvx * xing_bytes);
+      frame_offset = (int)((1.0/256.0) * tvx * mp3->xing_frame->xing_bytes);
   
-      frame_offset += audio_offset;
+      frame_offset += mp3->audio_offset;
   
       // Don't return offset == audio_offset, because that would be the Xing frame
-      if (frame_offset == audio_offset) {
+      if (frame_offset == mp3->audio_offset) {
         DEBUG_TRACE("find_frame: frame_offset == audio_offset, skipping to next frame\n");
         frame_offset += 1;
       }
   
       DEBUG_TRACE("find_frame: using Xing TOC, song_length_ms: %d, percent: %f, tva: %d, tvb: %d, tvx: %f, frame offset: %d\n",
-        song_length_ms, percent, tva, tvb, tvx, frame_offset
+        mp3->song_length_ms, percent, tva, tvb, tvx, frame_offset
       );
     }
     else {
       // calculate offset using bitrate
-      uint32_t bitrate = SvIV( *(my_hv_fetch(info, "bitrate")) );
-      float bytes_per_ms = bitrate / 8000.0;
+      float bytes_per_ms = mp3->bitrate / 8.0;
     
       frame_offset = (int)(bytes_per_ms * offset);
     
-      frame_offset += audio_offset;
+      frame_offset += mp3->audio_offset;
     
-      DEBUG_TRACE("find_frame: using bitrate %d, bytes_per_ms: %f, frame offset: %d\n", bitrate, bytes_per_ms, frame_offset);
+      DEBUG_TRACE("find_frame: using bitrate %d, bytes_per_ms: %f, frame offset: %d\n", mp3->bitrate, bytes_per_ms, frame_offset);
     }
   }
   
   // If frame_offset is too near the end of the file we won't find a valid frame
   // so require offset to be at least 1000 bytes from the end of the file
   // XXX this would be more accurate if we determined max_frame_len
-  if ((file_size - frame_offset) < 1000) {
-    frame_offset -= 1000 - (file_size - frame_offset);
+  if ((mp3->file_size - frame_offset) < 1000) {
+    frame_offset -= 1000 - (mp3->file_size - frame_offset);
     if (frame_offset < 0)
       frame_offset = 0;
     DEBUG_TRACE("find_frame: offset too close to end of file, adjusted to %d\n", frame_offset);
@@ -984,7 +920,7 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
     if (
       buf_size < 4
       ||
-      ( bptr[0] == 0xFF && !_decode_mp3_frame( bptr, &fi ) )
+      ( bptr[0] == 0xFF && !_decode_mp3_frame( bptr, &frame ) )
     ) {
       break;
     }
@@ -1006,6 +942,28 @@ mp3_find_frame(PerlIO *infile, char *file, int offset)
 out:
   buffer_free(&mp3_buf);
   SvREFCNT_dec(info);
+  
+  buffer_free(mp3->buf);
+  Safefree(mp3->buf);
+  Safefree(mp3->first_frame);
+  Safefree(mp3->xing_frame);
+  Safefree(mp3);
 
   return frame_offset;
+}
+
+void
+_mp3_skip(mp3info *mp3, uint32_t size)
+{
+  if ( buffer_len(mp3->buf) >= size ) {
+    buffer_consume(mp3->buf, size);
+    
+    DEBUG_TRACE("  skipped buffer data size %d\n", size);
+  }
+  else {
+    PerlIO_seek(mp3->infile, size - buffer_len(mp3->buf), SEEK_CUR);
+    buffer_clear(mp3->buf);
+    
+    DEBUG_TRACE("  seeked past %d bytes to %d\n", size, (int)PerlIO_tell(mp3->infile));
+  }
 }

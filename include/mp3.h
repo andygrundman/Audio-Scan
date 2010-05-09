@@ -30,58 +30,104 @@
 #define ABR 2
 #define VBR 3
 
-struct mp3_frameinfo {
-  short mpeg_version;
-  unsigned char layer;
-  unsigned short bitrate;
-  unsigned int samplerate;
-  unsigned char stereo;
-  unsigned char vbr;
+#define ILLEGAL_MPEG_ID  1
+#define MPEG1_ID         3
+#define MPEG2_ID         2
+#define MPEG25_ID        0
+#define ILLEGAL_LAYER_ID 0
+#define LAYER1_ID        3
+#define LAYER2_ID        2
+#define LAYER3_ID        1
+#define ILLEGAL_SR       3
+#define MODE_MONO        3
 
-  unsigned short frame_length;
-  unsigned char crc_protected;
-  unsigned short samples_per_frame;
-  unsigned char padding;
+// Based on pcutmp3 FrameHeader
+typedef struct mp3frame {
+  int header32;
+  int mpegID;
+  int layerID;
+  bool crc16_used;
+  int bitrate_index;
+  int samplingrate_index;
+  bool padding;
+  bool private_bit_set;
+  int mode;
+  int mode_extension;
+  bool copyrighted;
+  bool original;
+  int emphasis;
+  
+  bool valid;
+  
+  int samplerate;
+  int channels;
+  int bitrate_kbps;
+  int samples_per_frame;
+  int bytes_per_slot;
+  int frame_size;
+} mp3frame;
 
-  // Xing header
-  unsigned int xing_offset;
-  unsigned int xing_frames;
-  unsigned int xing_bytes;
-  unsigned short xing_quality;
-  unsigned char xing_has_toc;
-  unsigned char xing_toc[100];
-
-  // LAME header
+// based on pcutmp3 XingInfoLameTagFrame
+typedef struct xingframe {
+  int frame_size;
+  
+  bool xing_tag;
+  bool info_tag;
+  int flags;
+  int xing_frames;
+  int xing_bytes;
+  bool has_toc;
+  uint8_t xing_toc[100];
+  int xing_quality;
+  
+  bool lame_tag;
   char lame_encoder_version[9];
-  unsigned char lame_tag_revision;
-  unsigned char lame_vbr_method;
-  unsigned int lame_lowpass;
+  uint8_t lame_tag_revision;
+  uint8_t lame_vbr_method;
+  int lame_lowpass;
   float lame_replay_gain[2];
-  unsigned short lame_abr_rate;
-  short lame_encoder_delay;
-  short lame_encoder_padding;
-  unsigned char lame_noise_shaping;
-  unsigned char lame_stereo_mode;
-  unsigned char lame_unwise;
-  unsigned char lame_source_freq;
+  uint16_t lame_abr_rate;
+  int lame_encoder_delay;
+  int lame_encoder_padding;
+  uint8_t lame_noise_shaping;
+  uint8_t lame_stereo_mode;
+  uint8_t lame_unwise;
+  uint8_t lame_source_freq;
   int lame_mp3gain;
   float lame_mp3gain_db;
-  unsigned char lame_surround;
-  unsigned short lame_preset;
-  unsigned int lame_music_length;
-
-  // VBRI header
-  unsigned short vbri_delay;
-  unsigned short vbri_quality;
-  unsigned int vbri_bytes;
-  unsigned int vbri_frames;
-};
+  uint8_t lame_surround;
+  uint16_t lame_preset;
+  int lame_music_length;
+  
+  bool vbri_tag;
+  uint16_t vbri_delay;
+  uint16_t vbri_quality;
+  uint32_t vbri_bytes;
+  uint32_t vbri_frames;
+  
+  int lame_tag_ofs;
+} xingframe;
 
 typedef struct mp3info {
   PerlIO *infile;
   char *file;
   Buffer *buf;
   HV *info;
+  
+  off_t file_size;
+  uint32_t id3_size;
+  off_t audio_offset;
+  off_t audio_size;
+  uint16_t bitrate;
+  uint32_t song_length_ms;
+  uint32_t total_samples;
+  
+  uint8_t vbr;
+  int music_frame_count;
+  int samples_per_frame;
+  
+  mp3frame *first_frame;
+  xingframe *xing_frame;
 } mp3info;
 
 // LAME lookup tables
@@ -154,24 +200,36 @@ const char *presets_old[] = {
   "medium/fast"
 };
 
-static int get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags);
-static int get_mp3fileinfo(PerlIO *infile, char *file, HV *info);
-static int _decode_mp3_frame(unsigned char *frame, struct mp3_frameinfo *pfi);
-static int mp3_find_frame(PerlIO *infile, char *file, int offset);
-static int _has_ape(PerlIO *infile, off_t file_size);
-
-// bitrate_tbl[layer_index][bitrate_index]
-static int bitrate_tbl[5][16] = {
-  { 0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,0 }, /* MPEG1, L1 */
-  { 0,32,48,56,64,80,96,112,128,160,192,224,256,320,384,0 },    /* MPEG1, L2 */
-  { 0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0 },     /* MPEG1, L3 */
-  { 0,32,48,56,64,80,96,112,128,144,160,176,192,224,256,0 },    /* MPEG2/2.5, L1 */
-  { 0,8,16,24,32,40,48,56,64,80,96,112,128,144,160,0 }          /* MPEG2/2.5, L2/L3 */
+static int bitrate_map[4][4][16] = {
+  { { 0 }, //MPEG2.5
+    { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 },
+    { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 },
+    { 0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0 }
+  },
+  { { 0 } },
+  { { 0 }, // MPEG2
+    { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 },
+    { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 },
+    { 0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0 }
+  }, 
+  { { 0 }, // MPEG1
+    { 0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0 },
+    { 0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0 },
+    { 0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0 }
+  }
 };
 
-// sample_rate[sample_index][samplerate_index]
-static int sample_rate_tbl[3][4] = {
-  { 44100, 48000, 32000, 0 },  /* MPEG 1 */
-  { 22050, 24000, 16000, 0 },  /* MPEG 2 */
-  { 11025, 12000, 8000, 0 }    /* MPEG 2.5 */
+// sample_rate[samplingrate_index]
+static int sample_rate_tbl[ ] = {
+  44100, 48000, 32000, 0,
 };
+
+int get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags);
+int get_mp3fileinfo(PerlIO *infile, char *file, HV *info);
+int mp3_find_frame(PerlIO *infile, char *file, int offset);
+
+mp3info * _mp3_parse(PerlIO *infile, char *file, HV *info);
+int _decode_mp3_frame(unsigned char *bptr, struct mp3frame *frame);
+int _is_ape_header(char *bptr);
+int _has_ape(PerlIO *infile, off_t file_size);
+void _mp3_skip(mp3info *mp3, uint32_t size);

@@ -22,6 +22,10 @@
 #define	roundup(x, y)	((((x)+((y)-1))/(y))*(y))  /* to any y */
 #endif
 
+#ifndef MAX
+#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
+#endif
+
 #ifndef MIN
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 #endif
