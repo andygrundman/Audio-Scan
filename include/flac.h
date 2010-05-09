@@ -41,11 +41,20 @@ typedef struct flacinfo {
   PerlIO *infile;
   char *file;
   Buffer *buf;
+  Buffer *scratch;
   HV *info;
   HV *tags;
   off_t file_size;
   off_t audio_offset;
+  
+  uint32_t min_blocksize;
+  uint32_t max_blocksize;
+  uint32_t min_framesize;
   uint32_t max_framesize;
+  uint8_t  channels;
+  uint32_t samplerate;
+  uint32_t bits_per_sample;
+  uint64_t total_samples;
   
   uint8_t seeking; // flag if we're seeking
   
@@ -61,8 +70,8 @@ void _flac_parse_seektable(flacinfo *flac, int len);
 void _flac_parse_cuesheet(flacinfo *flac);
 int _flac_parse_picture(flacinfo *flac);
 int _flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, off_t high);
-int _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample);
-int _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, uint64_t *first_sample, uint64_t *last_sample);
+int _flac_read_frame_header(flacinfo *flac, unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample);
+int _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, uint64_t *first_sample, uint64_t *last_sample, uint64_t target_sample);
 uint8_t _flac_crc8(const unsigned char *buf, unsigned len);
 int _flac_read_utf8_uint64(unsigned char *raw, uint64_t *val, uint8_t *rawlen);
 int _flac_read_utf8_uint32(unsigned char *raw, uint32_t *val, uint8_t *rawlen);

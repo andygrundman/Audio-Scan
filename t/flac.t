@@ -130,16 +130,16 @@ use Audio::Scan;
     is( $offset, 50005, 'Find frame with seektable ok' );
 }
 
-# Find frame, no seektable available
-{
-    my $offset = Audio::Scan->find_frame( _f('appId.flac'), 1000 );
-    is( $offset, 22633, 'Find frame without seektable ok' );
-}
-
 # Find frame near the end
 {
     my $offset = Audio::Scan->find_frame( _f('tiny.flac'), 1000 );
-    is( $offset, 80872, 'Find frame with seektable near end ok' );
+    is( $offset, 80872, 'Find frame near end with seektable ok' );
+}
+
+# Find frame in corrupted file
+{
+    my $offset = Audio::Scan->find_frame( _f('appId.flac'), 10 );
+    is( $offset, -1, 'Find frame in corrupted stream ok' );
 }
 
 # Find frame in file with ID3

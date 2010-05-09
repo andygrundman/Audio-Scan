@@ -128,7 +128,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     
     buffer_consume(flac->buf, 4);
     
-    DEBUG_TRACE("Parsing metadata block, type %d, len %d, done %d\n", type, len, done);
+    DEBUG_TRACE("Parsing metadata block, type %d, len %d, done %d\n", type, (int)len, done);
     
     if ( len > flac->file_size - flac->audio_offset ) {
       err = -1;
@@ -225,17 +225,18 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       uint64_t tmp;
     
       DEBUG_TRACE("Manually determining duration/bitrate\n");
+      
+      Newz(0, flac->scratch, sizeof(Buffer), Buffer);
     
-      if ( _flac_first_last_sample(flac, flac->audio_offset, &frame_offset, &first_sample, &tmp) ) {
+      if ( _flac_first_last_sample(flac, flac->audio_offset, &frame_offset, &first_sample, &tmp, 0) ) {
         DEBUG_TRACE("  First sample: %llu (offset %llu)\n", first_sample, frame_offset);
         
         // XXX This last sample isn't really correct, seeking back max_framesize will most likely be several frames
         // from the end, resulting in a slightly shortened duration. Reading backwards through the file
         // would provide a more accurate result
-        if ( _flac_first_last_sample(flac, flac->file_size - flac->max_framesize, &frame_offset, &tmp, &last_sample) ) {
-          SV **samplerate = my_hv_fetch( info, "samplerate" );
-          if (samplerate != NULL) {
-            song_length_ms = (uint32_t)(( ((last_sample - first_sample) * 1.0) / SvIV(*samplerate)) * 1000);
+        if ( _flac_first_last_sample(flac, flac->file_size - flac->max_framesize, &frame_offset, &tmp, &last_sample, 0) ) {
+          if (flac->samplerate) {
+            song_length_ms = (uint32_t)(( ((last_sample - first_sample) * 1.0) / flac->samplerate) * 1000);
             my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
             my_hv_store( info, "bitrate", newSVuv( _bitrate(flac->file_size - flac->audio_offset, song_length_ms) ) );
             my_hv_store( info, "total_samples", newSVuv( last_sample - first_sample ) );
@@ -244,6 +245,9 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
           DEBUG_TRACE("  Last sample: %llu (offset %llu)\n", last_sample, frame_offset);
         }
       }
+      
+      buffer_free(flac->scratch);
+      Safefree(flac->scratch);
     }
   }
   
@@ -264,77 +268,193 @@ out:
 }
 
 // offset is in ms, does sample-accurate seeking, using seektable if available
+// based on libFLAC seek_to_absolute_sample_
 static int
 flac_find_frame(PerlIO *infile, char *file, int offset)
 {
-  int frame_offset = -1;
-  uint32_t samplerate;
+  off_t frame_offset = -1;
   uint64_t target_sample;
+  uint32_t approx_bytes_per_frame;
+  uint64_t lower_bound, upper_bound, lower_bound_sample, upper_bound_sample;
+  int64_t pos = -1;
+  int8_t max_tries = 100;
   
   // We need to read all metadata first to get some data we need to calculate
   HV *info = newHV();
   HV *tags = newHV();
   flacinfo *flac = _flac_parse(infile, file, info, tags, 1);
   
-  if ( !my_hv_exists(info, "samplerate") ) {
+  // Allocate scratch buffer
+  Newz(0, flac->scratch, sizeof(Buffer), Buffer);
+  
+  if ( !flac->samplerate || !flac->total_samples ) {
     // Can't seek in file without samplerate
     goto out;
   }
   
-  samplerate   = SvIV( *(my_hv_fetch( info, "samplerate" )) );
-  
   // Determine target sample we're looking for
-  target_sample = ((offset - 1) / 10) * (samplerate / 100);
+  target_sample = ((offset - 1) / 10) * (flac->samplerate / 100);
   DEBUG_TRACE("Looking for target sample %llu\n", target_sample);
+  
+  if (flac->max_framesize > 0)
+    approx_bytes_per_frame = (flac->max_framesize + flac->min_framesize) / 2 + 1;
+  else if (flac->min_blocksize == flac->max_blocksize && flac->min_blocksize > 0)
+    approx_bytes_per_frame = flac->min_blocksize * flac->channels * flac->bits_per_sample/8 + 64;
+  else
+    approx_bytes_per_frame = 4096 * flac->channels * flac->bits_per_sample/8 + 64;
+  
+  DEBUG_TRACE("approx_bytes_per_frame: %d\n", approx_bytes_per_frame);
+  
+  lower_bound        = flac->audio_offset;
+  lower_bound_sample = 0;
+  upper_bound        = flac->file_size;
+  upper_bound_sample = flac->total_samples;
   
   if (flac->num_seekpoints) {
     // Use seektable to find seek point
     // Start looking at seekpoint 1
-    uint32_t i;
-    uint64_t start_point;
-    uint64_t stop_point;
+    int i;
+    uint64_t new_lower_bound        = lower_bound;
+    uint64_t new_upper_bound        = upper_bound;
+    uint64_t new_lower_bound_sample = lower_bound_sample;
+    uint64_t new_upper_bound_sample = upper_bound_sample;
     
-    for ( i = 1; i < flac->num_seekpoints; i++ ) {
-      // Skip placeholder entries
-      if ( flac->seekpoints[i].sample_number == 0xFFFFFFFFFFFFFFFFLL ) {
-        continue;
-      }
-      
-      if ( flac->seekpoints[i].sample_number >= target_sample ) {
-        uint64_t diff = target_sample - flac->seekpoints[i - 1].sample_number;
-        
-        DEBUG_TRACE("  using seekpoint %d, diff %d samples\n", i - 1, diff);
-        
-        start_point = flac->audio_offset + flac->seekpoints[i - 1].stream_offset;
-        
-        if ( diff < flac->seekpoints[i - 1].frame_samples ) {
-          // Target sample is within the seekpoint frame, shortcut and use it
-          frame_offset = (int)start_point;
-        }
-        else {
-          // Search for frame containing this sample, between 2 seekpoints
-          stop_point = flac->audio_offset + flac->seekpoints[i].stream_offset;
-          
-          frame_offset = _flac_binary_search_sample(flac, target_sample, start_point, stop_point);
-        }
-        
+    DEBUG_TRACE("Checking seektable...\n");
+    
+    for (i = flac->num_seekpoints - 1; i >= 0; i--) {
+      if (
+           flac->seekpoints[i].sample_number != 0xFFFFFFFFFFFFFFFFLL
+        && flac->seekpoints[i].frame_samples > 0
+        && (flac->total_samples <= 0 || flac->seekpoints[i].sample_number < flac->total_samples)
+        && flac->seekpoints[i].sample_number <= target_sample
+      )
         break;
-      }
     }
     
-    if ( frame_offset == -1 ) {
-      // Target sample was beyond the last seekpoint
-      start_point = flac->audio_offset + flac->seekpoints[ flac->num_seekpoints - 1 ].stream_offset;
-      stop_point  = flac->file_size;
+    if (i >= 0) {
+      // we found a seek point
+      new_lower_bound        = flac->audio_offset + flac->seekpoints[i].stream_offset;
+      new_lower_bound_sample = flac->seekpoints[i].sample_number;
       
-      frame_offset = _flac_binary_search_sample(flac, target_sample, start_point, stop_point);
-    }      
+      DEBUG_TRACE("  seektable new_lower_bound %llu, new_lower_bound_sample %llu\n",
+        new_lower_bound, new_lower_bound_sample);
+    }
+    
+    // Find the closest seek point > target_sample
+    for (i = 0; i < flac->num_seekpoints; i++) {
+      if (
+           flac->seekpoints[i].sample_number != 0xFFFFFFFFFFFFFFFFLL
+        && flac->seekpoints[i].frame_samples > 0
+        && (flac->total_samples <= 0 || flac->seekpoints[i].sample_number < flac->total_samples)
+        && flac->seekpoints[i].sample_number > target_sample
+      )
+        break;
+    }
+    
+    if (i < flac->num_seekpoints) {
+      // we found a seek point
+      new_upper_bound        = flac->audio_offset + flac->seekpoints[i].stream_offset;
+      new_upper_bound_sample = flac->seekpoints[i].sample_number;
+      
+      DEBUG_TRACE("  seektable new_upper_bound %llu, new_upper_bound_sample %llu\n",
+        new_upper_bound, new_upper_bound_sample);
+    }
+    
+    if (new_upper_bound >= new_lower_bound) {
+      lower_bound = new_lower_bound;
+      upper_bound = new_upper_bound;
+      lower_bound_sample = new_lower_bound_sample;
+      upper_bound_sample = new_upper_bound_sample;
+    }
   }
-  else {
-    // No seektable available, search for it
-    DEBUG_TRACE("  no seektable available\n");
-    frame_offset = _flac_binary_search_sample(flac, target_sample, flac->audio_offset, flac->file_size);
+  
+  if (upper_bound_sample == lower_bound_sample)
+    upper_bound_sample++;
+  
+  while (max_tries--) {
+    int ret = -1;
+    uint64_t this_frame_sample;
+    uint64_t last_sample;
+    
+    // check if bounds are still ok
+    if (lower_bound_sample >= upper_bound_sample || lower_bound > upper_bound) {
+      frame_offset = -1;
+      goto out;
+    }
+    
+    // estimate position
+    pos = (int64_t)lower_bound + (int64_t)(
+      (double)(target_sample - lower_bound_sample)
+      /
+      (double)(upper_bound_sample - lower_bound_sample) * (double)(upper_bound - lower_bound)
+    ) - approx_bytes_per_frame;
+    
+    DEBUG_TRACE("Initial pos: %lld\n", pos);
+  
+    if (pos < (int64_t)lower_bound)
+      pos = lower_bound;
+    
+    if (pos >= (int64_t)upper_bound)
+      pos = upper_bound - FLAC_FRAME_MAX_HEADER;
+    
+    DEBUG_TRACE("Searching at pos %lld (lb/lbs %llu/%llu, ub/ubs %llu/%llu)\n",
+      pos, lower_bound, lower_bound_sample, upper_bound, upper_bound_sample);
+    
+    ret = _flac_first_last_sample(flac, pos, &frame_offset, &this_frame_sample, &last_sample, target_sample); 
+       
+    if (ret < 0) {
+      // Error
+      goto out;
+    }
+    else if (ret == 0) {
+      // No valid frame found in range pos - flac->max_framesize, adjust bounds and retry  
+      upper_bound = pos;
+      upper_bound_sample -= flac->min_blocksize;
+      
+      DEBUG_TRACE("  No valid frame found, retrying (ub/ubs %llu/%llu)\n", upper_bound, upper_bound_sample);
+      
+      continue;
+    }
+    
+    // make sure we are not seeking in corrupted stream
+    if (this_frame_sample < lower_bound_sample) {
+      DEBUG_TRACE("  Frame at %d, this_frame_sample %llu, < lower_bound_sample %llu, aborting\n",
+        (int)frame_offset, this_frame_sample, lower_bound_sample);
+      
+      goto out;
+    }
+    
+    DEBUG_TRACE("    Frame at %d, this_frame_sample %llu, last_sample %llu (target %llu)\n",
+      (int)frame_offset, this_frame_sample, last_sample, target_sample);
+    
+    if (target_sample >= this_frame_sample && target_sample < last_sample) {
+      DEBUG_TRACE("    Found target frame\n");
+      break;
+    }
+    
+    // narrow the search
+    if (target_sample < this_frame_sample) {
+      upper_bound_sample = this_frame_sample;     
+      upper_bound = frame_offset;
+      approx_bytes_per_frame = 2 * (upper_bound - pos) / 3 + 16;
+      
+      DEBUG_TRACE("    Moving upper_bound to %llu, upper_bound_sample to %llu, approx_bytes_per_frame %d\n",
+        upper_bound, upper_bound_sample, approx_bytes_per_frame);
+    }
+    else {
+      lower_bound_sample = last_sample;
+      lower_bound = frame_offset + approx_bytes_per_frame;
+      approx_bytes_per_frame = 2 * (lower_bound - pos) / 3 + 16;
+      
+      DEBUG_TRACE("    Moving lower_bound to %llu, lower_bound_sample to %llu, approx_bytes_per_frame %d\n",
+        lower_bound, lower_bound_sample, approx_bytes_per_frame);
+    }
   }
+  
+  DEBUG_TRACE("max_tries: %d\n", max_tries);
+  
+  if (max_tries < 0)
+    frame_offset = -1;
   
 out:
   // Don't leak
@@ -344,101 +464,107 @@ out:
   // free seek struct
   Safefree(flac->seekpoints);
   
+  // free scratch buffer
+  if (flac->scratch->alloc)
+    buffer_free(flac->scratch);
+  Safefree(flac->scratch);
+  
   Safefree(flac);
   
   return frame_offset;
 }
 
+// Returns:
+//  1: Found a valid frame
+//  0: Did not find a valid frame
+// -1: Error
 int
-_flac_binary_search_sample(flacinfo *flac, uint64_t target_sample, off_t low, off_t high)
+_flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, uint64_t *first_sample, uint64_t *last_sample, uint64_t target_sample)
 {
-  off_t mid;
-  off_t frame_offset = -1;
-  uint64_t first_sample;
-  uint64_t last_sample;
-  
-  while (low <= high) {
-    mid = low + ((high - low) / 2);
-  
-    DEBUG_TRACE("  Searching for sample %llu between %d and %d (mid %d)\n", target_sample, (int)low, (int)high, (int)mid);
-    
-    if ( !_flac_first_last_sample(flac, mid, &frame_offset, &first_sample, &last_sample) ) {
-      goto out;
-    }
-    
-    DEBUG_TRACE("  frame offset: %llu, first_sample %llu, last_sample %llu\n", frame_offset, first_sample, last_sample);
-    
-    if (first_sample <= target_sample && last_sample >= target_sample) {
-      // found frame
-      DEBUG_TRACE("  found frame at %llu\n", frame_offset);
-      goto out;
-    }
-  
-    if (target_sample < first_sample) {
-      high = mid - 1;
-      DEBUG_TRACE("  high = %d\n", (int)high);
-    }
-    else {
-      low = mid + 1;
-      DEBUG_TRACE("  low = %d\n", (int)low);
-    }
-  }
-  
-out:
-  return frame_offset;
-}
-
-int
-_flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, uint64_t *first_sample, uint64_t *last_sample)
-{
-  Buffer buf;
   unsigned char *bptr;
   unsigned int buf_size;
-  int ret = 1;
+  int ret = 0;
   uint32_t i;
+  off_t prev_offset = 0;
+  uint64_t prev_first_sample = 0;
+  uint64_t prev_last_sample = 0;
   
-  buffer_init(&buf, flac->max_framesize);
+  buffer_init_or_clear(flac->scratch, flac->max_framesize);
   
   if (seek_offset > flac->file_size - FLAC_FRAME_MAX_HEADER) {
-    ret = 0;
+    DEBUG_TRACE("  Error: seek_offset > file_size - header size\n");
+    ret = -1;
     goto out;
   }
   
   if ( (PerlIO_seek(flac->infile, seek_offset, SEEK_SET)) == -1 ) {
-    ret = 0;
+    DEBUG_TRACE("  Error: seek failed\n");
+    ret = -1;
     goto out;
   }
     
-  if ( !_check_buf(flac->infile, &buf, FLAC_FRAME_MAX_HEADER, flac->max_framesize) ) {
-    ret = 0;
+  if ( !_check_buf(flac->infile, flac->scratch, FLAC_FRAME_MAX_HEADER, flac->max_framesize) ) {
+    DEBUG_TRACE("  Error: read failed\n");
+    ret = -1;
     goto out;
   }
 
-  bptr = buffer_ptr(&buf);
-  buf_size = buffer_len(&buf);
+  bptr = buffer_ptr(flac->scratch);
+  buf_size = buffer_len(flac->scratch);
 
   for (i = 0; i != buf_size - FLAC_HEADER_LEN; i++) {
-    if (bptr[i] != 0xFF)
+    // Verify sync and various reserved bits
+    if ( bptr[i] != 0xFF
+      || (bptr[i+1] >> 2) != 0x3E
+      || bptr[i+1] & 0x02
+      || bptr[i+3] & 0x01
+    ) {
       continue;
+    }
+    
+    DEBUG_TRACE("Checking frame header @ %d: %0x %0x %0x %0x\n", (int)seek_offset + i, bptr[i], bptr[i+1], bptr[i+2], bptr[i+3]);
     
     // Verify we have a valid FLAC frame header
     // and get the first/last sample numbers in the frame if it's valid
-    if ( !_flac_first_sample( &bptr[i], first_sample, last_sample ) )
+    if ( !_flac_read_frame_header(flac, &bptr[i], first_sample, last_sample) )
       continue;
     
     *frame_offset = seek_offset + i;
+    ret = 1;
     
-    break;
+    // If looking for a target sample, return the nearest frame found in this buffer
+    if (target_sample) {
+      if (target_sample >= *first_sample && target_sample < *last_sample) {
+        // This frame is the one
+        break;
+      }
+      else if (target_sample < *first_sample && prev_offset) {
+        // Previous frame may be the one
+        *frame_offset = prev_offset;
+        *first_sample = prev_first_sample;
+        *last_sample  = prev_last_sample;
+        break;
+      }
+      
+      prev_offset       = *frame_offset;
+      prev_first_sample = *first_sample;
+      prev_last_sample  = *last_sample;
+    }
+    else {
+      // Not looking for a target sample, return first one found
+      break;
+    }
   }
   
 out:
-  buffer_free(&buf);
+  if (ret <= 0)
+    *frame_offset = -1;
   
   return ret;
 }
 
 int
-_flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample)
+_flac_read_frame_header(flacinfo *flac, unsigned char *buf, uint64_t *first_sample, uint64_t *last_sample)
 {
   // A lot of this code is based on libFLAC stream_decoder.c read_frame_header_
   uint32_t x;
@@ -449,14 +575,6 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
   uint32_t frame_number = 0;
   uint8_t  raw_header_len = 4;
   uint8_t  crc8;
-  
-  // Verify sync and various reserved bits
-  if ( buf[0] != 0xFF 
-    || buf[1] & 0x02
-    || buf[3] & 0x01
-  ) {
-    return 0;
-  }
   
   // Block size
   switch(x = buf[2] >> 4) {
@@ -489,18 +607,16 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
       break;
   }
   
-  //DEBUG_TRACE("Checking frame header %0x %0x %0x %0x\n", buf[0], buf[1], buf[2], buf[3]);
-  
-  if ( buf[1] & 0x1 ) {
+  if ( buf[1] & 0x01 || flac->min_blocksize != flac->max_blocksize ) {
     // Variable blocksize
-    // XXX Flake support requires checking min_blocksize != max_blocksize from streaminfo to determine this
+    // XXX need test
     if ( !_flac_read_utf8_uint64(buf, &xx, &raw_header_len) )
       return 0;
     
     if ( xx == 0xFFFFFFFFFFFFFFFFLL )
       return 0;
       
-    //DEBUG_TRACE("  variable blocksize, first sample %llu\n", xx);
+    DEBUG_TRACE("  variable blocksize, first sample %llu\n", xx);
     
     *first_sample = xx;
   }
@@ -512,13 +628,13 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
     if ( x == 0xFFFFFFFF )
       return 0;
     
-    //DEBUG_TRACE("  fixed blocksize, frame number %d\n", x);
+    DEBUG_TRACE("  fixed blocksize, frame number %d\n", x);
     
     frame_number = x;
   }
   
-  // XXX need test
   if (blocksize_hint) {
+    DEBUG_TRACE("  blocksize_hint %d\n", blocksize_hint);
     x = buf[raw_header_len++];
     if (blocksize_hint == 7) {
       uint32_t _x = buf[raw_header_len++];
@@ -527,10 +643,11 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
     blocksize = x + 1;
   }
   
-  //DEBUG_TRACE("  blocksize %d\n", blocksize);
+  DEBUG_TRACE("  blocksize %d\n", blocksize);
   
   // XXX need test
   if (samplerate_hint) {
+    DEBUG_TRACE("  samplerate_hint %d\n", samplerate_hint);
     raw_header_len++;
     if (samplerate_hint != 12) {
       raw_header_len++;
@@ -540,13 +657,14 @@ _flac_first_sample(unsigned char *buf, uint64_t *first_sample, uint64_t *last_sa
   // Verify CRC-8
   crc8 = buf[raw_header_len];
   if ( _flac_crc8(buf, raw_header_len) != crc8 ) {
-    //DEBUG_TRACE("  CRC failed\n");
+    DEBUG_TRACE("  CRC failed\n");
     return 0;
   }
   
   // Calculate sample number from frame number if needed
   if (frame_number) {
-    *first_sample = frame_number * blocksize;
+    // Fixed blocksize, use min_blocksize value as blocksize above may be different if last frame
+    *first_sample = frame_number * flac->min_blocksize;
   }
   else {
     *first_sample = 0;
@@ -564,14 +682,16 @@ _flac_parse_streaminfo(flacinfo *flac)
   SV *md5;
   unsigned char *bptr;
   int i;
-  uint32_t samplerate;
-  uint64_t total_samples;
   uint32_t song_length_ms;
   
-  my_hv_store( flac->info, "minimum_blocksize", newSVuv( buffer_get_short(flac->buf) ) );
-  my_hv_store( flac->info, "maximum_blocksize", newSVuv( buffer_get_short(flac->buf) ) );
+  flac->min_blocksize = buffer_get_short(flac->buf);
+  my_hv_store( flac->info, "minimum_blocksize", newSVuv(flac->min_blocksize) );
   
-  my_hv_store( flac->info, "minimum_framesize", newSVuv( buffer_get_int24(flac->buf) ) );
+  flac->max_blocksize = buffer_get_short(flac->buf);
+  my_hv_store( flac->info, "maximum_blocksize", newSVuv(flac->max_blocksize) );
+  
+  flac->min_framesize = buffer_get_int24(flac->buf);
+  my_hv_store( flac->info, "minimum_framesize", newSVuv(flac->min_framesize) );
   
   flac->max_framesize = buffer_get_int24(flac->buf);
   my_hv_store( flac->info, "maximum_framesize", newSVuv(flac->max_framesize) );
@@ -582,13 +702,15 @@ _flac_parse_streaminfo(flacinfo *flac)
   
   tmp = buffer_get_int64(flac->buf);
   
-  samplerate = (uint32_t)((tmp >> 44) & 0xFFFFF);
-  total_samples = tmp & 0xFFFFFFFFFLL;
+  flac->samplerate      = (uint32_t)((tmp >> 44) & 0xFFFFF);
+  flac->total_samples   = tmp & 0xFFFFFFFFFLL;
+  flac->channels        = (uint32_t)(((tmp >> 41) & 0x7) + 1);
+  flac->bits_per_sample = (uint32_t)(((tmp >> 36) & 0x1F) + 1);
   
-  my_hv_store( flac->info, "samplerate", newSVuv(samplerate) );
-  my_hv_store( flac->info, "channels", newSVuv( (uint32_t)(((tmp >> 41) & 0x7) + 1) ) );
-  my_hv_store( flac->info, "bits_per_sample", newSVuv( (uint32_t)(((tmp >> 36) & 0x1F) + 1) ) );
-  my_hv_store( flac->info, "total_samples", newSVnv(total_samples) );
+  my_hv_store( flac->info, "samplerate", newSVuv(flac->samplerate) );
+  my_hv_store( flac->info, "channels", newSVuv(flac->channels) );
+  my_hv_store( flac->info, "bits_per_sample", newSVuv(flac->bits_per_sample) );
+  my_hv_store( flac->info, "total_samples", newSVnv(flac->total_samples) );
   
   bptr = buffer_ptr(flac->buf);
   md5 = newSVpvf("%02x", bptr[0]);
@@ -600,7 +722,7 @@ _flac_parse_streaminfo(flacinfo *flac)
   my_hv_store(flac->info, "md5", md5);
   buffer_consume(flac->buf, 16);
   
-  song_length_ms = (uint32_t)(( (total_samples * 1.0) / samplerate) * 1000);
+  song_length_ms = (uint32_t)(( (flac->total_samples * 1.0) / flac->samplerate) * 1000);
   my_hv_store( flac->info, "song_length_ms", newSVuv(song_length_ms) );
 }
 
@@ -734,8 +856,7 @@ _flac_parse_cuesheet(flacinfo *flac)
       index = newSVpvf("    INDEX %02u ", index_num);
       
       if (is_cd) {
-        uint32_t samplerate = SvIV( *( my_hv_fetch( flac->info, "samplerate") ) );
-        uint64_t frame = ((track_offset + index_offset) / (samplerate / 75));
+        uint64_t frame = ((track_offset + index_offset) / (flac->samplerate / 75));
         uint8_t m, s, f;
         
         f = (uint8_t)(frame % 75);

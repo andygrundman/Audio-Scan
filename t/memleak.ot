@@ -15,12 +15,14 @@ plan tests => 464;
 
 $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
 
+my $custom_dir = shift;
+
 our $t = Proc::ProcessTable->new( cache_ttys => 1 );
 our ( $initial, $final ) = ( 0, 0 );
 
 my $files = File::Next::files(
     { file_filter => sub { Audio::Scan->is_supported($_) } },
-    $FindBin::Bin,
+    $custom_dir || $FindBin::Bin,
 );
 
 while ( defined ( my $file = $files->() ) ) {
