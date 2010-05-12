@@ -48,6 +48,7 @@ typedef struct _GUID {
 #include <inttypes.h>
 #endif
 
+#define HAS_GUID
 #include "buffer.h"
 
 /* strlen the length automatically */
