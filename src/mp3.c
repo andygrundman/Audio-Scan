@@ -711,9 +711,8 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
   
   mp3->song_length_ms = song_length_ms;
   mp3->total_samples = total_samples;
+  
   my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
-  my_hv_store( info, "total_samples", newSVuv(total_samples) );
-
   my_hv_store( info, "layer", newSVuv(frame.layerID) );
   my_hv_store( info, "stereo", newSVuv(frame.channels == 2 ? 1 : 0) );
   my_hv_store( info, "samples_per_frame", newSVuv(frame.samples_per_frame) );
