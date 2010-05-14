@@ -242,8 +242,18 @@ _id3_parse_v2(id3info *id3)
       // It's unclear but the v2.4.0-changes document seems to say that v2.4 should
       // ignore the tag-level unsync flag and only worry about frame-level unsync
     
-      // XXX need v2.2/v2.3 unsync test file
-      DEBUG_TRACE("  !!! TODO un-synchronize tag\n");
+      // For v2.2/v2.3, unsync the entire tag.  This is unfortunate due to
+      // increased memory usage but the only way to do it, as frame size values only
+      // indicate the post-unsync size, so it's not possible to unsync each frame individually
+      // tested with v2.3-unsync.mp3
+      if ( !_check_buf(id3->infile, id3->buf, id3->size, id3->size) ) {
+        ret = 0;
+        goto out;
+      }
+        
+      id3->size_remain = _id3_deunsync( buffer_ptr(id3->buf), id3->size );
+      
+      DEBUG_TRACE("    Un-synchronized tag, new_size %d\n", id3->size_remain);
     }
     else {
       DEBUG_TRACE("  Ignoring v2.4 tag un-synchronize flag\n");
@@ -457,7 +467,8 @@ _id3_parse_v2_frame(id3info *id3)
       }
       
       // Perform decompression if necessary after all optional extra bytes have been read
-      if (decoded_size) {
+      // XXX need test for compressed + unsync
+      if (flags & ID3_FRAME_FLAG_V23_COMPRESSION && decoded_size) {
         unsigned long tmp_size;
         
         if ( !_check_buf(id3->infile, id3->buf, size, ID3_BLOCK_SIZE) ) {

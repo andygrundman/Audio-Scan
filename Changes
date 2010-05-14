@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.80
+        - ID3: Fixed unsynchronisation of v2.2/v2.3 tags.
         - FLAC: Fixed several seeking bugs and improved seeking algorithm.
 
 0.79    2010-04-27 14:30:00

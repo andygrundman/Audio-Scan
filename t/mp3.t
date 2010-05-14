@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 355;
+use Test::More tests => 360;
 
 use Audio::Scan;
 
@@ -1004,6 +1004,18 @@ eval {
     is( $tags->{TDRC}, 2009, 'v2.4 unsync TDRC ok' );
     is( $tags->{TIT2}, 'Title', 'v2.4 unsync TIT2 ok' );
     is( $tags->{TPE1}, 'Artist', 'v2.4 unsync TPE1 ok' );
+}
+
+# v2.3 whole tag unsynchronisation
+{
+    my $s = Audio::Scan->scan( _f('v2.3-unsync.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TALB}, 'Hydroponic Garden', 'v2.3 unsync TALB ok' );
+    is( $tags->{TCON}, 'Ambient', 'v2.3 unsync TCON ok' );
+    is( $tags->{TPE1}, 'Carbon Based Lifeforms', 'v2.3 unsync TPE1 ok' );
+    is( $tags->{TPE2}, 'Carbon Based Lifeforms', 'v2.3 unsync TPE2 ok' );
+    is( $tags->{TRCK}, 4, 'v2.3 unsync TRCK ok' );
 }
 
 # v2.3 frame compression
