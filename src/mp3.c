@@ -692,25 +692,27 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
     }
   }
 
-  if (!song_length_ms) {
-    if (mp3->xing_frame->xing_frames) {
-      song_length_ms = (int) ((double)(mp3->xing_frame->xing_frames * frame.samples_per_frame * 1000.)/
-				(double) frame.samplerate);
-      total_samples = mp3->xing_frame->xing_frames * frame.samples_per_frame;
+  if (mp3->xing_frame->xing_frames) {
+    total_samples = mp3->xing_frame->xing_frames * frame.samples_per_frame;
+        
+    if (mp3->xing_frame->lame_tag) {
+      // subtract delay/padding to get accurate sample count
+      total_samples -= (mp3->xing_frame->lame_encoder_delay + mp3->xing_frame->lame_encoder_padding);
     }
-    else if (mp3->xing_frame->vbri_frames) {
-      song_length_ms = (int) ((double)(mp3->xing_frame->vbri_frames * frame.samples_per_frame * 1000.)/
-				(double) frame.samplerate);
-      total_samples = mp3->xing_frame->vbri_frames * frame.samples_per_frame;
-		}
-    else {
-      song_length_ms = (int) ((double)mp3->audio_size * 8. /
-				(double)mp3->bitrate);
-    }
+    
+    song_length_ms = (int) ((double)(total_samples * 1000.) / (double) frame.samplerate);
+  }
+  else if (mp3->xing_frame->vbri_frames) {
+    song_length_ms = (int) ((double)(mp3->xing_frame->vbri_frames * frame.samples_per_frame * 1000.)/
+			(double) frame.samplerate);
+    total_samples = mp3->xing_frame->vbri_frames * frame.samples_per_frame;
+	}
+  else {
+    song_length_ms = (int) ((double)mp3->audio_size * 8. /
+			(double)mp3->bitrate);
   }
   
   mp3->song_length_ms = song_length_ms;
-  mp3->total_samples = total_samples;
   
   my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
   my_hv_store( info, "layer", newSVuv(frame.layerID) );

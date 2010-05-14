@@ -14,8 +14,6 @@ MP3
 Lyricsv2/3 support
 Free-format support (not reading Xing/LAME tag properly)
 Support VBRI mono file with wrong offset?
-Refactor to remove use of mp3_frameinfo
-Gapless MP3 splitting (for CUE sheets), based on pcutmp3
 
 ID3
 ---

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 360;
+use Test::More tests => 363;
 
 use Audio::Scan;
 
@@ -93,6 +93,7 @@ eval {
     is( $info->{vbr}, 1, 'LAME VBR flag ok' );
     is( $info->{lame_preset}, 'ABR 40', 'LAME preset ok' );
     is( $info->{lame_replay_gain_radio}, '-4.6 dB', 'LAME ReplayGain ok' );
+    is( $info->{song_length_ms}, 1024, 'LAME VBR song_length_ms ok' );
 }
 
 # MPEG2, Layer 3, 320k / 44.1kHz CBR with LAME Info tag
@@ -105,6 +106,7 @@ eval {
     is( $info->{samplerate}, 44100, 'CBR file samplerate ok' );
     is( $info->{vbr}, undef, 'CBR file does not have VBR flag' );
     is( $info->{lame_encoder_version}, 'LAME3.97 ', 'CBR file LAME Info tag version ok' );
+    is( $info->{song_length_ms}, 1044, 'CBR file song_length_ms ok' );
 }
 
 # Non-Xing/LAME VBR file to test average bitrate calculation
@@ -114,6 +116,7 @@ eval {
     my $info = $s->{info};
     
     is( $info->{bitrate}, 215000, 'Non-Xing VBR average bitrate calc ok' );
+    is( $info->{song_length_ms}, 4974, 'Non-Xing VBR song_length_ms ok' );
 }
 
 # File with no audio frames, test is rejected properly
@@ -825,7 +828,7 @@ eval {
     is( $info->{audio_offset}, 4896, 'Bug 12409 audio offset ok' );
     is( $info->{bitrate}, 128000, 'Bug 12409 bitrate ok' );
     is( $info->{lame_encoder_version}, 'LAME3.96r', 'Bug 12409 encoder version ok' );
-    is( $info->{song_length_ms}, 244464, 'Bug 12409 song length ok' );
+    is( $info->{song_length_ms}, 244382, 'Bug 12409 song length ok' );
 }
 
 # Bug 9942, APE tag with no ID3v1 tag and multiple tags

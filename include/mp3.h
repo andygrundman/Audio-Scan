@@ -120,7 +120,6 @@ typedef struct mp3info {
   off_t audio_size;
   uint16_t bitrate;
   uint32_t song_length_ms;
-  uint32_t total_samples;
   
   uint8_t vbr;
   int music_frame_count;
