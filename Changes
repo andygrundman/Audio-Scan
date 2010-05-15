@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.81
+0.81    2010-05-15 10:40:00
         - Fixed broken boolean values.
 
 0.80    2010-05-14 23:15:00
