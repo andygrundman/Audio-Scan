@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.80
+0.80    2010-05-14 23:15:00
         - ID3: Fixed unsynchronisation of v2.2/v2.3 tags.
         - FLAC: Fixed several seeking bugs and improved seeking algorithm.
         - MP3: Subtract LAME encoder delay/padding from total samples to obtain more
