@@ -384,7 +384,7 @@ _parse_xing(mp3info *mp3)
       // LAME tag
       bptr = buffer_ptr(mp3->buf);
       if ( bptr[0] == 'L' && bptr[1] == 'A' && bptr[2] == 'M' && bptr[3] == 'E' ) {
-        mp3->xing_frame->lame_tag = true;
+        mp3->xing_frame->lame_tag = TRUE;
         
         strncpy(mp3->xing_frame->lame_encoder_version, (char *)bptr, 9);
         bptr += 9;
@@ -499,7 +499,7 @@ _parse_xing(mp3info *mp3)
   else if ( bptr[0] == 'V' && bptr[1] == 'B' && bptr[2] == 'R' && bptr[3] == 'I' ) {
     DEBUG_TRACE("Found VBRI tag\n");
     
-    mp3->xing_frame->vbri_tag = true;
+    mp3->xing_frame->vbri_tag = TRUE;
     
     if ( !_check_buf(mp3->infile, mp3->buf, 14, MP3_BLOCK_SIZE) ) {
       return 0;
@@ -527,7 +527,7 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
   uint64_t total_samples = 0;
   struct mp3frame frame;
   
-  bool found_first_frame = false;
+  bool found_first_frame = FALSE;
   
   mp3info *mp3;
   Newz(0, mp3, sizeof(mp3info), mp3info);
