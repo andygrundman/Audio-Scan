@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 363;
+use Test::More tests => 366;
 
 use Audio::Scan;
 
@@ -1214,6 +1214,16 @@ eval {
     
     ok( !exists $tags->{TCON}, 'v2.3 empty TCON not present ok' );
     is( $tags->{TALB}, 'Unbekanntes Album', 'v2.3 empty TCON TALB ok' );
+}
+
+# RT 57664, invalid AENC tag
+{
+    my $s = Audio::Scan->scan( _f('v2.3-invalid-aenc.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TALB}, 'Pure Atmosphere', 'v2.3 invalid AENC TALB ok' );
+    is( length($tags->{TPE4}), 26939, 'v2.3 invalid AENC TPE4 ok' );
+    is( length($tags->{AENC}->[0]), 10600, 'v2.3 invalid AENC AENC ok' );
 }
 
 sub _f {    

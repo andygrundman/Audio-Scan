@@ -1057,60 +1057,76 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
         // ID3_FIELD_TYPE_STRINGLIST - only used for text frames, handled above
         
         case ID3_FIELD_TYPE_LANGUAGE: // USLT, SYLT, COMM, USER, 3-byte language code
-          av_push( framedata, newSVpvn( buffer_ptr(id3->buf), 3 ) );
-          buffer_consume(id3->buf, 3);
-          read += 3;
-          DEBUG_TRACE("    language, read %d\n", read);
+          if (size - read >= 3) {
+            av_push( framedata, newSVpvn( buffer_ptr(id3->buf), 3 ) );
+            buffer_consume(id3->buf, 3);
+            read += 3;
+            DEBUG_TRACE("    language, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_FRAMEID: // LINK, 3-byte frame id (v2.3, must be a bug in the spec?),
                                      // 4-byte frame id (v2.4) XXX need test
         {
           uint8_t len = (id3->version_major == 3) ? 3 : 4;
-          av_push( framedata, newSVpvn( buffer_ptr(id3->buf), len ) );
-          buffer_consume(id3->buf, len);
-          read += len;
-          DEBUG_TRACE("    frameid, read %d\n", read);
+          if (size - read >= len) {
+            av_push( framedata, newSVpvn( buffer_ptr(id3->buf), len ) );
+            buffer_consume(id3->buf, len);
+            read += len;
+            DEBUG_TRACE("    frameid, read %d\n", read);
+          }
           break;
         }
         
         case ID3_FIELD_TYPE_DATE: // OWNE, COMR, XXX need test, YYYYMMDD
-          av_push( framedata, newSVpvn( buffer_ptr(id3->buf), 8 ) );
-          buffer_consume(id3->buf, 8);
-          read += 8;
-          DEBUG_TRACE("    date, read %d\n", read);
+          if (size - read >= 8) {
+            av_push( framedata, newSVpvn( buffer_ptr(id3->buf), 8 ) );
+            buffer_consume(id3->buf, 8);
+            read += 8;
+            DEBUG_TRACE("    date, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_INT8: // ETCO, MLLT, SYTC, SYLT, EQU2, RVRB, APIC,
                                   // POPM, RBUF, POSS, COMR, ENCR, GRID, SIGN, ASPI
-          av_push( framedata, newSViv( buffer_get_char(id3->buf) ) );
-          read += 1;
-          DEBUG_TRACE("    int8, read %d\n", read);
+          if (size - read >= 1) {
+            av_push( framedata, newSViv( buffer_get_char(id3->buf) ) );
+            read += 1;
+            DEBUG_TRACE("    int8, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_INT16: // MLLT, RVRB, AENC, ASPI
-          av_push( framedata, newSViv( buffer_get_short(id3->buf) ) );
-          read += 2;
-          DEBUG_TRACE("    int16, read %d\n", read);
+          if (size - read >= 2) {
+            av_push( framedata, newSViv( buffer_get_short(id3->buf) ) );
+            read += 2;
+            DEBUG_TRACE("    int16, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_INT24: // MLLT, RBUF
-          av_push( framedata, newSViv( buffer_get_int24(id3->buf) ) );
-          read += 3;
-          DEBUG_TRACE("    int24, read %d\n", read);
+          if (size - read >= 3) {
+            av_push( framedata, newSViv( buffer_get_int24(id3->buf) ) );
+            read += 3;
+            DEBUG_TRACE("    int24, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_INT32: // RBUF, SEEK, ASPI
-          av_push( framedata, newSViv( buffer_get_int(id3->buf) ) );
-          read += 4;
-          DEBUG_TRACE("    int32, read %d\n", read);
+          if (size - read >= 4) {
+            av_push( framedata, newSViv( buffer_get_int(id3->buf) ) );
+            read += 4;
+            DEBUG_TRACE("    int32, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_INT32PLUS: // POPM
-          av_push( framedata, newSViv( _varint( buffer_ptr(id3->buf), size - read ) ) );
-          buffer_consume(id3->buf, size - read);
-          read = size;
-          DEBUG_TRACE("    int32plus, read %d\n", read);
+          if (size - read >= 4) {
+            av_push( framedata, newSViv( _varint( buffer_ptr(id3->buf), size - read ) ) );
+            buffer_consume(id3->buf, size - read);
+            read = size;
+            DEBUG_TRACE("    int32plus, read %d\n", read);
+          }
           break;
         
         case ID3_FIELD_TYPE_BINARYDATA: // ETCO, MLLT, SYTC, SYLT, RVA2, EQU2, APIC,
@@ -1164,10 +1180,12 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
           
           // All other binary frames, copy as-is          
           else {
-            av_push( framedata, newSVpvn( buffer_ptr(id3->buf), size - read ) );
-            buffer_consume(id3->buf, size - read);
-            read = size;
-            DEBUG_TRACE("    binarydata, read %d\n", read);
+            if (size - read > 1) {
+              av_push( framedata, newSVpvn( buffer_ptr(id3->buf), size - read ) );
+              buffer_consume(id3->buf, size - read);
+              read = size;
+              DEBUG_TRACE("    binarydata, read %d\n", read);
+            }
           }
           break;
         

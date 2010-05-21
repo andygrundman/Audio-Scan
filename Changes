@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.82
+        - RT 57664: ID3: Add checks to avoid reading too much inside an invalid frame.
+
 0.81    2010-05-15 10:40:00
         - Fixed broken boolean values.
 

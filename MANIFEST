@@ -132,6 +132,7 @@ t/mp3/v2.3-encrypted-frame.mp3
 t/mp3/v2.3-etco.mp3
 t/mp3/v2.3-ext-header.mp3
 t/mp3/v2.3-group-id.mp3
+t/mp3/v2.3-invalid-aenc.mp3
 t/mp3/v2.3-invalid-encoding.mp3
 t/mp3/v2.3-iso-8859-1.mp3
 t/mp3/v2.3-itunes81.mp3
