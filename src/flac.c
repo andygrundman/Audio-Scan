@@ -378,6 +378,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
     
     // check if bounds are still ok
     if (lower_bound_sample >= upper_bound_sample || lower_bound > upper_bound) {
+      DEBUG_TRACE("Error: out of bounds\n");
       frame_offset = -1;
       goto out;
     }
@@ -443,7 +444,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
     }
     else {
       lower_bound_sample = last_sample;
-      lower_bound = frame_offset + approx_bytes_per_frame;
+      lower_bound = frame_offset + 1;
       approx_bytes_per_frame = 2 * (lower_bound - pos) / 3 + 16;
       
       DEBUG_TRACE("    Moving lower_bound to %llu, lower_bound_sample to %llu, approx_bytes_per_frame %d\n",
