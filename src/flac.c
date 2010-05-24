@@ -296,10 +296,10 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
   target_sample = ((offset - 1) / 10) * (flac->samplerate / 100);
   DEBUG_TRACE("Looking for target sample %llu\n", target_sample);
   
-  if (flac->max_framesize > 0)
-    approx_bytes_per_frame = (flac->max_framesize + flac->min_framesize) / 2 + 1;
-  else if (flac->min_blocksize == flac->max_blocksize && flac->min_blocksize > 0)
+  if (flac->min_blocksize == flac->max_blocksize && flac->min_blocksize > 0)
     approx_bytes_per_frame = flac->min_blocksize * flac->channels * flac->bits_per_sample/8 + 64;
+  else if (flac->max_framesize > 0)
+    approx_bytes_per_frame = (flac->max_framesize + flac->min_framesize) / 2 + 1;
   else
     approx_bytes_per_frame = 4096 * flac->channels * flac->bits_per_sample/8 + 64;
   
@@ -384,9 +384,9 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
     
     // estimate position
     pos = (int64_t)lower_bound + (int64_t)(
-      (double)(target_sample - lower_bound_sample)
+      (double)((target_sample - lower_bound_sample) * (upper_bound - lower_bound))
       /
-      (double)(upper_bound_sample - lower_bound_sample) * (double)(upper_bound - lower_bound)
+      (double)(upper_bound_sample - lower_bound_sample)
     ) - approx_bytes_per_frame;
     
     DEBUG_TRACE("Initial pos: %lld\n", pos);
@@ -434,7 +434,7 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
     
     // narrow the search
     if (target_sample < this_frame_sample) {
-      upper_bound_sample = this_frame_sample;     
+      upper_bound_sample = this_frame_sample;
       upper_bound = frame_offset;
       approx_bytes_per_frame = 2 * (upper_bound - pos) / 3 + 16;
       
@@ -452,9 +452,6 @@ flac_find_frame(PerlIO *infile, char *file, int offset)
   }
   
   DEBUG_TRACE("max_tries: %d\n", max_tries);
-  
-  if (max_tries < 0)
-    frame_offset = -1;
   
 out:
   // Don't leak
@@ -485,9 +482,6 @@ _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, 
   unsigned int buf_size;
   int ret = 0;
   uint32_t i;
-  off_t prev_offset = 0;
-  uint64_t prev_first_sample = 0;
-  uint64_t prev_last_sample = 0;
   
   buffer_init_or_clear(flac->scratch, flac->max_framesize);
   
@@ -526,8 +520,12 @@ _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, 
     
     // Verify we have a valid FLAC frame header
     // and get the first/last sample numbers in the frame if it's valid
-    if ( !_flac_read_frame_header(flac, &bptr[i], first_sample, last_sample) )
+    if ( !_flac_read_frame_header(flac, &bptr[i], first_sample, last_sample) ) {
+      DEBUG_TRACE("  Unable to read frame header\n");
       continue;
+    }
+    
+    DEBUG_TRACE("  first_sample %llu\n", *first_sample);
     
     *frame_offset = seek_offset + i;
     ret = 1;
@@ -538,17 +536,10 @@ _flac_first_last_sample(flacinfo *flac, off_t seek_offset, off_t *frame_offset, 
         // This frame is the one
         break;
       }
-      else if (target_sample < *first_sample && prev_offset) {
-        // Previous frame may be the one
-        *frame_offset = prev_offset;
-        *first_sample = prev_first_sample;
-        *last_sample  = prev_last_sample;
+      else if (target_sample < *first_sample) {
+        // Too far, return what we have
         break;
       }
-      
-      prev_offset       = *frame_offset;
-      prev_first_sample = *first_sample;
-      prev_last_sample  = *last_sample;
     }
     else {
       // Not looking for a target sample, return first one found

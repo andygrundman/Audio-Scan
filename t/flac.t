@@ -139,7 +139,7 @@ use Audio::Scan;
 # Find frame in corrupted file
 {
     my $offset = Audio::Scan->find_frame( _f('appId.flac'), 10 );
-    is( $offset, -1, 'Find frame in corrupted stream ok' );
+    is( $offset, 8011, 'Find frame in corrupted stream ok' );
 }
 
 # Find frame in file with ID3
