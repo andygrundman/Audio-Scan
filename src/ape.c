@@ -88,7 +88,7 @@ int _ape_get_tag_info(ApeTag* tag) {
         return _ape_error(tag, "Couldn't read (id3 offset)", -2);
       }
 
-      if (id3[0] == 'T' && id3[1] == 'A' && id3[2] == 'G' && id3[APE_ID3_MIN_TAG_SIZE-3] == '\0') {
+      if (id3[0] == 'T' && id3[1] == 'A' && id3[2] == 'G') {
         id3_length = APE_ID3_MIN_TAG_SIZE;
         tag->flags |= APE_HAS_ID3;
       } else {

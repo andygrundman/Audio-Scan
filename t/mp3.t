@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 368;
+use Test::More tests => 370;
 
 use Audio::Scan;
 
@@ -1233,6 +1233,15 @@ eval {
     
     ok( !$tags->{RVAD}, 'v2.3 invalid RVAD skipped ok' );
     is( $tags->{TBPM}, 125, 'v2.3 invalid RVAD frame after RVAD ok' );
+}
+
+# Bug 15992 again, APE tag wasn't read properly
+{
+    my $s = Audio::Scan->scan( _f('ape-v1.mp3') );
+    my $tags = $s->{tags};
+    
+    is( $tags->{TPE1}, 'Blue', 'APEv2/ID3v1 TPE1 ok' );
+    is( $tags->{REPLAYGAIN_ALBUM_GAIN}, '-9.240000 dB', 'APEv2/ID3v1 REPLAYGAIN_ALBUM_GAIN ok' );
 }
 
 sub _f {    
