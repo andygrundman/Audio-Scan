@@ -123,7 +123,7 @@ int _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_fr
 void _id3_set_array_tag(id3info *id3, char const *id, AV *framedata);
 uint32_t _id3_get_v1_utf8_string(id3info *id3, SV **string, uint32_t len);
 uint32_t _id3_get_utf8_string(id3info *id3, SV **string, uint32_t len, uint8_t encoding);
-uint32_t _id3_parse_rvad(id3info *id3, char const *id);
+uint32_t _id3_parse_rvad(id3info *id3, char const *id, uint32_t size);
 uint32_t _id3_parse_rgad(id3info *id3);
 uint32_t _id3_parse_rva2(id3info *id3, uint32_t len, AV *framedata);
 uint32_t _id3_parse_sylt(id3info *id3, uint8_t encoding, uint32_t len, AV *framedata);

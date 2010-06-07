@@ -952,7 +952,7 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
       case ID3_FIELD_TYPE_BINARYDATA: // unknown/obsolete frames
         // Special handling for RVA(D), tested in v2.2-itunes81.mp3, v2.3-itunes81.mp3
         if ( !strcmp(id, "RVAD") ) {
-          read += _id3_parse_rvad(id3, id);
+          read += _id3_parse_rvad(id3, id, size - read);
         }
         
         // Special handling for RGAD (non-standard replaygain frame), tested in v2.3-rgad.mp3
@@ -1360,16 +1360,26 @@ _id3_get_utf8_string(id3info *id3, SV **string, uint32_t len, uint8_t encoding)
 }
 
 uint32_t
-_id3_parse_rvad(id3info *id3, char const *id)
+_id3_parse_rvad(id3info *id3, char const *id, uint32_t size)
 {
   unsigned char *rva = buffer_ptr(id3->buf);
-  int8_t sign_r = rva[0] & 0x01 ? 1 : -1;
-  int8_t sign_l = rva[0] & 0x02 ? 1 : -1;
-  uint8_t bytes = rva[1] / 8;
+  int sign_r = rva[0] & 0x01 ? 1 : -1;
+  int sign_l = rva[0] & 0x02 ? 1 : -1;
+  int bytes = rva[1] / 8;
   float vol[2];
   float peak[2];
-  uint8_t i;
+  int i;
   AV *framedata = newAV();
+  
+  // Sanity check, first byte must be either 0 or 1, second byte > 0
+  if (rva[0] & 0xFE || rva[1] == 0) {
+    return 0;
+  }
+  
+  // Calculated size must match the actual size
+  if (size != 2 + (bytes * 4)) {
+    return 0;
+  }
 
   rva += 2;
 
