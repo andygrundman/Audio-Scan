@@ -138,8 +138,10 @@ int
 _find_frame( char *, char *suffix, PerlIO *infile, SV *path, int offset )
 CODE:
 {
+  taghandler *hdl;
+  
   RETVAL = -1;
-  taghandler *hdl = _get_taghandler(suffix);
+  hdl = _get_taghandler(suffix);
   
   if (hdl && hdl->find_frame) {
     RETVAL = hdl->find_frame(infile, SvPVX(path), offset);
