@@ -3,6 +3,7 @@ Revision history for Audio::Scan
 0.83
         - APE: Tag could be ignored when ID3v1 tag is present.
         - Fixed error handling for invalid RVAD tags.
+        - Win32: Added binmode for all open files and filehandles.
 
 0.82    2010-05-24 13:15:00
         - RT 57664: ID3: Add checks to avoid reading too much inside an invalid frame.

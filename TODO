@@ -14,6 +14,7 @@ MP3
 Lyricsv2/3 support
 Free-format support (not reading Xing/LAME tag properly)
 Support VBRI mono file with wrong offset?
+VBRI not scanned right in some files (MPEG-2 Layer 3)
 
 ID3
 ---

@@ -92,14 +92,17 @@ _get_taghandler(char *suffix)
   return hdl;
 }
 
+MODULE = Audio::Scan		PACKAGE = Audio::Scan
+
 HV *
-_scan( char *suffix, PerlIO *infile, SV *path, uint8_t filter )
+_scan( char *, char *suffix, PerlIO *infile, SV *path, int filter )
+CODE:
 {
   taghandler *hdl;
-  HV *out = newHV();
+  RETVAL = newHV();
   
   // don't leak
-  sv_2mortal( (SV*)out );
+  sv_2mortal( (SV*)RETVAL );
   
   hdl = _get_taghandler(suffix);
   
@@ -118,181 +121,53 @@ _scan( char *suffix, PerlIO *infile, SV *path, uint8_t filter )
     if ( hdl->get_tags && (filter & FILTER_TYPE_TAGS) ) {
       HV *tags = newHV();
       hdl->get_tags(infile, SvPVX(path), info, tags);
-      hv_store( out, "tags", 4, newRV_noinc( (SV *)tags ), 0 );
+      hv_store( RETVAL, "tags", 4, newRV_noinc( (SV *)tags ), 0 );
     }
 
     // Info may be used in tag function, i.e. to find tag version
-    hv_store( out, "info", 4, newRV_noinc( (SV *)info ), 0 );
+    hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );
   }
   else {
     croak("Audio::Scan unsupported file type: %s (%s)", suffix, SvPVX(path));
   }
-  
-  return out;
 }
-
+OUTPUT:
+  RETVAL
+  
 int
-_find_frame( char *suffix, PerlIO *infile, SV *path, int offset )
+_find_frame( char *, char *suffix, PerlIO *infile, SV *path, int offset )
+CODE:
 {
-  int frame = -1;
+  RETVAL = -1;
   taghandler *hdl = _get_taghandler(suffix);
   
   if (hdl && hdl->find_frame) {
-    frame = hdl->find_frame(infile, SvPVX(path), offset);
+    RETVAL = hdl->find_frame(infile, SvPVX(path), offset);
   }
-  
-  return frame;
 }
+OUTPUT:
+  RETVAL
 
 HV *
-_find_frame_return_info( char *suffix, PerlIO *infile, SV *path, int offset )
+_find_frame_return_info( char *, char *suffix, PerlIO *infile, SV *path, int offset )
+CODE:
 {
   taghandler *hdl = _get_taghandler(suffix);
-  HV *info = newHV();
-  sv_2mortal((SV*)info);
+  RETVAL = newHV();
+  sv_2mortal((SV*)RETVAL);
   
   if (hdl && hdl->find_frame_return_info) {
-    hdl->find_frame_return_info(infile, SvPVX(path), offset, info);
+    hdl->find_frame_return_info(infile, SvPVX(path), offset, RETVAL);
   }
-  
-  return info;
 }
-
-MODULE = Audio::Scan		PACKAGE = Audio::Scan
+OUTPUT:
+  RETVAL
 
 int
 has_flac(void)
 CODE:
 {
   RETVAL = 1;
-}
-OUTPUT:
-  RETVAL
-
-HV *
-scan (char * /*klass*/, SV *path, ...)
-CODE:
-{
-  PerlIO *infile;
-  int filter = FILTER_TYPE_INFO | FILTER_TYPE_TAGS;
-  char *suffix = strrchr( SvPVX(path), '.' );
-
-  // Check for filter to only run one of the scan types
-  if ( items == 3 && SvOK(ST(2)) ) {
-    filter = SvIV(ST(2));
-  }
-
-  if ( !suffix ) {
-    XSRETURN_UNDEF;
-  }
-
-  suffix++;
-  
-  if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading: %s\n", SvPVX(path), strerror(errno));
-    XSRETURN_UNDEF;
-  }
-  
-  RETVAL = _scan( suffix, infile, path, filter );
-  
-  PerlIO_close(infile);
-}
-OUTPUT:
-  RETVAL
-
-HV *
-scan_fh(char *, SV *type, SV *sfh, ...)
-CODE:
-{
-  uint8_t filter = FILTER_TYPE_INFO | FILTER_TYPE_TAGS;
-  char *suffix = SvPVX(type);
-  
-  PerlIO *fh = IoIFP(sv_2io(sfh));
-  
-  // Check for filter to only run one of the scan types
-  if ( items == 4 && SvOK(ST(3)) ) {
-    filter = SvIV(ST(3));
-  }
-
-  RETVAL = _scan( suffix, fh, newSVpv("(filehandle)", 0), filter );
-}
-OUTPUT:
-  RETVAL
-
-int
-find_frame(char *, SV *path, int offset)
-CODE:
-{
-  PerlIO *infile;
-  char *suffix = strrchr( SvPVX(path), '.' );
-  
-  if ( !suffix ) {
-    RETVAL = -1;
-    return;
-  }
-  
-  suffix++;
-  
-  if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
-    RETVAL = -1;
-    return;
-  }
-  
-  RETVAL = _find_frame( suffix, infile, path, offset );
-  
-  PerlIO_close(infile);
-}
-OUTPUT:
-  RETVAL
-
-int
-find_frame_fh(char *, SV *type, SV *sfh, int offset)
-CODE:
-{
-  char *suffix = SvPVX(type);
-  
-  PerlIO *fh = IoIFP(sv_2io(sfh));
-  
-  RETVAL = _find_frame( suffix, fh, newSVpv("(filehandle)", 0), offset );
-}
-OUTPUT:
-  RETVAL
-
-HV *
-find_frame_return_info(char *, SV *path, int offset)
-CODE:
-{
-  PerlIO *infile;
-  char *suffix = strrchr( SvPVX(path), '.' );
-
-  if ( !suffix ) {
-    XSRETURN_UNDEF;
-  }
-
-  suffix++;
-
-  if ( !(infile = PerlIO_open(SvPVX(path), "rb")) ) {
-    PerlIO_printf(PerlIO_stderr(), "Could not open %s for reading\n", SvPVX(path));
-    XSRETURN_UNDEF;
-  }
-
-  RETVAL = _find_frame_return_info( suffix, infile, path, offset );
-
-  PerlIO_close(infile);
-}
-OUTPUT:
-  RETVAL
-
-HV *
-find_frame_fh_return_info(char *, SV *type, SV *sfh, int offset)
-CODE:
-{
-  char *suffix = SvPVX(type);
-
-  PerlIO *fh = IoIFP(sv_2io(sfh));
-
-  RETVAL = _find_frame_return_info( suffix, fh, newSVpv("(filehandle)", 0), offset );
 }
 OUTPUT:
   RETVAL
