@@ -65,7 +65,7 @@ use Audio::Scan;
     is( $info->{bitrate}, 64000, 'Leading junk bitrate ok' );
     is( $info->{channels}, 2, 'Leading junk channels ok' );
     is( $info->{profile}, 'LC', 'Leading junk profile ok' );
-    is( $info->{samplerate}, 22050, 'Leading junk samplerate ok' );
+    is( $info->{samplerate}, 44100, 'Leading junk samplerate ok' );
 }
 
 sub _f {

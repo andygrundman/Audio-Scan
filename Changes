@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.84
+        - AAC: Fixed samplerate values for AACplus files. The samplerate in the header
+          needs to be doubled to obtain the actual playback samplerate.
+
 0.83    2010-06-10 14:15:00
         - APE: Tag could be ignored when ID3v1 tag is present.
         - Fixed error handling for invalid RVAD tags.

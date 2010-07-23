@@ -162,6 +162,10 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
   else
     length = 1;
   
+  // Samplerate <= 24000 is AACplus and the samplerate is doubled
+  if (samplerate <= 24000)
+    samplerate *= 2;
+  
   my_hv_store( info, "bitrate", newSVuv(bitrate * 1000) );
   my_hv_store( info, "song_length_ms", newSVuv(length * 1000) );
   my_hv_store( info, "samplerate", newSVuv(samplerate) );
