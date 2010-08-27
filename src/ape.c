@@ -232,6 +232,16 @@ int _ape_get_tag_info(ApeTag* tag) {
   }
   
   tag->flags |= APE_CHECKED_APE | APE_HAS_APE;
+  
+  // Reduce the size of the audio_size value
+  if (my_hv_exists(tag->info, "audio_size")) {
+    int audio_size = SvIV(*(my_hv_fetch(tag->info, "audio_size")));
+    if (lyrics_size > 0)
+      lyrics_size += 15;
+    
+    my_hv_store(tag->info, "audio_size", newSVuv(audio_size - tag->size - lyrics_size));
+    DEBUG_TRACE("Reduced audio_size value by APE/Lyrics2 tag size %d\n", tag->size + lyrics_size);
+  }
 
   return 1;
 }

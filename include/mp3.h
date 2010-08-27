@@ -230,5 +230,5 @@ int mp3_find_frame(PerlIO *infile, char *file, int offset);
 mp3info * _mp3_parse(PerlIO *infile, char *file, HV *info);
 int _decode_mp3_frame(unsigned char *bptr, struct mp3frame *frame);
 int _is_ape_header(char *bptr);
-int _has_ape(PerlIO *infile, off_t file_size);
+int _has_ape(PerlIO *infile, off_t file_size, HV *info);
 void _mp3_skip(mp3info *mp3, uint32_t size);

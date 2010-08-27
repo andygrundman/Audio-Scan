@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 370;
+use Test::More tests => 371;
 
 use Audio::Scan;
 
@@ -20,10 +20,11 @@ eval {
 
 # MPEG1, Layer 2, 192k / 44.1kHz
 {
-    my $s = Audio::Scan->scan( _f('no-tags-mp1l2.mp3') );
+    my $s = Audio::Scan->scan( _f('no-tags-mp1l2.mp3'), { md5_size => 4096 } );
     
     my $info = $s->{info};
     
+    is( $info->{audio_md5}, '58ed2452dc5ed1d4113c40dfb8894463', 'MPEG1, Layer 2 audio MD5 ok' );
     is( $info->{layer}, 2, 'MPEG1, Layer 2 ok' );
     is( $info->{bitrate}, 192000, 'MPEG1, Layer 2 bitrate ok' );
     is( $info->{file_size}, 82756, 'MPEG1, Layer 2 file size ok' );

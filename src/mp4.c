@@ -818,6 +818,7 @@ _mp4_read_box(mp4info *mp4)
     
     // Record audio offset and length
     my_hv_store( mp4->info, "audio_offset", newSVuv(mp4->audio_offset) );
+    my_hv_store( mp4->info, "audio_size", newSVuv(size) );
     mp4->audio_size = size;
   }
   else {

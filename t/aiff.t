@@ -2,19 +2,20 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 25;
+use Test::More tests => 26;
 
 use Audio::Scan;
 
 # AIFF file with ID3 tags (tagged by iTunes)
 {
-    my $s = Audio::Scan->scan( _f('aiff-id3.aif') );
+    my $s = Audio::Scan->scan( _f('aiff-id3.aif'), { md5_size => 4096 } );
     
     my $info = $s->{info};
     my $tags = $s->{tags};
     
     is( $info->{audio_offset}, 46, 'Audio offset ok' );
     is( $info->{audio_size}, 1912, 'Audio size ok' );
+    is( $info->{audio_md5}, '9ed716ae06bcecda77cd1054c5a0c787', 'Audio MD5 ok' );
     is( $info->{bitrate}, 1411200, 'Bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'Bits/sample ok' );
     is( $info->{block_align}, 4, 'Block align ok' );

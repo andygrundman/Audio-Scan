@@ -11,19 +11,27 @@ use constant FILTER_INFO_ONLY => 1;
 use constant FILTER_TAGS_ONLY => 2;
 
 sub scan_info {
-    my ( $class, $path ) = @_;
+    my ( $class, $path, $opts ) = @_;
     
-    $class->scan( $path, FILTER_INFO_ONLY );
+    $opts ||= {};
+    $opts->{filter} = FILTER_INFO_ONLY;
+    
+    $class->scan( $path, $opts );
 }
 
 sub scan_tags {
-    my ( $class, $path ) = @_;
+    my ( $class, $path, $opts ) = @_;
     
-    $class->scan( $path, FILTER_TAGS_ONLY );
+    $opts ||= {};
+    $opts->{filter} = FILTER_TAGS_ONLY;
+    
+    $class->scan( $path, $opts );
 }
 
 sub scan {
-    my ( $class, $path, $filter ) = @_;
+    my ( $class, $path, $opts ) = @_;
+    
+    my ($filter, $md5_size);
       
     open my $fh, '<', $path or do {
         warn "Could not open $path for reading: $!\n";
@@ -36,11 +44,23 @@ sub scan {
     
     return if !$suffix;
     
+    if ( defined $opts ) {
+        if ( !ref $opts ) {
+            # Back-compat to support filter as normal argument
+            warn "The Audio::Scan::scan() filter passing method is deprecated, please pass a hashref instead.\n";
+            $filter = $opts;
+        }
+        else {
+            $filter   = $opts->{filter} || FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
+            $md5_size = $opts->{md5_size};
+        }
+    }
+    
     if ( !defined $filter ) {
         $filter = FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
     }
     
-    my $ret = $class->_scan( $suffix, $fh, $path, $filter );
+    my $ret = $class->_scan( $suffix, $fh, $path, $filter, $md5_size || 0 );
     
     close $fh;
     
@@ -48,15 +68,29 @@ sub scan {
 }
 
 sub scan_fh {
-    my ( $class, $suffix, $fh, $filter ) = @_;
+    my ( $class, $suffix, $fh, $opts ) = @_;
+    
+    my ($filter, $md5_size);
     
     binmode $fh;
+    
+    if ( defined $opts ) {
+        if ( !ref $opts ) {
+            # Back-compat to support filter as normal argument
+            warn "The Audio::Scan::scan_fh() filter passing method is deprecated, please pass a hashref instead.\n";
+            $filter = $opts;
+        }
+        else {
+            $filter   = $opts->{filter} || FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
+            $md5_size = $opts->{md5_size};
+        }
+    }
     
     if ( !defined $filter ) {
         $filter = FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
     }
     
-    return $class->_scan( $suffix, $fh, '(filehandle)', $filter );
+    return $class->_scan( $suffix, $fh, '(filehandle)', $filter, $md5_size || 0 );
 }
 
 sub find_frame {
@@ -147,6 +181,10 @@ Audio::Scan - Fast C metadata and tag reader for all common audio file formats
     open my $fh, '<', 'my.mp3';
     my $data = Audio::Scan->scan_fh( mp3 => $fh );
     close $fh;
+    
+    # Scan and compute an audio MD5 checksum
+    my $data = Audio::Scan->scan( '/path/to/file.mp3', { md5_size => 100 * 1024 } );
+    my $md5 = $data->{info}->{audio_md5};
 
 =head1 DESCRIPTION
 
@@ -157,7 +195,7 @@ See below for specific details about each file format.
 
 =head1 METHODS
 
-=head2 scan( $path )
+=head2 scan( $path, [ \%OPTIONS ] )
 
 Scans $path for both metadata and tag information.  The type of scan performed is
 determined by the file's extension.  Supported extensions are:
@@ -177,15 +215,25 @@ determined by the file's extension.  Supported extensions are:
 This method returns a hashref containing two other hashrefs: info and tags.  The
 contents of the info and tag hashes vary depending on file format, see below for details.
 
-=head2 scan_info( $path )
+An optional hashref may be provided. Currently this supports one item:
+
+    md5_size => $audio_bytes_to_checksum
+
+An MD5 will be computed of the first N audio bytes. Any tags in the file are automatically
+skipped, so this is a useful way of determining if a file's audio content is the same even
+if tags may have been changed.  The hex MD5 value is returned in the $info->{audio_md5}
+key.  This option will reduce performance, so choose a small enough size that works for you,
+you should probably avoid using more than 64K for example.
+
+=head2 scan_info( $path, [ \%OPTIONS ] )
 
 If you only need file metadata and don't care about tags, you can use this method.
 
-=head2 scan_tags( $path )
+=head2 scan_tags( $path, [ \%OPTIONS ] )
 
 If you only need the tags and don't care about the metadata, use this method.
 
-=head2 scan_fh( $type => $fh )
+=head2 scan_fh( $type => $fh, [ \%OPTIONS ] )
 
 Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or "ogg".
 Note that FLAC does not support reading from a filehandle.
@@ -364,6 +412,7 @@ Sample tag data:
 The following metadata about a file may be returned:
 
     audio_offset (byte offset to start of mdat)
+    audio_size
     compatible_brands
     file_size
     leading_mdat (if file has mdat before moov)
@@ -432,6 +481,7 @@ Tags are returned in a hash with all keys converted to upper-case.  Keys startin
 The following metadata about a file is returned:
 
     audio_offset
+    audio_size
     bitrate (in bps)
     channels
     file_size
@@ -456,6 +506,7 @@ The following metadata about a file is returned:
     blocksize_0
     blocksize_1
     audio_offset (byte offset to audio)
+    audio_size
     song_length_ms (duration in milliseconds)
 
 =head2 TAGS
@@ -473,6 +524,7 @@ The following metadata about a file is returned:
     bitrate (in bps)
     file_size
     audio_offset (byte offset to first audio frame)
+    audio_size
     song_length_ms (duration in milliseconds)
     bits_per_sample
     frames
@@ -516,6 +568,7 @@ The following metadata about a file may be returned.  Reading the ASF spec is en
 want to find out more about any of these values.
 
     audio_offset (byte offset to first data packet)
+    audio_size
     broadcast (boolean, whether the file is a live broadcast or not)
     codec_list (array of information about codecs used in the file)
     creation_date (UNIX timestamp when file was created)
@@ -602,6 +655,7 @@ Pictures are returned as a hash with the following keys:
 The following metadata about a file may be returned.
 
     audio_offset
+    audio_size
     bitrate (in bps)
     bits_per_sample
     block_align
@@ -652,6 +706,7 @@ ID3v2 tags can also be embedded within WAV files.  These are returned exactly as
 The following metadata about a file may be returned.
 
     audio_offset
+    audio_size
     bitrate (in bps)
     bits_per_sample
     block_align
@@ -673,6 +728,8 @@ ID3v2 tags can be embedded within AIFF files.  These are returned exactly as for
 
 The following metadata about a file may be returned.
 
+    audio_offset
+    audio_size
     bitrate (in bps)
     channels
     compression
@@ -692,6 +749,7 @@ APEv2 tags are returned as a hash of key/value pairs.
 The following metadata about a file may be returned.
 
     audio_offset
+    audio_size
     bitrate (in bps)
     channels
     encoder
@@ -711,6 +769,7 @@ Musepack uses APEv2 tags.  They are returned as a hash of key/value pairs.
 The following metadata about a file may be returned.
 
     audio_offset
+    audio_size
     bitrate (in bps)
     bits_per_sample
     channels
@@ -739,6 +798,9 @@ more features.
 
 The source to the original Netgear C scanner for SqueezeCenter is located
 at L<http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/contrib/scanner>
+
+The audio MD5 feature uses an MD5 implementation by L. Peter Deutsch,
+E<lt>ghost@aladdin.comE<gt>.
 
 =head1 SEE ALSO
 

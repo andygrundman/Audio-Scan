@@ -2,18 +2,20 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 67;
+use Test::More tests => 69;
 
 use Audio::Scan;
 
 # Silence file with APEv2 tag
 {
-    my $s = Audio::Scan->scan( _f('silence-44-s.wv') );
+    my $s = Audio::Scan->scan( _f('silence-44-s.wv'), { md5_size => 4096 } );
     my $info = $s->{info};
     my $tags = $s->{tags};
     
     is( $info->{ape_version}, 'APEv2', 'APE version ok' );
     is( $info->{audio_offset}, 0, 'audio_offset ok' );
+    is( $info->{audio_size}, 34782, 'audio_size ok' );
+    is( $info->{audio_md5}, '58da8c0bef15c3988e6417cad12ec226', 'audio_md5 ok' );
     is( $info->{bitrate}, 76323, 'bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'bits_per_sample ok' );
     is( $info->{channels}, 2, 'channels ok' );

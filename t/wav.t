@@ -2,19 +2,20 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 51;
+use Test::More tests => 52;
 
 use Audio::Scan;
 
 # WAV file with ID3 tags
 {
-    my $s = Audio::Scan->scan( _f('id3.wav') );
+    my $s = Audio::Scan->scan( _f('id3.wav'), { md5_size => 4096 } );
     
     my $info = $s->{info};
     my $tags = $s->{tags};
     
     is( $info->{audio_offset}, 44, 'Audio offset ok' );
     is( $info->{audio_size}, 1904, 'Audio size ok' );
+    is( $info->{audio_md5}, 'f69093529247ffd1dfaa5b7c66a19377', 'Audio MD5 ok' );
     is( $info->{bitrate}, 1411200, 'Bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'Bits/sample ok' );
     is( $info->{block_align}, 4, 'Block align ok' );

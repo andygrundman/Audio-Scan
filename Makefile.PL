@@ -11,7 +11,8 @@ if ( $^O !~ /Win32/ ) {
     push @LIBS, '-lz';
 }
 
-my $DEFINES = '-Wall' unless $^O =~ /sun|solaris/i;
+my $DEFINES = '-O2';
+$DEFINES .= ' -Wall' unless $^O =~ /sun|solaris/i;
 $DEFINES .= ' -Wno-unused-value -Wno-format-security' unless $^O =~ /Win32|sun|solaris/i;
 
 # we want to put the local include dirs in front since the flac include dir possibly added above

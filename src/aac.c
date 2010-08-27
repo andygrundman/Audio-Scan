@@ -90,6 +90,7 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
 */
   
   my_hv_store( info, "audio_offset", newSVuv(audio_offset) );
+  my_hv_store( info, "audio_size", newSVuv(file_size - audio_offset) );
   
   // Parse ID3 at end
   if (id3_size) {

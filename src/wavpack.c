@@ -92,6 +92,7 @@ _wavpack_parse(PerlIO *infile, char *file, HV *info, uint8_t seeking)
   }
   
   my_hv_store( info, "audio_offset", newSVuv(wvp->audio_offset) );
+  my_hv_store( info, "audio_size", newSVuv(wvp->file_size - wvp->audio_offset) );
   
 out:
   buffer_free(wvp->buf);

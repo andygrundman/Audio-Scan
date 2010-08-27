@@ -253,6 +253,7 @@ _flac_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   
   my_hv_store( info, "file_size", newSVuv(flac->file_size) );
   my_hv_store( info, "audio_offset", newSVuv(flac->audio_offset) );
+  my_hv_store( info, "audio_size", newSVuv(flac->file_size - flac->audio_offset) );
   
   // Parse ID3 last, due to an issue with libid3tag screwing
   // up the filehandle

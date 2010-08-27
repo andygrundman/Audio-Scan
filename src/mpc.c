@@ -338,6 +338,7 @@ get_mpcfileinfo(PerlIO *infile, char *file, HV *info)
     my_hv_store(info, "bitrate", newSVuv(8 * (double)(si->total_file_length - si->tag_offset) / total_seconds));
     
     my_hv_store(info, "audio_offset", newSVuv(si->tag_offset));
+    my_hv_store(info, "audio_size", newSVuv(si->total_file_length - si->tag_offset));
     my_hv_store(info, "file_size", newSVuv(si->total_file_length));
     
     if (si->encoder)

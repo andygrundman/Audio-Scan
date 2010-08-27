@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 28;
+use Test::More tests => 31;
 
 use Audio::Scan;
 
@@ -13,6 +13,7 @@ use Audio::Scan;
     my $info = $s->{info};
     
     is( $info->{audio_offset}, 0, 'Audio offset ok' );
+    is( $info->{audio_size}, 2053, 'Audio size ok' );
     is( $info->{bitrate}, 35000, 'Bitrate ok' );
     is( $info->{channels}, 1, 'Channels ok' );
     is( $info->{file_size}, 2053, 'File size ok' );
@@ -37,12 +38,14 @@ use Audio::Scan;
 
 # ADTS with ID3v2 tags
 {
-    my $s = Audio::Scan->scan( _f('id3v2.aac') );
+    my $s = Audio::Scan->scan( _f('id3v2.aac'), { md5_size => 4096 } );
     
     my $info = $s->{info};
     my $tags = $s->{tags};
     
     is( $info->{audio_offset}, 2182, 'ID3v2 audio offset ok' );
+    is( $info->{audio_size}, 2602, 'ID3v2 audio_size ok' );
+    is( $info->{audio_md5}, 'f84210edefebcd92792fd1b3d21860d5', 'ID3v2 audio_md5 ok' );
     is( $info->{bitrate}, 128000, 'ID3v2 bitrate ok' );
     is( $info->{channels}, 2, 'ID3v2 channels ok' );
     is( $info->{profile}, 'LC', 'ID3v2 profile ok' );

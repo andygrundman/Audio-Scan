@@ -206,6 +206,8 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   asf->audio_size = data.size;
   my_hv_store( info, "audio_size", newSVuv(asf->audio_size) );
   
+  my_hv_store( info, "end_audio_offset", newSVuv(asf->file_size - asf->audio_offset - asf->audio_size) );
+  
   if (seeking) {  
     if ( hdr.size + data.size < asf->file_size ) {
       DEBUG_TRACE("Seeking past data: %llu\n", hdr.size + data.size);

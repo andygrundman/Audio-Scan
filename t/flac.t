@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 68;
+use Test::More tests => 70;
 
 use Audio::Scan;
 
@@ -66,13 +66,15 @@ use Audio::Scan;
 
 # FLAC file with ID3 tag
 {
-    my $s = Audio::Scan->scan( _f('id3tagged.flac') );
+    my $s = Audio::Scan->scan( _f('id3tagged.flac'), { md5_size => 4096 } );
 
     my $info = $s->{info};
     my $tags = $s->{tags};
     
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 tag ok' );
     is( $info->{audio_offset}, 10034, 'ID3 tag audio offset ok' );
+    is( $info->{audio_size}, 19966, 'Audio size ok' );
+    is( $info->{audio_md5}, '721fe40bc40fad8bf9cd9919799acb68', 'Audio MD5 ok' );
     
     is( $tags->{TITLE}, 'Allegro Maestoso', 'ID3 tag Vorbis title ok' );
     is( $tags->{TIT2}, 'Allegro Maestoso', 'ID3 tag TIT2 ok' );

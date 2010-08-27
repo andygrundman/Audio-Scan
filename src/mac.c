@@ -152,6 +152,8 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
     my_hv_store(info, "bitrate", newSVuv( _bitrate(si->file_size - si->audio_start_offset, total_ms) ));
 
     my_hv_store(info, "file_size", newSVnv(si->file_size));
+    my_hv_store(info, "audio_offset", newSVuv(si->audio_start_offset));
+    my_hv_store(info, "audio_size", newSVuv(si->file_size - si->audio_start_offset));
     my_hv_store(info, "compression", newSVpv(si->compression, 0));
     my_hv_store(info, "version", newSVpvf( "%0.2f", si->version * 1.0 / 1000 ) );
   }

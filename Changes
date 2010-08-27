@@ -1,6 +1,10 @@
 Revision history for Audio::Scan
 
 0.84
+        - Added an optional audio_md5 info value, this is the MD5 checksum of the
+          first N audio bytes of the file.  This is useful in determining if a file
+          is the same even when tags have been changed.  See the documentation for details.
+        - Added audio_size info value to all formats.
         - AAC: Fixed samplerate values for AACplus files. The samplerate in the header
           needs to be doubled to obtain the actual playback samplerate.
 

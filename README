@@ -24,6 +24,10 @@ SYNOPSIS
         open my $fh, '<', 'my.mp3';
         my $data = Audio::Scan->scan_fh( mp3 => $fh );
         close $fh;
+    
+        # Scan and compute an audio MD5 checksum
+        my $data = Audio::Scan->scan( '/path/to/file.mp3', { md5_size => 100 * 1024 } );
+        my $md5 = $data->{info}->{audio_md5};
 
 DESCRIPTION
     Audio::Scan is a C-based scanner for audio file metadata and tag
@@ -33,7 +37,7 @@ DESCRIPTION
     See below for specific details about each file format.
 
 METHODS
-  scan( $path )
+  scan( $path, [ \%OPTIONS ] )
     Scans $path for both metadata and tag information. The type of scan
     performed is determined by the file's extension. Supported extensions
     are:
@@ -54,15 +58,26 @@ METHODS
     tags. The contents of the info and tag hashes vary depending on file
     format, see below for details.
 
-  scan_info( $path )
+    An optional hashref may be provided. Currently this supports one item:
+
+        md5_size => $audio_bytes_to_checksum
+
+    An MD5 will be computed of the first N audio bytes. Any tags in the file
+    are automatically skipped, so this is a useful way of determining if a
+    file's audio content is the same even if tags may have been changed. The
+    hex MD5 value is returned in the $info->{audio_md5} key. This option
+    will reduce performance, so choose a small enough size that works for
+    you, you should probably avoid using more than 64K for example.
+
+  scan_info( $path, [ \%OPTIONS ] )
     If you only need file metadata and don't care about tags, you can use
     this method.
 
-  scan_tags( $path )
+  scan_tags( $path, [ \%OPTIONS ] )
     If you only need the tags and don't care about the metadata, use this
     method.
 
-  scan_fh( $type => $fh )
+  scan_fh( $type => $fh, [ \%OPTIONS ] )
     Scans a filehandle. $type is the type of file to scan as, i.e. "mp3" or
     "ogg". Note that FLAC does not support reading from a filehandle.
 
@@ -110,6 +125,9 @@ METHODS
 
   find_frame_fh( $type => $fh, $offset )
     Same as "find_frame", but with a filehandle.
+
+  find_frame_fh_return_info( $type => $fh, $offset )
+    Same as "find_frame_return_info", but with a filehandle.
 
   has_flac()
     Deprecated. Always returns 1 now that FLAC is always enabled.
@@ -218,6 +236,7 @@ MP4
     The following metadata about a file may be returned:
 
         audio_offset (byte offset to start of mdat)
+        audio_size
         compatible_brands
         file_size
         leading_mdat (if file has mdat before moov)
@@ -284,6 +303,7 @@ AAC (ADTS)
     The following metadata about a file is returned:
 
         audio_offset
+        audio_size
         bitrate (in bps)
         channels
         file_size
@@ -306,6 +326,7 @@ OGG VORBIS
         blocksize_0
         blocksize_1
         audio_offset (byte offset to audio)
+        audio_size
         song_length_ms (duration in milliseconds)
 
   TAGS
@@ -320,6 +341,7 @@ FLAC
         bitrate (in bps)
         file_size
         audio_offset (byte offset to first audio frame)
+        audio_size
         song_length_ms (duration in milliseconds)
         bits_per_sample
         frames
@@ -362,6 +384,7 @@ ASF (Windows Media Audio/Video)
     values.
 
         audio_offset (byte offset to first data packet)
+        audio_size
         broadcast (boolean, whether the file is a live broadcast or not)
         codec_list (array of information about codecs used in the file)
         creation_date (UNIX timestamp when file was created)
@@ -446,6 +469,7 @@ WAV
     The following metadata about a file may be returned.
 
         audio_offset
+        audio_size
         bitrate (in bps)
         bits_per_sample
         block_align
@@ -494,6 +518,7 @@ AIFF
     The following metadata about a file may be returned.
 
         audio_offset
+        audio_size
         bitrate (in bps)
         bits_per_sample
         block_align
@@ -513,6 +538,8 @@ MONKEY'S AUDIO (APE)
   INFO
     The following metadata about a file may be returned.
 
+        audio_offset
+        audio_size
         bitrate (in bps)
         channels
         compression
@@ -529,6 +556,7 @@ MUSEPACK
     The following metadata about a file may be returned.
 
         audio_offset
+        audio_size
         bitrate (in bps)
         channels
         encoder
@@ -546,6 +574,7 @@ WAVPACK
     The following metadata about a file may be returned.
 
         audio_offset
+        audio_size
         bitrate (in bps)
         bits_per_sample
         channels
@@ -573,6 +602,9 @@ THANKS
     located at
     <http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/cont
     rib/scanner>
+
+    The audio MD5 feature uses an MD5 implementation by L. Peter Deutsch,
+    <ghost@aladdin.com>.
 
 SEE ALSO
     ASF Spec

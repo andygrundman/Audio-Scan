@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 68;
+use Test::More tests => 70;
 
 use Audio::Scan;
 
@@ -14,7 +14,7 @@ eval {
 
 # Basics
 {
-    my $s = Audio::Scan->scan( _f('test.ogg') );
+    my $s = Audio::Scan->scan( _f('test.ogg'), { md5_size => 4096 } );
 
     my $info = $s->{info};
     my $tags = $s->{tags};
@@ -37,6 +37,8 @@ eval {
     is($info->{samplerate}, 44100, 'Sample Rate ok');
     is($info->{song_length_ms}, 3684, 'Song length ok');
     is($info->{audio_offset}, 4204, 'Audio offset ok');
+    is($info->{audio_size}, 349, 'Audio size ok');
+    is($info->{audio_md5}, '9b38152aacb22c128375274add565f99', 'Audio MD5 ok' );
 }
 
 # Multiple tags.

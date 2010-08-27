@@ -2,17 +2,20 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 17;
+use Test::More tests => 20;
 
 use Audio::Scan;
 
 # Monkey's Audio files with APEv2 tags
 {
-    my $s = Audio::Scan->scan( _f('apev2.ape') );
+    my $s = Audio::Scan->scan( _f('apev2.ape'), { md5_size => 10 * 1024 } );
     
     my $info = $s->{info};
     my $tags = $s->{tags};
     
+    is( $info->{audio_offset}, 3, 'Audio offset ok' );
+    is( $info->{audio_size}, 97256, 'Audio size ok' );
+    is( $info->{audio_md5}, 'af4cd0dda7451046fa27a9ff1b197a9a', 'Audio MD5 ok' );
     is( $info->{ape_version}, 'APEv2', 'APE version ok' );
     is( $info->{bitrate}, 7741, 'Bitrate ok' );
     is( $info->{samplerate}, 44100, 'Sample rate ok' );

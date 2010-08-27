@@ -43,7 +43,7 @@ get_mp3tags(PerlIO *infile, char *file, HV *info, HV *tags)
   
   // See if this file has an APE tag as fast as possible
   // This is still a big performance hit :(
-  if ( _has_ape(infile, file_size) ) {
+  if ( _has_ape(infile, file_size, info) ) {
     get_ape_metadata(infile, file, info, tags);
   }
   
@@ -66,7 +66,7 @@ _is_ape_header(char *bptr)
 }
 
 int
-_has_ape(PerlIO *infile, off_t file_size)
+_has_ape(PerlIO *infile, off_t file_size, HV *info)
 {
   Buffer buf;
   uint8_t ret = 0;
@@ -123,6 +123,13 @@ _has_ape(PerlIO *infile, off_t file_size)
         DEBUG_TRACE("APE tag found at %d (ID3v1 + Lyricsv2)\n", -(160 + lyrics_size + 15));
         ret = 1;
         goto out;
+      }
+      
+      // APE code will remove the lyrics_size from audio_size, but if no APE tag do it here
+      if (my_hv_exists(info, "audio_size")) {
+        int audio_size = SvIV(*(my_hv_fetch(info, "audio_size")));
+        my_hv_store(info, "audio_size", newSVuv(audio_size - lyrics_size - 15));
+        DEBUG_TRACE("Reduced audio_size value by Lyrics2 tag size %d\n", lyrics_size + 15);
       }
     }
     
