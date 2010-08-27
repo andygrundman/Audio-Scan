@@ -74,13 +74,14 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   Newz(0, asf->buf, sizeof(Buffer), Buffer);
   Newz(0, asf->scratch, sizeof(Buffer), Buffer);
   
-  asf->file_size    = _file_size(infile);
-  asf->audio_offset = 0;
-  asf->infile       = infile;
-  asf->file         = file;
-  asf->info         = info;
-  asf->tags         = tags;
-  asf->seeking      = seeking;
+  asf->file_size     = _file_size(infile);
+  asf->audio_offset  = 0;
+  asf->object_offset = 0;
+  asf->infile        = infile;
+  asf->file          = file;
+  asf->info          = info;
+  asf->tags          = tags;
+  asf->seeking       = seeking;
   
   buffer_init(asf->buf, ASF_BLOCK_SIZE);
   
@@ -110,6 +111,8 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     goto out;
   }
   
+  asf->object_offset += 30;
+  
   while ( hdr.num_objects-- ) {
     if ( !_check_buf(infile, asf->buf, 24, ASF_BLOCK_SIZE) ) {
       goto out;
@@ -121,6 +124,8 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     if ( !_check_buf(infile, asf->buf, tmp.size - 24, ASF_BLOCK_SIZE) ) {
       goto out;
     }
+    
+    asf->object_offset += 24;
     
     if ( IsEqualGUID(&tmp.ID, &ASF_Content_Description) ) {
       DEBUG_TRACE("Content_Description\n");
@@ -181,6 +186,8 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       
       buffer_consume(asf->buf, tmp.size - 24);
     }
+    
+    asf->object_offset += tmp.size;
   }
   
   // We should be at the start of the Data object.
@@ -274,6 +281,7 @@ void
 _parse_extended_content_description(asfinfo *asf)
 {
   uint16_t count = buffer_get_short_le(asf->buf);
+  uint32_t picture_offset = 0;
   
   buffer_init_or_clear(asf->scratch, 32);
   
@@ -294,6 +302,8 @@ _parse_extended_content_description(asfinfo *asf)
     data_type = buffer_get_short_le(asf->buf);
     value_len = buffer_get_short_le(asf->buf);
     
+    picture_offset += 2 + name_len + 4;
+    
     if (data_type == TYPE_UNICODE) {
       buffer_clear(asf->scratch);
       buffer_get_utf16_as_utf8(asf->buf, asf->scratch, value_len, UTF16_BYTEORDER_LE);
@@ -303,7 +313,7 @@ _parse_extended_content_description(asfinfo *asf)
     else if (data_type == TYPE_BYTE) {
       // handle picture data, interestingly it is compatible with the ID3v2 APIC frame
       if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
-        value = _parse_picture(asf);
+        value = _parse_picture(asf, picture_offset);
       }
       else {
         value = newSVpvn( buffer_ptr(asf->buf), value_len );
@@ -326,6 +336,8 @@ _parse_extended_content_description(asfinfo *asf)
       PerlIO_printf(PerlIO_stderr(), "Unknown extended content description data type %d\n", data_type);
       buffer_consume(asf->buf, value_len);
     }
+    
+    picture_offset += value_len;
     
     if (value != NULL) {
 #ifdef AUDIO_SCAN_DEBUG
@@ -930,6 +942,7 @@ void
 _parse_metadata_library(asfinfo *asf)
 {
   uint16_t count = buffer_get_short_le(asf->buf);
+  uint32_t picture_offset = 0;
   
   buffer_init_or_clear(asf->scratch, 32);
   
@@ -955,6 +968,8 @@ _parse_metadata_library(asfinfo *asf)
     key = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(key);
     
+    picture_offset += 16 + name_len;
+    
     if (data_type == TYPE_UNICODE) {
       buffer_clear(asf->scratch);
       buffer_get_utf16_as_utf8(asf->buf, asf->scratch, data_len, UTF16_BYTEORDER_LE);
@@ -964,7 +979,7 @@ _parse_metadata_library(asfinfo *asf)
     else if (data_type == TYPE_BYTE) {
       // handle picture data
       if ( !strcmp( SvPVX(key), "WM/Picture" ) ) {
-        value = _parse_picture(asf);
+        value = _parse_picture(asf, picture_offset);
       }
       else {
         value = newSVpvn( buffer_ptr(asf->buf), data_len );
@@ -994,6 +1009,8 @@ _parse_metadata_library(asfinfo *asf)
       PerlIO_printf(PerlIO_stderr(), "Unknown metadata library data type %d\n", data_type);
       buffer_consume(asf->buf, data_len);
     }
+    
+    picture_offset += data_len;
     
     if (value != NULL) {
 #ifdef AUDIO_SCAN_DEBUG
@@ -1332,7 +1349,7 @@ _parse_script_command(asfinfo *asf)
 }
 
 SV *
-_parse_picture(asfinfo *asf)
+_parse_picture(asfinfo *asf, uint32_t picture_offset)
 {
   char *tmp_ptr;
   uint16_t mime_len = 2; // to handle double-null
@@ -1375,6 +1392,8 @@ _parse_picture(asfinfo *asf)
   
   if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
     my_hv_store( picture, "image", newSVuv(image_len) );
+    picture_offset += 5 + mime_len + desc_len + 2;
+    my_hv_store( picture, "offset", newSVuv(asf->object_offset + picture_offset) );
   }
   else {
     my_hv_store( picture, "image", newSVpvn( buffer_ptr(asf->buf), image_len ) );

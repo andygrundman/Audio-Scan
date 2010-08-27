@@ -332,6 +332,9 @@ _id3_parse_v2_frame(id3info *id3)
   // If the frame is compressed, it will be decompressed here
   Buffer *decompressed = 0;
   
+  // tag_data_safe flag is used if skipping artwork and artwork is not raw image data (needs unsync)
+  id3->tag_data_safe = 1;
+  
   if ( !_check_buf(id3->infile, id3->buf, 10, ID3_BLOCK_SIZE) ) {
     ret = 0;
     goto out;
@@ -580,6 +583,8 @@ _id3_parse_v2_frame(id3info *id3)
           // Reset decoded_size to 0 since we aren't actually decoding.
           // XXX this would break if we have a compressed + unsync APIC frame but not very likely in the real world
           decoded_size = 0;
+          
+          id3->tag_data_safe = 0;
         }
         else {
           // tested with v2.4-unsync.mp3
@@ -1134,6 +1139,11 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
           // Special handling for APIC tags when in skip_art mode
           if (skip_art) {
             av_push( framedata, newSVuv(size - read) );
+            
+            // Record offset of APIC image data too, unless the data needs to be unsynchronized
+            if (id3->tag_data_safe)
+              av_push( framedata, newSVuv(id3->size - id3->size_remain + read) );
+            
             _id3_skip(id3, size - read);
             read = size;
           }

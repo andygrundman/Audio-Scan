@@ -78,6 +78,7 @@ typedef struct {
     uint32_t flags;       /* parsing status flags */
     uint32_t footer_flags;
     uint32_t size;        /* On disk size in bytes */
+    uint32_t offset;      /* offset counter used for artwork offset */
     uint32_t item_count;
     uint32_t num_fields;
 } ApeTag;
@@ -85,7 +86,7 @@ typedef struct {
 int _ape_parse(ApeTag* tag);
 int _ape_get_tag_info(ApeTag* tag);
 int _ape_parse_fields(ApeTag* tag);
-int _ape_parse_field(ApeTag* tag, uint32_t* offset);
+int _ape_parse_field(ApeTag* tag);
 int _ape_check_validity(ApeTag* tag, uint32_t flags, char* key, char* value);
 
 #endif /* !_APETAG_H_ */

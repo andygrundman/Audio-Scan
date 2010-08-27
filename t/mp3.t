@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 371;
+use Test::More tests => 373;
 
 use Audio::Scan;
 
@@ -632,6 +632,7 @@ eval {
     my $tags = $s->{tags};
     
     is( $tags->{APIC}->[3], 2103, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=1 ok ');
+    is( $tags->{APIC}->[4], 351, 'ID3v2.4 APIC JPEG picture with AUDIO_SCAN_NO_ARTWORK=1 offset value ok' );
 }
 
 # Test setting AUDIO_SCAN_NO_ARTWORK to 0
@@ -1150,6 +1151,7 @@ eval {
     
     # This is not the actual length but it's OK since we don't unsync in no-artwork mode
     is( $tags->{APIC}->[3], 46240, 'v2.4 APIC unsync no-artwork length ok' );
+    is( !defined $tags->{APIC}->[4], 1, 'v2.4 APIC unsync no-artwork has no offset ok' );
 }
 
 {

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 70;
+use Test::More tests => 71;
 
 use Audio::Scan;
 
@@ -114,6 +114,7 @@ use Audio::Scan;
     my $pic = $tags->{ALLPICTURES}->[0];
     
     is( $pic->{image_data}, 37175, 'JPEG with AUDIO_SCAN_NO_ARTWORK ok ');
+    is( $pic->{offset}, 686, 'JPEG with AUDIO_SCAN_NO_ARTWORK offset ok' );
 }
 
 # File with very short duration, make sure bitrate is correct

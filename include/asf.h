@@ -165,6 +165,7 @@ typedef struct asfinfo {
   uint64_t file_size;
   uint64_t audio_offset;
   uint64_t audio_size;
+  uint32_t object_offset;
   HV *info;
   HV *tags;
   
@@ -205,6 +206,6 @@ void _parse_index(asfinfo *asf, uint64_t size);
 void _parse_content_encryption(asfinfo *asf);
 void _parse_extended_content_encryption(asfinfo *asf);
 void _parse_script_command(asfinfo *asf);
-SV *_parse_picture(asfinfo *asf);
+SV *_parse_picture(asfinfo *asf, uint32_t picture_offset);
 int asf_find_frame(PerlIO *infile, char *file, int offset);
 int _timestamp(asfinfo *asf, int offset, int *duration);

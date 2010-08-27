@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 33;
+use Test::More tests => 34;
 
 use Audio::Scan;
 
@@ -71,6 +71,7 @@ use Audio::Scan;
     is( $tags->{ALBUM}, 'Cover Art Test', 'APEv2 AUDIO_SCAN_NO_ARTWORK album ok' );
     is( $tags->{ARTIST}, 'Kraftwerk', 'APEv2 AUDIO_SCAN_NO_ARTWORK artist ok' );
     is( $tags->{'COVER ART (FRONT)'}, 1761, 'APEv2 AUDIO_SCAN_NO_ARTWORK cover length ok' );
+    is( $tags->{'COVER ART (FRONT)_offset'}, 68925, 'APEv2 AUDIO_SCAN_NO_ARTWORK cover offset ok' );
 }
 
 sub _f {

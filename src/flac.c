@@ -900,6 +900,7 @@ _flac_parse_picture(flacinfo *flac)
   
   // Skip past pic data if necessary
   if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
+    my_hv_store( picture, "offset", newSVuv(flac->audio_offset - pic_length) );
     _flac_skip(flac, pic_length);
   }
   else {

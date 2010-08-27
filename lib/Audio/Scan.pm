@@ -317,6 +317,56 @@ be the file type I<$type>.
 Returns file type for a given extension. Returns I<undef> for unsupported
 extensions.
 
+=head1 SKIPPING ARTWORK
+
+To save memory while reading tags, you can opt to skip potentially large 
+embedded artwork.  To do this, set the environment variable AUDIO_SCAN_NO_ARTWORK:
+
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    my $tags = Audio::Scan->scan_tags($file);
+
+This will return the length of the embedded artwork instead of the actual image data.
+In some cases it will also return a byte offset to the image data, which can be used
+to extract the image using more efficient means.  Note that the offset is not always
+returned so if you want to use this data make sure to check for offset.  If offset
+is not present, the only way to get the image data is to perform a normal tag scan
+without the environment variable set.
+
+One limitation that currently exists is that memory for embedded images is still
+allocated for ASF and Ogg Vorbis files.
+
+This information is returned in different ways depending on the format:
+
+ID3 (MP3, AAC, WAV, AIFF):
+
+    $tags->{APIC}->[4]: image length
+    $tags->{APIC}->[5]: image offset (unless APIC would need unsynchronization)
+
+MP4:
+
+    $tags->{COVR}: image length
+    $tags->{COVR_offset}: image offset (always available)
+
+Ogg Vorbis:
+
+    $tags->{ALLPICTURES}->[0]->{image_data}: image length
+    Image offset is not supported with Vorbis because the data is always base64-encoded.
+
+FLAC:
+
+    $tags->{ALLPICTURES}->[0]->{image_data}: image length
+    $tags->{ALLPICTURES}->[0]->{offset}: image offset (always available)
+
+ASF:
+
+    $tags->{'WM/Picture'}->{image}: image length
+    $tags->{'WM/Picture'}->{offset}: image offset (always available)
+
+APE, Musepack, WavPack, MP3 with APEv2:
+
+    $tags->{'COVER ART (FRONT)'}: image length
+    $tags->{'COVER ART (FRONT)_offset'}: image offset (always available)
+
 =head1 MP3
 
 =head2 INFO

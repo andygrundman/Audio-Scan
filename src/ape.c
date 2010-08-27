@@ -192,6 +192,9 @@ int _ape_get_tag_info(ApeTag* tag) {
   if (PerlIO_seek(tag->fd, (file_size -(long)tag->size - id3_length - (lyrics_size ? (lyrics_size + 15) : 0)), SEEK_SET) == -1) {
     return _ape_error(tag, "Couldn't seek to tag offset", -1);
   }
+  
+  tag->offset = file_size -(long)tag->size - id3_length - (lyrics_size ? (lyrics_size + 15) : 0);
+  DEBUG_TRACE("APE tag offset %d\n", tag->offset);
 
   /* ---------- Read tag header and data --------------- */
   buffer_init(&tag->tag_header, APE_TAG_HEADER_LEN);
@@ -226,6 +229,8 @@ int _ape_get_tag_info(ApeTag* tag) {
       return _ape_error(tag, "Couldn't seek to tag offset", -1);
     }
   }
+  
+  tag->offset += APE_TAG_HEADER_LEN;
 
   if (!_check_buf(tag->fd, &tag->tag_data, data_size, data_size)) {
     return _ape_error(tag, "Couldn't read tag data", -2);
@@ -249,20 +254,14 @@ int _ape_get_tag_info(ApeTag* tag) {
 int _ape_parse_fields(ApeTag* tag) {
   int ret = 0;
   uint32_t i;
-  uint32_t offset = 0;
-  uint32_t last_possible_offset = tag->size - APE_MINIMUM_TAG_SIZE - APE_ITEM_MINIMUM_SIZE;
+
+  /* Don't exceed the maximum number of items allowed */
+  if (tag->num_fields >= APE_MAXIMUM_ITEM_COUNT) {
+    return _ape_error(tag, "Maximum item count exceeded", -3);
+  }
   
   for (i = 0; i < tag->item_count; i++) {
-    if (offset > last_possible_offset) {
-      return _ape_error(tag, "End of tag reached but more items specified", -3);
-    }
-
-    /* Don't exceed the maximum number of items allowed */
-    if (tag->num_fields == APE_MAXIMUM_ITEM_COUNT) {
-      return _ape_error(tag, "Maximum item count exceeded", -3);
-    }
-
-    if ((ret = _ape_parse_field(tag, &offset)) != 0) {
+    if ((ret = _ape_parse_field(tag)) != 0) {
       return ret;
     }
   }
@@ -276,7 +275,7 @@ int _ape_parse_fields(ApeTag* tag) {
   return 0;
 }
 
-int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
+int _ape_parse_field(ApeTag* tag) {
 
   /* Ape tag item format:
    *
@@ -310,7 +309,9 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
     tmp_ptr    += 1;
   }
   
-  DEBUG_TRACE("key_length: %d / val_length: %d / size: %d / flags %x\n", key_length, val_length, size, flags);
+  tag->offset += 8 + key_length + 1;
+  
+  DEBUG_TRACE("key_length: %d / val_length: %d / size: %d / flags %x @ %d\n", key_length, val_length, size, flags, tag->offset);
   
   if (flags & APE_TAG_TYPE_BINARY) {
     // Binary data, just copy it as-is
@@ -321,6 +322,9 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
       if ( _env_true("AUDIO_SCAN_NO_ARTWORK") ) {
         // Don't read artwork, just return the size
         value = newSVuv(size - (val_length + 1) );
+        
+        my_hv_store( tag->tags, "COVER ART (FRONT)_offset", newSVuv(tag->offset + val_length + 1) );
+        
         buffer_consume(&tag->tag_data, size);
       }
       else {
@@ -333,6 +337,8 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
       value = newSVpvn( buffer_ptr(&tag->tag_data), size );
       buffer_consume(&tag->tag_data, size);
     }
+    
+    tag->offset += val_length + 1;
   }
   else if (val_length >= size - 1) {
     // Single item
@@ -349,6 +355,8 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
       sv_utf8_decode(value);
       DEBUG_TRACE("  %s = %s\n", SvPVX(key), SvPVX(value));
     }
+    
+    tag->offset += val_length < size ? val_length : size;
   }
   else {
     // Multiple items
@@ -367,6 +375,8 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
       
       tmp_val = newSVpvn( buffer_ptr(&tag->tag_data), val_length );
       buffer_consume(&tag->tag_data, val_length);
+      
+      tag->offset += val_length;
     
       // Don't add invalid items
       if (_ape_check_validity(tag, flags, SvPVX(key), SvPVX(tmp_val)) != 0) {
@@ -385,6 +395,7 @@ int _ape_parse_field(ApeTag* tag, uint32_t* offset) {
       if ( done < size ) {
         // Still more to read, consume the null separator
         buffer_consume(&tag->tag_data, 1);
+        tag->offset++;
         done++;
       }
     }
@@ -485,6 +496,7 @@ get_ape_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   tag->filename   = file;
   tag->flags      = 0;
   tag->size       = 0;
+  tag->offset     = 0;
   tag->item_count = 0;
   tag->num_fields = 0;
 

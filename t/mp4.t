@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 111;
+use Test::More tests => 112;
 
 use Audio::Scan;
 
@@ -154,6 +154,7 @@ use Audio::Scan;
 	my $tags = $s->{tags};
 	
 	is( $tags->{COVR}, 2103, 'COVR with AUDIO_SCAN_NO_ARTWORK ok' );
+	is( $tags->{COVR_offset}, 1946, 'COVR with AUDIO_SCAN_NO_ARTWORK offset ok' );
 }
 
 # File with array keys that are integers, bug 14462

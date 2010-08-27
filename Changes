@@ -5,6 +5,9 @@ Revision history for Audio::Scan
           first N audio bytes of the file.  This is useful in determining if a file
           is the same even when tags have been changed.  See the documentation for details.
         - Added audio_size info value to all formats.
+        - Added image offset values in AUDIO_SCAN_NO_ARTWORK mode for some formats, so
+          image data may be extracted directly from the file if needed.  See the
+          documentation for specific details.
         - AAC: Fixed samplerate values for AACplus files. The samplerate in the header
           needs to be doubled to obtain the actual playback samplerate.
 

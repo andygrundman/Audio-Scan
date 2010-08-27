@@ -93,6 +93,7 @@ typedef struct id3info {
   uint8_t version_major;
   uint8_t version_minor;
   uint8_t flags;
+  uint8_t tag_data_safe;
   uint32_t size;
   uint32_t size_remain;
 } id3info;

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 133;
+use Test::More tests => 134;
 
 use Audio::Scan;
 
@@ -137,6 +137,7 @@ eval {
     my $tags = $s->{tags};
     
     is( $tags->{'WM/Picture'}->{image}, 2103, 'WM/Picture with AUDIO_SCAN_NO_ARTWORK ok' );
+    is( $tags->{'WM/Picture'}->{offset}, 555, 'WM/Picture with AUDIO_SCAN_NO_ARTWORK offset ok' );
 }
 
 # WMA Pro 10 file
