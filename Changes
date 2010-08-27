@@ -10,6 +10,7 @@ Revision history for Audio::Scan
           documentation for specific details.
         - AAC: Fixed samplerate values for AACplus files. The samplerate in the header
           needs to be doubled to obtain the actual playback samplerate.
+        - ID3: Bug 16452, Don't add null strings as array entries for T* frames.
 
 0.83    2010-06-10 14:15:00
         - APE: Tag could be ignored when ID3v1 tag is present.

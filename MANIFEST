@@ -124,6 +124,7 @@ t/mp3/v2-v1.mp3
 t/mp3/v2.2-itunes81.mp3
 t/mp3/v2.2-mpeg20-xing.mp3
 t/mp3/v2.2-multiple-comm.mp3
+t/mp3/v2.2-multiple-null-strings.mp3
 t/mp3/v2.2-pic.mp3
 t/mp3/v2.2.mp3
 t/mp3/v2.3-apev2-lyricsv2.mp3

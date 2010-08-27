@@ -931,12 +931,21 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
           
           if (array != NULL && value != NULL && SvPOK(value)) {
             // second+ string, add to array
-            av_push(array, value);
+            // Bug 16452, do not add a null string
+            if (sv_len(value) > 0)
+              av_push(array, value);
           }
         }
         
         if (array != NULL) {
-          my_hv_store( id3->tags, id, newRV_noinc( (SV *)array ) );
+          if (av_len(array) == 0) {
+            // Handle the case where we have multiple empty strings leaving an array of 1
+            my_hv_store( id3->tags, id, av_shift(array) );
+            SvREFCNT_dec(array);
+          }
+          else {
+            my_hv_store( id3->tags, id, newRV_noinc( (SV *)array ) );
+          }
         }
         else if (value != NULL && SvPOK(value)) {
           my_hv_store( id3->tags, id, value );
