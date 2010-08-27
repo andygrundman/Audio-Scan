@@ -96,31 +96,14 @@ _get_taghandler(char *suffix)
   return hdl;
 }
 
-// From Digest::MD5
-static void
-_md5_hex(md5_byte_t *digest, char *hexdigest)
-{
-  static const char hexdigits[] = "0123456789abcdef";
-  const unsigned char *end = digest + 16;
-  char *d = hexdigest;
-  
-  while (digest < end) {
-    *d++ = hexdigits[(*digest >> 4)];
-    *d++ = hexdigits[(*digest & 0x0F)];
-    digest++;
-  }
-  
-  *d = '\0';
-}
-
 static void
 _generate_md5(PerlIO *infile, const char *file, int size, HV *info)
 {
   md5_state_t md5;
   md5_byte_t digest[16];
-  char hexdigest[32];
+  char hexdigest[33];
   Buffer buf;
-  int audio_offset, audio_size;
+  int audio_offset, audio_size, di;
   
   buffer_init(&buf, MD5_BUFFER_SIZE);
   md5_init(&md5);
@@ -151,7 +134,9 @@ _generate_md5(PerlIO *infile, const char *file, int size, HV *info)
   }
   
   md5_finish(&md5, digest);
-  _md5_hex(digest, hexdigest);
+  
+  for (di = 0; di < 16; ++di)
+    sprintf(hexdigest + di * 2, "%02x", digest[di]);
   
   my_hv_store(info, "audio_md5", newSVpvn(hexdigest, 32));
   
