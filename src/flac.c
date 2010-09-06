@@ -712,7 +712,7 @@ _flac_parse_streaminfo(flacinfo *flac)
     sv_catpvf(md5, "%02x", bptr[i]);
   }
 
-  my_hv_store(flac->info, "md5", md5);
+  my_hv_store(flac->info, "audio_md5", md5);
   buffer_consume(flac->buf, 16);
   
   song_length_ms = (uint32_t)(( (flac->total_samples * 1.0) / flac->samplerate) * 1000);

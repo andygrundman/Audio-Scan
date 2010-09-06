@@ -225,6 +225,9 @@ if tags may have been changed.  The hex MD5 value is returned in the $info->{aud
 key.  This option will reduce performance, so choose a small enough size that works for you,
 you should probably avoid using more than 64K for example.
 
+For FLAC files that already contain an MD5 checksum, this value will be used instead
+of calculating a new one.
+
 =head2 scan_info( $path, [ \%OPTIONS ] )
 
 If you only need file metadata and don't care about tags, you can use this method.
@@ -582,7 +585,7 @@ The following metadata about a file is returned:
     maximum_blocksize
     minimum_framesize
     maximum_framesize
-    md5
+    audio_md5
     total_samples
 
 =head2 TAGS

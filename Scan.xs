@@ -177,7 +177,11 @@ CODE:
     }
     
     // Generate audio MD5 value
-    if (md5_size > 0 && my_hv_exists(info, "audio_offset") && my_hv_exists(info, "audio_size")) {
+    if ( md5_size > 0
+      && my_hv_exists(info, "audio_offset")
+      && my_hv_exists(info, "audio_size")
+      && !my_hv_exists(info, "audio_md5")
+    ) {
       _generate_md5(infile, SvPVX(path), md5_size, info);
     }
 
