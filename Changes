@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.85
+        - Fixed a bug where FLAC artwork could be seen as invalid if the picture header
+          wasn't fully buffered.
+
 0.84    2010-08-27 19:10:00
         - Added an optional audio_md5 info value, this is the MD5 checksum of the
           first N audio bytes of the file.  This is useful in determining if a file

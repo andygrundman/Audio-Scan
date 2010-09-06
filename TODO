@@ -31,6 +31,7 @@ ID3v1 comment + COMM are not merged but stacked
 FLAC
 ----
 Test for invalid picture data
+Use existing MD5 value if available for audio_md5
 
 WAV
 ---
