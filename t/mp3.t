@@ -24,7 +24,7 @@ eval {
     
     my $info = $s->{info};
     
-    is( $info->{audio_md5}, '58ed2452dc5ed1d4113c40dfb8894463', 'MPEG1, Layer 2 audio MD5 ok' );
+    is( $info->{audio_md5}, 'af946979d80b4503a618e4056be0f3e0', 'MPEG1, Layer 2 audio MD5 ok' );
     is( $info->{layer}, 2, 'MPEG1, Layer 2 ok' );
     is( $info->{bitrate}, 192000, 'MPEG1, Layer 2 bitrate ok' );
     is( $info->{file_size}, 82756, 'MPEG1, Layer 2 file size ok' );

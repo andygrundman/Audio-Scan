@@ -211,9 +211,13 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   
   data.size = buffer_get_int64_le(asf->buf);
   asf->audio_size = data.size;
-  my_hv_store( info, "audio_size", newSVuv(asf->audio_size) );
   
-  my_hv_store( info, "end_audio_offset", newSVuv(asf->file_size - asf->audio_offset - asf->audio_size) );
+  // Check audio_size is not larger than file
+  if (asf->audio_size > asf->file_size - asf->audio_offset) {
+    asf->audio_size = asf->file_size - asf->audio_offset;
+    DEBUG_TRACE("audio_size too large, fixed to %lld\n", asf->audio_size);
+  }
+  my_hv_store( info, "audio_size", newSVuv(asf->audio_size) );
   
   if (seeking) {  
     if ( hdr.size + data.size < asf->file_size ) {

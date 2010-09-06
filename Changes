@@ -1,6 +1,8 @@
 Revision history for Audio::Scan
 
 0.85
+        - Changed audio_md5 to use bytes from middle of file instead of the start,
+          to reduce chance of false matches due to padding or silence.
         - Fixed a bug where FLAC artwork could be seen as invalid if the picture header
           wasn't fully buffered.
         - FLAC: Use existing MD5 value if available for audio_md5.

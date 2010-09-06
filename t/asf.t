@@ -20,8 +20,8 @@ eval {
     my $tags = $s->{tags};
     
     is( $info->{audio_offset}, 5161, 'Audio offset ok' );
-    is( $info->{audio_size}, 7640, 'Audio size ok' );
-    is( $info->{audio_md5}, '37d91c5259aa6f907169a9c4cf00efa5', 'Audio MD5 ok' );
+    is( $info->{audio_size}, 7590, 'Audio size ok' );
+    is( $info->{audio_md5}, '472091bc205bf78e0d321b8ef11f2f1c', 'Audio MD5 ok' );
     is( $info->{broadcast}, 0, 'Broadcast not set ok' );
     is( ref $info->{codec_list}, 'ARRAY', 'Codec list ok' );
     is( $info->{codec_list}->[0]->{description}, ' 32 kbps, 22 kHz, stereo 2-pass CBR', 'Codec description ok' );

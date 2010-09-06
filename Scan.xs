@@ -103,26 +103,33 @@ _generate_md5(PerlIO *infile, const char *file, int size, HV *info)
   md5_byte_t digest[16];
   char hexdigest[33];
   Buffer buf;
-  int audio_offset, audio_size, di;
+  int audio_offset, start_offset, audio_size, di;
   
   buffer_init(&buf, MD5_BUFFER_SIZE);
   md5_init(&md5);
   
-  audio_offset = SvIV(*(my_hv_fetch(info, "audio_offset")));
-  audio_size   = SvIV(*(my_hv_fetch(info, "audio_size")));
+  start_offset = audio_offset = SvIV(*(my_hv_fetch(info, "audio_offset")));
+  audio_size = SvIV(*(my_hv_fetch(info, "audio_size")));
   
-  if (size > audio_size)
+  if (size >= audio_size) {
     size = audio_size;
+  }
+  else {  
+    // Read bytes from middle of file to reduce change of silence generating false matches
+    start_offset += (audio_size / 2) - (size / 2);
+    if (start_offset < audio_offset)
+      start_offset = audio_offset;
+  }
   
-  DEBUG_TRACE("Using %d bytes for audio MD5\n", size);
+  DEBUG_TRACE("Using %d bytes for audio MD5, starting at %d\n", size, start_offset);
   
-  if (PerlIO_seek(infile, audio_offset, SEEK_SET) < 0) {
+  if (PerlIO_seek(infile, start_offset, SEEK_SET) < 0) {
     warn("Audio::Scan unable to determine MD5 for %s\n", file);
     goto out;
   }
   
   while (size > 0) {
-    if (!_check_buf(infile, &buf, 1, MIN(size, MD5_BUFFER_SIZE))) {
+    if ( !_check_buf(infile, &buf, 1, MIN(size, MD5_BUFFER_SIZE)) ) {
       warn("Audio::Scan unable to determine MD5 for %s\n", file);
       goto out;
     }
@@ -131,6 +138,7 @@ _generate_md5(PerlIO *infile, const char *file, int size, HV *info)
     
     size -= buffer_len(&buf);
     buffer_consume(&buf, buffer_len(&buf));
+    DEBUG_TRACE("%d bytes left\n", size);
   }
   
   md5_finish(&md5, digest);

@@ -15,7 +15,7 @@ use Audio::Scan;
     is( $info->{ape_version}, 'APEv2', 'APE version ok' );
     is( $info->{audio_offset}, 0, 'audio_offset ok' );
     is( $info->{audio_size}, 34782, 'audio_size ok' );
-    is( $info->{audio_md5}, '58da8c0bef15c3988e6417cad12ec226', 'audio_md5 ok' );
+    is( $info->{audio_md5}, '13dbb42069ac266a4d45f109c67c072f', 'audio_md5 ok' );
     is( $info->{bitrate}, 76323, 'bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'bits_per_sample ok' );
     is( $info->{channels}, 2, 'channels ok' );
