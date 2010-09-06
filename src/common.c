@@ -286,9 +286,6 @@ _decode_flac_picture(PerlIO *infile, Buffer *buf, uint32_t *pic_length)
   
   mime_length = buffer_get_int(buf);
   DEBUG_TRACE("  mime_length: %d\n", mime_length);
-  if (mime_length > buffer_len(buf)) {
-    return NULL;
-  }
   
   // Check we have enough for mime_type and desc_length
   if ( !_check_buf(infile, buf, mime_length + 4, DEFAULT_BLOCK_SIZE) ) {
@@ -300,9 +297,6 @@ _decode_flac_picture(PerlIO *infile, Buffer *buf, uint32_t *pic_length)
   
   desc_length = buffer_get_int(buf);
   DEBUG_TRACE("  desc_length: %d\n", mime_length);
-  if (desc_length > buffer_len(buf)) {
-    return NULL;
-  }
   
   // Check we have enough for desc_length, width, height, depth, color_index, pic_length
   if ( !_check_buf(infile, buf, desc_length + 20, DEFAULT_BLOCK_SIZE) ) {
