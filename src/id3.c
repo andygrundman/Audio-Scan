@@ -1149,8 +1149,8 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
           if (skip_art) {
             av_push( framedata, newSVuv(size - read) );
             
-            // Record offset of APIC image data too, unless the data needs to be unsynchronized
-            if (id3->tag_data_safe)
+            // Record offset of APIC image data too, unless the data needs to be unsynchronized or is empty
+            if (id3->tag_data_safe && (size - read) > 0)
               av_push( framedata, newSVuv(id3->size - id3->size_remain + read) );
             
             _id3_skip(id3, size - read);
