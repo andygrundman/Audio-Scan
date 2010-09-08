@@ -342,8 +342,8 @@ This information is returned in different ways depending on the format:
 
 ID3 (MP3, AAC, WAV, AIFF):
 
-    $tags->{APIC}->[4]: image length
-    $tags->{APIC}->[5]: image offset (unless APIC would need unsynchronization)
+    $tags->{APIC}->[3]: image length
+    $tags->{APIC}->[4]: image offset (unless APIC would need unsynchronization)
 
 MP4:
 
