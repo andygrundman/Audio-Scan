@@ -115,7 +115,7 @@ _generate_md5(PerlIO *infile, const char *file, int size, HV *info)
     size = audio_size;
   }
   else {  
-    // Read bytes from middle of file to reduce change of silence generating false matches
+    // Read bytes from middle of file to reduce chance of silence generating false matches
     start_offset += (audio_size / 2) - (size / 2);
     if (start_offset < audio_offset)
       start_offset = audio_offset;
