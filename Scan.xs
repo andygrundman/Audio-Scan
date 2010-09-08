@@ -97,28 +97,30 @@ _get_taghandler(char *suffix)
 }
 
 static void
-_generate_md5(PerlIO *infile, const char *file, int size, HV *info)
+_generate_md5(PerlIO *infile, const char *file, int size, int start_offset, HV *info)
 {
   md5_state_t md5;
   md5_byte_t digest[16];
   char hexdigest[33];
   Buffer buf;
-  int audio_offset, start_offset, audio_size, di;
+  int audio_offset, audio_size, di;
   
   buffer_init(&buf, MD5_BUFFER_SIZE);
   md5_init(&md5);
   
-  start_offset = audio_offset = SvIV(*(my_hv_fetch(info, "audio_offset")));
+  audio_offset = SvIV(*(my_hv_fetch(info, "audio_offset")));
   audio_size = SvIV(*(my_hv_fetch(info, "audio_size")));
   
-  if (size >= audio_size) {
-    size = audio_size;
-  }
-  else {  
+  if (!start_offset) {
     // Read bytes from middle of file to reduce chance of silence generating false matches
+    start_offset = audio_offset;
     start_offset += (audio_size / 2) - (size / 2);
     if (start_offset < audio_offset)
       start_offset = audio_offset;
+  }
+  
+  if (size >= audio_size) {
+    size = audio_size;
   }
   
   DEBUG_TRACE("Using %d bytes for audio MD5, starting at %d\n", size, start_offset);
@@ -155,7 +157,7 @@ out:
 MODULE = Audio::Scan		PACKAGE = Audio::Scan
 
 HV *
-_scan( char *, char *suffix, PerlIO *infile, SV *path, int filter, int md5_size )
+_scan( char *, char *suffix, PerlIO *infile, SV *path, int filter, int md5_size, int md5_offset )
 CODE:
 {
   taghandler *hdl;
@@ -190,7 +192,7 @@ CODE:
       && my_hv_exists(info, "audio_size")
       && !my_hv_exists(info, "audio_md5")
     ) {
-      _generate_md5(infile, SvPVX(path), md5_size, info);
+      _generate_md5(infile, SvPVX(path), md5_size, md5_offset, info);
     }
 
     // Info may be used in tag function, i.e. to find tag version

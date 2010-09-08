@@ -31,7 +31,7 @@ sub scan_tags {
 sub scan {
     my ( $class, $path, $opts ) = @_;
     
-    my ($filter, $md5_size);
+    my ($filter, $md5_size, $md5_offset);
       
     open my $fh, '<', $path or do {
         warn "Could not open $path for reading: $!\n";
@@ -51,8 +51,9 @@ sub scan {
             $filter = $opts;
         }
         else {
-            $filter   = $opts->{filter} || FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
-            $md5_size = $opts->{md5_size};
+            $filter     = $opts->{filter} || FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
+            $md5_size   = $opts->{md5_size};
+            $md5_offset = $opts->{md5_offset};
         }
     }
     
@@ -60,7 +61,7 @@ sub scan {
         $filter = FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
     }
     
-    my $ret = $class->_scan( $suffix, $fh, $path, $filter, $md5_size || 0 );
+    my $ret = $class->_scan( $suffix, $fh, $path, $filter, $md5_size || 0, $md5_offset || 0 );
     
     close $fh;
     
@@ -70,7 +71,7 @@ sub scan {
 sub scan_fh {
     my ( $class, $suffix, $fh, $opts ) = @_;
     
-    my ($filter, $md5_size);
+    my ($filter, $md5_size, $md5_offset);
     
     binmode $fh;
     
@@ -81,8 +82,9 @@ sub scan_fh {
             $filter = $opts;
         }
         else {
-            $filter   = $opts->{filter} || FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
-            $md5_size = $opts->{md5_size};
+            $filter     = $opts->{filter} || FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
+            $md5_size   = $opts->{md5_size};
+            $md5_offset = $opts->{md5_offset};
         }
     }
     
@@ -90,7 +92,7 @@ sub scan_fh {
         $filter = FILTER_INFO_ONLY | FILTER_TAGS_ONLY;
     }
     
-    return $class->_scan( $suffix, $fh, '(filehandle)', $filter, $md5_size || 0 );
+    return $class->_scan( $suffix, $fh, '(filehandle)', $filter, $md5_size || 0, $md5_offset || 0 );
 }
 
 sub find_frame {
@@ -215,7 +217,7 @@ determined by the file's extension.  Supported extensions are:
 This method returns a hashref containing two other hashrefs: info and tags.  The
 contents of the info and tag hashes vary depending on file format, see below for details.
 
-An optional hashref may be provided. Currently this supports one item:
+An optional hashref may be provided with the following values:
 
     md5_size => $audio_bytes_to_checksum
 
@@ -227,6 +229,11 @@ you should probably avoid using more than 64K for example.
 
 For FLAC files that already contain an MD5 checksum, this value will be used instead
 of calculating a new one.
+
+    md5_offset => $offset
+
+Begin computing the audio_md5 value starting at $offset.  If this value is not specified,
+$offset defaults to a point in the middle of the file.
 
 =head2 scan_info( $path, [ \%OPTIONS ] )
 

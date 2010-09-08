@@ -2,8 +2,10 @@ Revision history for Audio::Scan
 
 0.85
         - Changed audio_md5 to use bytes from middle of file instead of the start,
-          to reduce chance of false matches due to padding or silence.
-        - Fixed a bug where FLAC artwork could be seen as invalid if the picture header
+          to reduce chance of false matches due to padding or silence.  Added new
+          md5_offset option to override the default location used for MD5.
+        - MP4: Fixed incorrect COVR_offset calculation.
+        - FLAC: Fixed a bug where artwork could be seen as invalid if the picture header
           wasn't fully buffered.
         - FLAC: Use existing MD5 value if available for audio_md5.
         - FLAC, INCOMPATIBLE CHANGE: info 'md5' value changed to 'audio_md5'.
