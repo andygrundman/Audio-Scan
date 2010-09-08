@@ -154,7 +154,7 @@ use Audio::Scan;
 	my $tags = $s->{tags};
 	
 	is( $tags->{COVR}, 2103, 'COVR with AUDIO_SCAN_NO_ARTWORK ok' );
-	is( $tags->{COVR_offset}, 1946, 'COVR with AUDIO_SCAN_NO_ARTWORK offset ok' );
+	is( $tags->{COVR_offset}, 1926, 'COVR with AUDIO_SCAN_NO_ARTWORK offset ok' );
 }
 
 # File with array keys that are integers, bug 14462

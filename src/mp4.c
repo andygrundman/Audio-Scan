@@ -1561,7 +1561,7 @@ _mp4_parse_ilst_data(mp4info *mp4, uint32_t size, SV *key)
     // Skip artwork if requested and avoid the memory cost
     value = newSVuv(size - 8);
     
-    my_hv_store( mp4->tags, "COVR_offset", newSVuv(mp4->audio_offset + (mp4->size - mp4->rsize) + 44) );
+    my_hv_store( mp4->tags, "COVR_offset", newSVuv(mp4->audio_offset + (mp4->size - mp4->rsize) + 24) );
     
     _mp4_skip(mp4, size);
   }
