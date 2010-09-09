@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.85
+0.85    2010-09-08 23:40:00
         - Changed audio_md5 to use bytes from middle of file instead of the start,
           to reduce chance of false matches due to padding or silence.  Added new
           md5_offset option to override the default location used for MD5.
