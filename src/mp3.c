@@ -230,6 +230,7 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
   int done = 0;
   int wrap_skip = 0;
   int prev_bitrate = 0;
+  int last_samplerate = 0;
   bool vbr = FALSE;
 
   unsigned char *bptr;
@@ -273,6 +274,10 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
         frame_count++;
         bitrate_total += frame.bitrate_kbps;
         
+        // The first frame may be incorrectly detected with the wrong samplerate,
+        // so use the last samplerate instead of the first
+        last_samplerate = frame.samplerate;
+        
         if ( !vbr ) {
           // If we see the bitrate changing, we have a VBR file, and read
           // the entire file.  Otherwise, if we see 20 frames with the same
@@ -291,7 +296,7 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
           }
         }
         
-        //DEBUG_TRACE("  Frame %d: %dkbps\n", frame_count, frame.bitrate_kbps);
+        //DEBUG_TRACE("  Frame %d: %dkbps, %dkHz\n", frame_count, frame.bitrate_kbps, frame.samplerate);
 
         if (frame.frame_size > buffer_len(mp3->buf)) {
           // Partial frame in buffer
@@ -315,6 +320,8 @@ out:
   if (!frame_count) return -1;
   
   DEBUG_TRACE("Average of %d frames: %dkbps\n", frame_count, bitrate_total / frame_count);
+  
+  my_hv_store( mp3->info, "samplerate", newSVuv(last_samplerate) );
 
   return bitrate_total / frame_count;
 }
@@ -729,7 +736,10 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
   my_hv_store( info, "audio_size", newSVuv(mp3->audio_size) );
   my_hv_store( info, "audio_offset", newSVuv(mp3->audio_offset) );
   my_hv_store( info, "bitrate", newSVuv( mp3->bitrate * 1000 ) );
-  my_hv_store( info, "samplerate", newSVuv( frame.samplerate ) );
+  
+  // Average bitrate code may have already set the samplerate
+  if ( !my_hv_exists( info, "samplerate" ) )
+    my_hv_store( info, "samplerate", newSVuv( frame.samplerate ) );
 
   if (mp3->xing_frame->xing_tag || mp3->xing_frame->info_tag) {
     if (mp3->xing_frame->xing_frames) {

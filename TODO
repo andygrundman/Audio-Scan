@@ -27,6 +27,7 @@ Support iTunes iTunSMPB comment for gapless info, translate into encoder delay/p
 Support iTunNORM, translate into replay gain values
   This would be useful
 ID3v1 comment + COMM are not merged but stacked
+ID3v1 genre + ID3v2 genre of same numeric code should be merged
 
 FLAC
 ----

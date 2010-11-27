@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 378;
+use Test::More tests => 379;
 
 use Audio::Scan;
 
@@ -1257,6 +1257,14 @@ eval {
     ok( !ref $tags->{TPE1}, 'v2.2 multiple null strings in TP1 ok' );
     is( $tags->{TIT2}, 'Klangstudie II', 'v2.2 multiple null strings TT2 value ok' );
     is( $tags->{TPE1}, 'Herbert Eimert', 'v2.2 multiple null strings TP1 value ok' );
+}
+
+# Bad first samplerate (stream from Radio Paradise)
+{
+    my $s = Audio::Scan->scan( _f('bad-first-samplerate.mp3') );
+    my $info = $s->{info};
+    
+    is( $info->{samplerate}, 44100, 'Bad first samplerate detected as 44100 ok' );
 }
 
 sub _f {    

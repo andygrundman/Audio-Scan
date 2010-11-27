@@ -273,12 +273,12 @@ _id3_parse_v2(id3info *id3)
     
     // We don't care about the value of the extended flags or CRC, so just read the size and skip it
     ehsize = buffer_get_int(id3->buf);
+    DEBUG_TRACE("  Skipping extended header, size %d\n", ehsize);
+    
     if ( !_check_buf(id3->infile, id3->buf, ehsize, ID3_BLOCK_SIZE) ) {
       ret = 0;
       goto out;
     }
-    
-    DEBUG_TRACE("  Skipping extended header, size %d\n", ehsize);
     buffer_consume(id3->buf, ehsize);
     
     id3->size_remain -= ehsize + 4;

@@ -100,6 +100,7 @@ t/mac/apev1.ape
 t/mac/apev2.ape
 t/mp3/ape-no-v1.mp3
 t/mp3/ape-v1.mp3
+t/mp3/bad-first-samplerate.mp3
 t/mp3/bug5686/latin/good.mp3
 t/mp3/bug5686/utf/invalid.mp3
 t/mp3/gentoo-bug-210564.mp3
