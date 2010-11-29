@@ -1,8 +1,7 @@
 Revision history for Audio::Scan
 
 0.86
-        - MP3: In a bare MP3 stream, use samplerate from last frame instead of the
-          first, because the first can be a false positive.
+        - MP3: Require first 3 frames to have matching samplerate and channel values.
 
 0.85    2010-09-08 23:40:00
         - Changed audio_md5 to use bytes from middle of file instead of the start,

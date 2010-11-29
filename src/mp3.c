@@ -213,6 +213,10 @@ _decode_mp3_frame(unsigned char *bptr, struct mp3frame *frame)
   if (frame->padding)
     frame->frame_size += frame->bytes_per_slot;
 
+  DEBUG_TRACE("Frame @%p: size=%d, %d samples, %dkbps %d/%d\n",
+      bptr, frame->frame_size, frame->samples_per_frame,
+      frame->bitrate_kbps, frame->samplerate, frame->channels);
+
   return 0;
 }
 
@@ -230,7 +234,6 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
   int done = 0;
   int wrap_skip = 0;
   int prev_bitrate = 0;
-  int last_samplerate = 0;
   bool vbr = FALSE;
 
   unsigned char *bptr;
@@ -274,10 +277,6 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
         frame_count++;
         bitrate_total += frame.bitrate_kbps;
         
-        // The first frame may be incorrectly detected with the wrong samplerate,
-        // so use the last samplerate instead of the first
-        last_samplerate = frame.samplerate;
-        
         if ( !vbr ) {
           // If we see the bitrate changing, we have a VBR file, and read
           // the entire file.  Otherwise, if we see 20 frames with the same
@@ -320,8 +319,6 @@ out:
   if (!frame_count) return -1;
   
   DEBUG_TRACE("Average of %d frames: %dkbps\n", frame_count, bitrate_total / frame_count);
-  
-  my_hv_store( mp3->info, "samplerate", newSVuv(last_samplerate) );
 
   return bitrate_total / frame_count;
 }
@@ -627,12 +624,44 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
     }
 
     if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &frame ) ) {
-      // Found a valid frame
-      DEBUG_TRACE("  valid frame\n");
+      struct mp3frame frame2, frame3;
       
-      found_first_frame = 1;
+      // Need the whole frame to consider it valid
+      if ( _check_buf(mp3->infile, mp3->buf, frame.frame_size, MP3_BLOCK_SIZE)
+
+        // If we have enough data for the start of the next frame then
+        // it must also look valid and be consistent
+        && (
+          !_check_buf(mp3->infile, mp3->buf, frame.frame_size + 4, MP3_BLOCK_SIZE)
+          || (
+               !_decode_mp3_frame( buffer_ptr(mp3->buf) + frame.frame_size, &frame2 )
+            && frame.samplerate == frame2.samplerate
+            && frame.channels == frame2.channels
+          )
+        )
+
+        // If we have enough data for the start of the over-next frame then
+        // it must also look valid and be consistent
+        && (
+          !_check_buf(mp3->infile, mp3->buf, frame.frame_size + frame2.frame_size + 4, MP3_BLOCK_SIZE)
+          || (
+               !_decode_mp3_frame( buffer_ptr(mp3->buf) + frame.frame_size + frame2.frame_size, &frame3 )
+            && frame.samplerate == frame3.samplerate
+            && frame.channels == frame3.channels
+          )
+        )
+      ) {
+        // Found a valid frame
+        DEBUG_TRACE("  valid frame\n");
+
+        found_first_frame = 1;
+      }
+      else {
+        DEBUG_TRACE("  false sync\n");
+      }
     }
-    else {
+
+    if (!found_first_frame) {
       // Not a valid frame, stray 0xFF
       DEBUG_TRACE("  invalid frame\n");
       
@@ -736,10 +765,7 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
   my_hv_store( info, "audio_size", newSVuv(mp3->audio_size) );
   my_hv_store( info, "audio_offset", newSVuv(mp3->audio_offset) );
   my_hv_store( info, "bitrate", newSVuv( mp3->bitrate * 1000 ) );
-  
-  // Average bitrate code may have already set the samplerate
-  if ( !my_hv_exists( info, "samplerate" ) )
-    my_hv_store( info, "samplerate", newSVuv( frame.samplerate ) );
+  my_hv_store( info, "samplerate", newSVuv( frame.samplerate ) );
 
   if (mp3->xing_frame->xing_tag || mp3->xing_frame->info_tag) {
     if (mp3->xing_frame->xing_frames) {
