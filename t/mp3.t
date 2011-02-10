@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 379;
+use Test::More tests => 380;
 
 use Audio::Scan;
 
@@ -1265,6 +1265,14 @@ eval {
     my $info = $s->{info};
     
     is( $info->{samplerate}, 44100, 'Bad first samplerate detected as 44100 ok' );
+}
+
+# File with Xing tag but no LAME data, used to not include info->{vbr}
+{
+    my $s = Audio::Scan->scan( _f('v2.3-xing-no-lame.mp3') );
+    my $info = $s->{info};
+    
+    is( $info->{vbr}, 1, 'Xing without LAME marked as VBR ok' );
 }
 
 sub _f {    

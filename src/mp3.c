@@ -511,6 +511,7 @@ _parse_xing(mp3info *mp3)
     DEBUG_TRACE("Found VBRI tag\n");
     
     mp3->xing_frame->vbri_tag = TRUE;
+    mp3->vbr = VBR;
     
     if ( !_check_buf(mp3->infile, mp3->buf, 14, MP3_BLOCK_SIZE) ) {
       return 0;
@@ -845,10 +846,10 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
         my_hv_store( info, "lame_preset", newSVpv( presets_old[mp3->xing_frame->lame_preset], 0 ) );
       }
     }
-
-    if (mp3->vbr == ABR || mp3->vbr == VBR) {
-      my_hv_store( info, "vbr", newSViv(1) );
-    }
+  }
+  
+  if (mp3->vbr == ABR || mp3->vbr == VBR) {
+    my_hv_store( info, "vbr", newSViv(1) );
   }
 
 out:

@@ -158,6 +158,7 @@ t/mp3/v2.3-unsync.mp3
 t/mp3/v2.3-utf16any.mp3
 t/mp3/v2.3-utf16be.mp3
 t/mp3/v2.3-utf16le.mp3
+t/mp3/v2.3-xing-no-lame.mp3
 t/mp3/v2.3-xsop.mp3
 t/mp3/v2.3-zero-frame.mp3
 t/mp3/v2.3.mp3
