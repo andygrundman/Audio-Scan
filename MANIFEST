@@ -136,6 +136,7 @@ t/mp3/v2.3-empty-wxxx.mp3
 t/mp3/v2.3-encrypted-frame.mp3
 t/mp3/v2.3-etco.mp3
 t/mp3/v2.3-ext-header.mp3
+t/mp3/v2.3-ext-header-invalid.mp3
 t/mp3/v2.3-group-id.mp3
 t/mp3/v2.3-invalid-aenc.mp3
 t/mp3/v2.3-invalid-encoding.mp3

@@ -273,6 +273,14 @@ _id3_parse_v2(id3info *id3)
     
     // We don't care about the value of the extended flags or CRC, so just read the size and skip it
     ehsize = buffer_get_int(id3->buf);
+    
+    // ehsize may be invalid, tested with v2.3-ext-header-invalid.mp3
+    if (ehsize > id3->size_remain - 4) {
+      warn("Error: Invalid ID3 extended header size (%s)\n", id3->file);
+      ret = 0;
+      goto out;
+    }
+    
     DEBUG_TRACE("  Skipping extended header, size %d\n", ehsize);
     
     if ( !_check_buf(id3->infile, id3->buf, ehsize, ID3_BLOCK_SIZE) ) {

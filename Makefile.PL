@@ -31,7 +31,7 @@ my $src_files = join(' ', glob 'src/*.c');
 WriteMakefile(
     NAME              => 'Audio::Scan',
     VERSION_FROM      => 'lib/Audio/Scan.pm',
-    PREREQ_PM         => {},
+    PREREQ_PM         => { 'Test::Warn' => 0 },
     ABSTRACT_FROM     => 'lib/Audio/Scan.pm',
     AUTHOR            => 'Andy Grundman <andy@slimdevices.com>',
     INC               => join(' ', @INC),

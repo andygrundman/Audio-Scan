@@ -604,12 +604,12 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
       if ( !buffer_len(mp3->buf) ) {
         if (mp3->audio_offset >= mp3->file_size - 4) {
           // No audio frames in file
-          PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
+          warn("Unable to find any MP3 frames in file: %s\n", file);
           goto out;
         }
         
         if ( !_check_buf(mp3->infile, mp3->buf, 4, MP3_BLOCK_SIZE) ) {
-          PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file: %s\n", file);
+          warn("Unable to find any MP3 frames in file: %s\n", file);
           goto out;
         }
       }
@@ -672,7 +672,7 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
   }
 
   if ( !found_first_frame ) {
-    PerlIO_printf(PerlIO_stderr(), "Unable to find any MP3 frames in file (checked 4K): %s\n", file);
+    warn("Unable to find any MP3 frames in file (checked 4K): %s\n", file);
     goto out;
   }
 
