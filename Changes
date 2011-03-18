@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.86
+0.86    2011-03-18
         - MP3: Require first 3 frames to have matching samplerate and channel values.
         - MP3: Fixed bug where info->{vbr} would not be set if a file had a Xing frame
           but no LAME data.
