@@ -624,7 +624,7 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
       goto out;
     }
 
-    if ( !_decode_mp3_frame( buffer_ptr(mp3->buf), &frame ) ) {
+    if ( !_decode_mp3_frame( bptr, &frame ) ) {
       struct mp3frame frame2, frame3;
       
       // Need the whole frame to consider it valid
@@ -635,7 +635,7 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
         && (
           !_check_buf(mp3->infile, mp3->buf, frame.frame_size + 4, MP3_BLOCK_SIZE)
           || (
-               !_decode_mp3_frame( buffer_ptr(mp3->buf) + frame.frame_size, &frame2 )
+               !_decode_mp3_frame( bptr + frame.frame_size, &frame2 )
             && frame.samplerate == frame2.samplerate
             && frame.channels == frame2.channels
           )
@@ -646,7 +646,7 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
         && (
           !_check_buf(mp3->infile, mp3->buf, frame.frame_size + frame2.frame_size + 4, MP3_BLOCK_SIZE)
           || (
-               !_decode_mp3_frame( buffer_ptr(mp3->buf) + frame.frame_size + frame2.frame_size, &frame3 )
+               !_decode_mp3_frame( bptr + frame.frame_size + frame2.frame_size, &frame3 )
             && frame.samplerate == frame3.samplerate
             && frame.channels == frame3.channels
           )

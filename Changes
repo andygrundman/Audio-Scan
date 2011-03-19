@@ -1,5 +1,8 @@
 Revision history for Audio::Scan
 
+0.87
+        - Win32: Fixed MSVC compilation error in mp3.c.
+
 0.86    2011-03-18
         - MP3: Require first 3 frames to have matching samplerate and channel values.
         - MP3: Fixed bug where info->{vbr} would not be set if a file had a Xing frame
