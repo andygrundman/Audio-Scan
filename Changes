@@ -1,6 +1,6 @@
 Revision history for Audio::Scan
 
-0.87
+0.87    2011-03-21
         - AAC: Bug 16874, Fixed infinite loop that could occur when reading a truncated
           ADTS stream.
         - Win32: Fixed MSVC compilation error in mp3.c.
