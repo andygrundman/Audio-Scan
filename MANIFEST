@@ -67,6 +67,7 @@ t/aac/id3v2.aac
 t/aac/leading-junk.aac
 t/aac/mono.aac
 t/aac/stereo.aac
+t/aac/truncated.aac
 t/aiff/aiff-id3.aif
 t/aiff/aiff-id3-bad-chunksize.aif
 t/aiff/aiff32.aiff

@@ -148,6 +148,10 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
 
     buffer_consume(buf, frame_length);
     audio_size -= frame_length;
+    
+    // Avoid looping again if we have a partial frame header
+    if (audio_size < 6)
+      break;
   }
   
   frames_per_sec = (float)samplerate/1024.0f;
