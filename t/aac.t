@@ -60,6 +60,12 @@ use Audio::Scan;
 
 # ADTS with leading junk (from a radio stream)
 {
+    # Hide stderr
+    no strict 'subs';
+    no warnings;
+    open OLD_STDERR, '>&', STDERR;
+    close STDERR;
+    
     my $s = Audio::Scan->scan( _f('leading-junk.aac') );
     
     my $info = $s->{info};
@@ -69,6 +75,9 @@ use Audio::Scan;
     is( $info->{channels}, 2, 'Leading junk channels ok' );
     is( $info->{profile}, 'LC', 'Leading junk profile ok' );
     is( $info->{samplerate}, 44100, 'Leading junk samplerate ok' );
+    
+    # Restore stderr
+    open STDERR, '>&', OLD_STDERR;
 }
 
 # Bug 16874, truncated with a partial header

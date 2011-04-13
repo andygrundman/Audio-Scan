@@ -1,6 +1,7 @@
 Revision history for Audio::Scan
 
 0.88
+        - ADTS AAC: Check first 2-3 frames to avoid false syncs.
         - OSX: Xcode 4 doesn't include the 10.5 SDK, so check for this before using it.
 
 0.87    2011-03-21

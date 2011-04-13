@@ -72,8 +72,9 @@ get_aacinfo(PerlIO *infile, char *file, HV *info, HV *tags)
   while ( buffer_len(&buf) >= 6 ) {
     bptr = buffer_ptr(&buf);
     
-    if ( (bptr[0] == 0xFF) && ((bptr[1] & 0xF6) == 0xF0) ) {
-      aac_parse_adts(infile, file, file_size - audio_offset, &buf, info);
+    if ( (bptr[0] == 0xFF) && ((bptr[1] & 0xF6) == 0xF0)
+      && aac_parse_adts(infile, file, file_size - audio_offset, &buf, info))
+    {
       break;
     }
     else {    
@@ -107,7 +108,7 @@ out:
 
 // ADTS parser adapted from faad
 
-void
+int
 aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *info)
 {
   int frames, frame_length;
@@ -123,7 +124,10 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
   /* Read all frames to ensure correct time and bitrate */
   for (frames = 0; /* */; frames++) {
     if ( !_check_buf(infile, buf, audio_size > AAC_BLOCK_SIZE ? AAC_BLOCK_SIZE : audio_size, AAC_BLOCK_SIZE) ) {
-      break;
+      if (frames < 1)
+        return 0;
+      else
+        break;
     }
     
     bptr = buffer_ptr(buf);
@@ -141,6 +145,34 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
     frame_length = ((((unsigned int)bptr[3] & 0x3)) << 11)
       | (((unsigned int)bptr[4]) << 3) | (bptr[5] >> 5);
 
+    if (frames == 0 && _check_buf(infile, buf, frame_length + 10, AAC_BLOCK_SIZE)) {
+      unsigned char *bptr2 = bptr + frame_length;
+      int frame_length2;
+      if (!((bptr2[0] == 0xFF)&&((bptr2[1] & 0xF6) == 0xF0))
+        || profile != (bptr2[2] & 0xc0) >> 6
+        || samplerate != adts_sample_rates[(bptr2[2]&0x3c)>>2]
+        || channels != (((bptr2[2] & 0x1) << 2) | ((bptr2[3] & 0xc0) >> 6)))
+      {
+        DEBUG_TRACE("False sync at frame %d+1\n", frames);
+        return 0;
+      }
+
+      frame_length2 = ((((unsigned int)bptr2[3] & 0x3)) << 11)
+        | (((unsigned int)bptr2[4]) << 3) | (bptr2[5] >> 5);
+
+      if (_check_buf(infile, buf, frame_length + frame_length2 + 10, AAC_BLOCK_SIZE)) {
+        bptr2 += frame_length2;
+        if (!((bptr2[0] == 0xFF)&&((bptr2[1] & 0xF6) == 0xF0))
+          || profile != (bptr2[2] & 0xc0) >> 6
+          || samplerate != adts_sample_rates[(bptr2[2]&0x3c)>>2]
+          || channels != (((bptr2[2] & 0x1) << 2) | ((bptr2[3] & 0xc0) >> 6)))
+        {
+          DEBUG_TRACE("False sync at frame %d+2\n", frames);
+          return 0;
+        }
+      }
+    }
+
     t_framelength += frame_length;
     
     if (frame_length > buffer_len(buf))
@@ -152,6 +184,11 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
     // Avoid looping again if we have a partial frame header
     if (audio_size < 6)
       break;
+  }
+  
+  if (frames < 1) {
+    DEBUG_TRACE("False sync\n");
+    return 0;
   }
   
   frames_per_sec = (float)samplerate/1024.0f;
@@ -176,4 +213,6 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
   my_hv_store( info, "samplerate", newSVuv(samplerate) );
   my_hv_store( info, "profile", newSVpv( aac_profiles[profile], 0 ) );
   my_hv_store( info, "channels", newSVuv(channels) );
+
+  return 1;
 }
