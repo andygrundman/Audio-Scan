@@ -48,7 +48,16 @@ _check_buf(PerlIO *infile, Buffer *buf, int min_wanted, int max_wanted)
 
     if ( (read = PerlIO_read(infile, tmp, actual_wanted)) <= 0 ) {
       if ( PerlIO_error(infile) ) {
+#ifdef _MSC_VER
+        // Show windows specific error message as Win32 PerlIO_read does not set errno
+        DWORD last_error = GetLastError();
+        LPWSTR *errmsg = NULL;
+        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, 0, last_error, 0, (LPWSTR)&errmsg, 0, NULL);
+        warn("Error reading: %d %s (read %d wanted %d)\n", last_error, errmsg, read, actual_wanted);
+        LocalFree(errmsg);
+#else
         warn("Error reading: %s (wanted %d)\n", strerror(errno), actual_wanted);
+#endif
       }
       else {
         warn("Error: Unable to read at least %d bytes from file.\n", min_wanted);
