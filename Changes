@@ -4,6 +4,7 @@ Revision history for Audio::Scan
         - ADTS AAC: Check first 2-3 frames to avoid false syncs.
         - OSX: Xcode 4 doesn't include the 10.5 SDK, so check for this before using it.
         - Win32: Display better error messages when unable to read from files.
+        - MP3, AAC, MPC: Bug 17173: Cleaned up several places where invalid memory reads could occur.
 
 0.87    2011-03-21
         - AAC: Bug 16874, Fixed infinite loop that could occur when reading a truncated

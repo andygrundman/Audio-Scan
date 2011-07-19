@@ -146,8 +146,8 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
       | (((unsigned int)bptr[4]) << 3) | (bptr[5] >> 5);
 
     if (frames == 0 && _check_buf(infile, buf, frame_length + 10, AAC_BLOCK_SIZE)) {
-      unsigned char *bptr2 = bptr + frame_length;
-      int frame_length2;
+      unsigned char *bptr2 = buffer_ptr(buf) + frame_length;
+      int frame_length2;      
       if (!((bptr2[0] == 0xFF)&&((bptr2[1] & 0xF6) == 0xF0))
         || profile != (bptr2[2] & 0xc0) >> 6
         || samplerate != adts_sample_rates[(bptr2[2]&0x3c)>>2]
@@ -161,7 +161,7 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
         | (((unsigned int)bptr2[4]) << 3) | (bptr2[5] >> 5);
 
       if (_check_buf(infile, buf, frame_length + frame_length2 + 10, AAC_BLOCK_SIZE)) {
-        bptr2 += frame_length2;
+        bptr2 = buffer_ptr(buf) + frame_length + frame_length2;
         if (!((bptr2[0] == 0xFF)&&((bptr2[1] & 0xF6) == 0xF0))
           || profile != (bptr2[2] & 0xc0) >> 6
           || samplerate != adts_sample_rates[(bptr2[2]&0x3c)>>2]

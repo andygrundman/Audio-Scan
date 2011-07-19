@@ -126,22 +126,24 @@ _mpc_get_encoder_string(mpc_streaminfo* si)
 static int32_t
 _mpc_read_header_sv8(mpc_streaminfo *si)
 {
+  unsigned char blocktype[2];
   unsigned char *bptr = buffer_ptr(si->buf);
   uint64_t size;
   
   while ( memcmp(bptr, "AP", 2) != 0 ) { // scan all blocks until audio
+    memcpy(blocktype, bptr, 2);
     buffer_consume(si->buf, 2);
     
     _mpc_bits_get_size(si->buf, &size);
     size -= 3;
     
-    DEBUG_TRACE("%c%c block, size %llu\n", bptr[0], bptr[1], size);
+    DEBUG_TRACE("%c%c block, size %llu\n", blocktype[0], blocktype[1], size);
     
     if ( !_check_buf(si->infile, si->buf, size, MPC_BLOCK_SIZE) ) {
       return -1;
     }
     
-    if (memcmp(bptr, "SH", 2) == 0) {
+    if (memcmp(blocktype, "SH", 2) == 0) {
       // Skip CRC
       buffer_consume(si->buf, 4);
       
@@ -159,7 +161,7 @@ _mpc_read_header_sv8(mpc_streaminfo *si)
       si->block_pwr = (bptr[1] & 0x7) * 2;
       buffer_consume(si->buf, 2);
     }
-    else if (memcmp(bptr, "RG", 2) == 0) {
+    else if (memcmp(blocktype, "RG", 2) == 0) {
       // Check version
       if ( buffer_get_char(si->buf) != 1 ) {
         // Skip
@@ -172,7 +174,7 @@ _mpc_read_header_sv8(mpc_streaminfo *si)
         si->peak_album = buffer_get_short(si->buf);
       }      
     }
-    else if (memcmp(bptr, "EI", 2) == 0) {
+    else if (memcmp(blocktype, "EI", 2) == 0) {
       bptr = buffer_ptr(si->buf);
       
       si->fprofile = ((bptr[0] & 0xFE) >> 1) / 8.;
