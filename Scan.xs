@@ -4,6 +4,13 @@
 
 #include "ppport.h"
 
+// If we are on MSVC, disable some stupid MSVC warnings
+#ifdef _MSC_VER
+# pragma warning( disable: 4996 )
+# pragma warning( disable: 4127 )
+# pragma warning( disable: 4711 )
+#endif
+
 #include "common.c"
 #include "ape.c"
 #include "id3.c"
