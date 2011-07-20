@@ -264,7 +264,7 @@ static short _mp3_get_average_bitrate(mp3info *mp3, uint32_t offset, uint32_t au
       while ( *bptr != 0xFF ) {
         buffer_consume(mp3->buf, 1);
       
-        if ( !buffer_len(mp3->buf) ) {
+        if ( buffer_len(mp3->buf) < 4 ) {
           // ran out of data
           goto out;
         }
