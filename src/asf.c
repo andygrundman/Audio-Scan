@@ -127,6 +127,8 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     
     asf->object_offset += 24;
     
+    DEBUG_TRACE("object_offset %d\n", asf->object_offset);
+    
     if ( IsEqualGUID(&tmp.ID, &ASF_Content_Description) ) {
       DEBUG_TRACE("Content_Description\n");
       _parse_content_description(asf);
@@ -187,7 +189,7 @@ _asf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       buffer_consume(asf->buf, tmp.size - 24);
     }
     
-    asf->object_offset += tmp.size;
+    asf->object_offset += tmp.size - 24;
   }
   
   // We should be at the start of the Data object.
@@ -275,6 +277,8 @@ _parse_content_description(asfinfo *asf)
       buffer_get_utf16_as_utf8(asf->buf, asf->scratch, len[i], UTF16_BYTEORDER_LE);
       value = newSVpv( buffer_ptr(asf->scratch), 0 );
       sv_utf8_decode(value);
+      
+      DEBUG_TRACE("  %s / %s\n", fields[i], SvPVX(value));
     
       _store_tag( asf->tags, newSVpv(fields[i], 0), value );
     }
@@ -552,6 +556,7 @@ _parse_header_extension(asfinfo *asf, uint64_t len)
   int ext_size;
   GUID hdr;
   uint64_t hdr_size;
+  uint32_t tmp_offset = asf->object_offset;
   
   // Skip reserved fields
   buffer_consume(asf->buf, 18);
@@ -571,17 +576,24 @@ _parse_header_extension(asfinfo *asf, uint64_t len)
   
   DEBUG_TRACE("  size: %d\n", ext_size);
   
+  // Header Extension is always 46 bytes, and we've already counted 24 of it
+  asf->object_offset += 46 - 24;
+  
   while (ext_size > 0) {
     buffer_get_guid(asf->buf, &hdr);
     hdr_size = buffer_get_int64_le(asf->buf);
     ext_size -= hdr_size;
+    
+    asf->object_offset += 24;
+    
+    DEBUG_TRACE("  object_offset %d\n", asf->object_offset);
     
     if ( IsEqualGUID(&hdr, &ASF_Metadata) ) {
       DEBUG_TRACE("  Metadata\n");
       _parse_metadata(asf);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Extended_Stream_Properties) ) {
-      DEBUG_TRACE("  Extended_Stream_Properties size %llu\n", hdr_size);
+      DEBUG_TRACE("  Extended_Stream_Properties\n");
       _parse_extended_stream_properties(asf, hdr_size);
     }
     else if ( IsEqualGUID(&hdr, &ASF_Language_List) ) {
@@ -623,7 +635,12 @@ _parse_header_extension(asfinfo *asf, uint64_t len)
       
       buffer_consume(asf->buf, hdr_size - 24);
     }
+    
+    asf->object_offset += hdr_size - 24;
   }
+  
+  // Put back the original offset, or calcs will be wrong in _asf_parse
+  asf->object_offset = tmp_offset;
   
   return 1;
 }
@@ -972,7 +989,7 @@ _parse_metadata_library(asfinfo *asf)
     key = newSVpv( buffer_ptr(asf->scratch), 0 );
     sv_utf8_decode(key);
     
-    picture_offset += 16 + name_len;
+    picture_offset += 12 + name_len;
     
     if (data_type == TYPE_UNICODE) {
       buffer_clear(asf->scratch);

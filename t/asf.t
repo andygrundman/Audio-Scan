@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 134;
+use Test::More tests => 136;
 
 use Audio::Scan;
 
@@ -138,6 +138,18 @@ eval {
     
     is( $tags->{'WM/Picture'}->{image}, 2103, 'WM/Picture with AUDIO_SCAN_NO_ARTWORK ok' );
     is( $tags->{'WM/Picture'}->{offset}, 555, 'WM/Picture with AUDIO_SCAN_NO_ARTWORK offset ok' );
+}
+
+# Bug 17355, WM/Picture tag within Header Extension/Metadata Library
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
+    my $s = Audio::Scan->scan( _f('bug17355-picture-offset.wma') );
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{'WM/Picture'}->{image}, 88902, 'WM/Picture in Header Extension/Metadata Library length ok' );
+    is( $tags->{'WM/Picture'}->{offset}, 1121, 'WM/Picture in Header Extension/Metadata Library length ok' );
 }
 
 # WMA Pro 10 file

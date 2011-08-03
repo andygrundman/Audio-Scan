@@ -1,5 +1,9 @@
 Revision history for Audio::Scan
 
+0.89
+        - WMA: Bug 17355, fixed WM/Picture offset calculation when artwork is stored in the
+          Header Extension/Metadata Library block.
+
 0.88    2011-07-20
         - ADTS AAC: Check first 2-3 frames to avoid false syncs.
         - OSX: Xcode 4 doesn't include the 10.5 SDK, so check for this before using it.

@@ -71,6 +71,7 @@ t/aac/truncated.aac
 t/aiff/aiff-id3.aif
 t/aiff/aiff-id3-bad-chunksize.aif
 t/aiff/aiff32.aiff
+t/asf/bug17355-picture-offset.wma
 t/asf/drm.wma
 t/asf/jfif.wma
 t/asf/wma-live.wma
