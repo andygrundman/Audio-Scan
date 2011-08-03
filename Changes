@@ -1,8 +1,11 @@
 Revision history for Audio::Scan
 
 0.89
+        - APE: Bug 15895, better handling if we have a broken APE tag and run out of 
+          tag data. (Adrian Smith)
         - WMA: Bug 17355, fixed WM/Picture offset calculation when artwork is stored in the
           Header Extension/Metadata Library block.
+        - WMA: Added output warning when trying to seek in a file without ASF_Index.
 
 0.88    2011-07-20
         - ADTS AAC: Check first 2-3 frames to avoid false syncs.

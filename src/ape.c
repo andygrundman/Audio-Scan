@@ -27,7 +27,7 @@ Refactored heavily by Dan Sully
 #include "ape.h"
 
 static int _ape_error(ApeTag *tag, char *error, int ret) {
-  PerlIO_printf(PerlIO_stderr(), "APE: [%s] %s\n", error, tag->filename);
+  LOG_WARN("APE: [%s] %s\n", error, tag->filename);
   return ret;
 }
 
@@ -289,6 +289,9 @@ int _ape_parse_field(ApeTag* tag) {
   unsigned char *tmp_ptr;
   SV *key = NULL;
   SV *value = NULL;
+  
+  if (buffer_len(&tag->tag_data) < 8)
+    return _ape_error(tag, "Ran out of tag data before number of items was reached", -3);
   
   size  = buffer_get_int_le(&tag->tag_data);
   flags = buffer_get_int_le(&tag->tag_data);

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 382;
+use Test::More tests => 385;
 use Test::Warn;
 
 use Audio::Scan;
@@ -1275,6 +1275,19 @@ eval {
     warning_like { Audio::Scan->scan( _f('v2.3-ext-header-invalid.mp3') ); }
         [ qr/Error: Invalid ID3 extended header size/ ],
         'v2.3 invalid extended header ok';
+}
+
+# Bug 15895, bad APE tag
+{
+    my $s;
+    warning_like { $s = Audio::Scan->scan( _f('v2.3-ape-bug15895.mp3') ); }
+        [ qr/Ran out of tag data before number of items was reached/ ],
+        'broken APE tag (bug 15895) ok';
+    
+    my $tags = $s->{tags};
+    
+    is( $tags->{TALB}, 'Laundry Service', 'bad APE tag ID3 TALB ok' );
+    is( $tags->{MP3GAIN_MINMAX}, '123,203', 'bad APE tag MP3GAIN_MINMAX ok' );
 }
 
 sub _f {    

@@ -130,6 +130,7 @@ t/mp3/v2.2-multiple-comm.mp3
 t/mp3/v2.2-multiple-null-strings.mp3
 t/mp3/v2.2-pic.mp3
 t/mp3/v2.2.mp3
+t/mp3/v2.3-ape-bug15895.mp3
 t/mp3/v2.3-apev2-lyricsv2.mp3
 t/mp3/v2.3-compressed-frame.mp3
 t/mp3/v2.3-empty-tcon.mp3
