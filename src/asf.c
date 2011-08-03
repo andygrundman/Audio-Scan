@@ -1447,7 +1447,7 @@ asf_find_frame(PerlIO *infile, char *file, int time_offset)
   // Only support seeking if index is available
   // XXX try to seek anyway without an index, using FLAC binary search method
   if ( !asf->spec_count ) {
-    DEBUG_TRACE("No ASF_Index object available, not seeking\n");
+    LOG_WARN("No ASF_Index object available, not seeking\n");
     goto out;
   }
   
