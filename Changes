@@ -1,5 +1,7 @@
 Revision history for Audio::Scan
 
+Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
+
 0.89
         - APE: Bug 15895, better handling if we have a broken APE tag and run out of 
           tag data. (Adrian Smith)
