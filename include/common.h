@@ -23,7 +23,7 @@
 # define DEBUG_TRACE(...)
 #endif
 
-#define LOG_WARN(...) PerlIO_printf(PerlIO_stderr(), __VA_ARGS__)
+#define LOG_WARN(...) warn(__VA_ARGS__)
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
 # define _PACKED __attribute((packed))
