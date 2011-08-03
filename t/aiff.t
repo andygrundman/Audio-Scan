@@ -2,12 +2,14 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 26;
+use Test::More tests => 29;
 
 use Audio::Scan;
 
 # AIFF file with ID3 tags (tagged by iTunes)
 {
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
     my $s = Audio::Scan->scan( _f('aiff-id3.aif'), { md5_size => 4096 } );
     
     my $info = $s->{info};
@@ -20,7 +22,7 @@ use Audio::Scan;
     is( $info->{bits_per_sample}, 16, 'Bits/sample ok' );
     is( $info->{block_align}, 4, 'Block align ok' );
     is( $info->{channels}, 2, 'Channels ok' );
-    is( $info->{file_size}, 4170, 'File size ok' );
+    is( $info->{file_size}, 14932, 'File size ok' );
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{song_length_ms}, 10, 'Song length ok' );
     is( $info->{id3_version}, 'ID3v2.2.0', 'ID3 version ok' );
@@ -30,6 +32,11 @@ use Audio::Scan;
     is( $tags->{TDRC}, 2008, 'TDRC ok' );
     is( $tags->{TIT2}, 'Dark Roads', 'TIT2 ok' );
     is( $tags->{TPE1}, 'Kaya Project', 'TPE1 ok' );
+    
+    # Bug 17392, make sure artwork offset is correct when ID3 tag is not at the front of the file
+    is( $tags->{APIC}->[0], 'JPG', 'APIC JPG ok' );
+    is( $tags->{APIC}->[3], 2277, 'APIC length ok' );
+    is( $tags->{APIC}->[4], 2414, 'APIC offset ok' );
 }
 
 # AIFF file with ID3 tags with a bad chunksize

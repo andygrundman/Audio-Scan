@@ -54,6 +54,7 @@ parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek, off_t f
   id3->file   = file;
   id3->info   = info;
   id3->tags   = tags;
+  id3->offset = seek;
   
   buffer_init(id3->buf, ID3_BLOCK_SIZE);
   
@@ -1159,7 +1160,7 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
             
             // Record offset of APIC image data too, unless the data needs to be unsynchronized or is empty
             if (id3->tag_data_safe && (size - read) > 0)
-              av_push( framedata, newSVuv(id3->size - id3->size_remain + read) );
+              av_push( framedata, newSVuv(id3->offset + (id3->size - id3->size_remain) + read) );
             
             _id3_skip(id3, size - read);
             read = size;

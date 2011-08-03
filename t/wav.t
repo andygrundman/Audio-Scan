@@ -2,12 +2,14 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 52;
+use Test::More tests => 53;
 
 use Audio::Scan;
 
 # WAV file with ID3 tags
 {
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    
     my $s = Audio::Scan->scan( _f('id3.wav'), { md5_size => 4096 } );
     
     my $info = $s->{info};
@@ -26,9 +28,6 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 10, 'Song length ok' );
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 version ok' );
     
-    is( ref $tags->{APIC}, 'ARRAY', 'APIC ok' );
-    is( $tags->{APIC}->[0], 'image/jpg', 'APIC type ok' );
-    is( length( $tags->{APIC}->[3] ), 2103, 'APIC size ok' );
     is( ref $tags->{COMM}, 'ARRAY', 'COMM ok' );
     is( $tags->{TALB}, 'WAV Album', 'TALB ok' );
     is( $tags->{TCON}, 'Alternative', 'TCON ok' );
@@ -37,6 +36,12 @@ use Audio::Scan;
     is( $tags->{TPE1}, 'WAV Artist', 'TPE1 ok' );
     is( $tags->{TPOS}, 1, 'TPOS ok' );
     is( $tags->{TRCK}, 5, 'TRCK ok' );
+    
+    # Bug 17392, make sure artwork offset is correct when ID3 tag is not at the front of the file
+    is( ref $tags->{APIC}, 'ARRAY', 'APIC ok' );
+    is( $tags->{APIC}->[0], 'image/jpg', 'APIC type ok' );
+    is( $tags->{APIC}->[3], 2103, 'APIC length ok' );
+    is( $tags->{APIC}->[4], 2137, 'APIC offset ok' );
 }
 
 # 32-bit WAV with PEAK info

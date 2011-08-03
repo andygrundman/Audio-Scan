@@ -96,6 +96,7 @@ typedef struct id3info {
   uint8_t tag_data_safe;
   uint32_t size;
   uint32_t size_remain;
+  uint32_t offset; // For non-MP3, offset into file where tag begins
 } id3info;
 
 typedef struct id3_compat {
