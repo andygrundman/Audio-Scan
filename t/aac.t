@@ -2,7 +2,8 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 36;
+use Test::More tests => 37;
+use Test::Warn;
 
 use Audio::Scan;
 
@@ -59,14 +60,11 @@ use Audio::Scan;
 }
 
 # ADTS with leading junk (from a radio stream)
-{
-    # Hide stderr
-    no strict 'subs';
-    no warnings;
-    open OLD_STDERR, '>&', STDERR;
-    close STDERR;
-    
-    my $s = Audio::Scan->scan( _f('leading-junk.aac') );
+{    
+    my $s;
+    warning_like { $s = Audio::Scan->scan( _f('leading-junk.aac') ); }
+        [ qr/Unable to read at least/ ],
+        'Leading junk warning ok';
     
     my $info = $s->{info};
     
@@ -75,9 +73,6 @@ use Audio::Scan;
     is( $info->{channels}, 2, 'Leading junk channels ok' );
     is( $info->{profile}, 'LC', 'Leading junk profile ok' );
     is( $info->{samplerate}, 44100, 'Leading junk samplerate ok' );
-    
-    # Restore stderr
-    open STDERR, '>&', OLD_STDERR;
 }
 
 # Bug 16874, truncated with a partial header

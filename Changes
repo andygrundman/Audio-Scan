@@ -8,6 +8,7 @@ Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
         - WMA: Bug 17355, fixed WM/Picture offset calculation when artwork is stored in the
           Header Extension/Metadata Library block.
         - WMA: Added output warning when trying to seek in a file without ASF_Index.
+        - Switched aac.t to Test::Warn instead of manual STDERR redirection.
 
 0.88    2011-07-20
         - ADTS AAC: Check first 2-3 frames to avoid false syncs.
