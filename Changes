@@ -2,6 +2,9 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
+0.91
+        - MP3, MP4, WMA, ADTS AAC: Added DLNA audio profile detection as $info->{dlna_profile}.
+
 0.90    2011-08-03
         - ID3: Bug 17392, fixed APIC offset calculation for non-MP3 files such as AIFF
           and WAV where the tag does not live at the front of the file.

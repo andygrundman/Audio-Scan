@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 385;
+use Test::More tests => 388;
 use Test::Warn;
 
 use Audio::Scan;
@@ -53,6 +53,7 @@ eval {
     
     is( $info->{bitrate}, 32000, 'MPEG1, Layer 3 bitrate ok' );
     is( $info->{samplerate}, 32000, 'MPEG1, Layer 3 samplerate ok' );
+    is( $info->{dlna_profile}, 'MP3', 'MPEG1, Layer 3 DLNA profile MP3 ok' );
 }
 
 # MPEG2, Layer 3, 8k / 22.05kHz
@@ -63,6 +64,7 @@ eval {
     
     is( $info->{bitrate}, 8000, 'MPEG2, Layer 3 bitrate ok' );
     is( $info->{samplerate}, 22050, 'MPEG2, Layer 3 samplerate ok' );
+    is( $info->{dlna_profile}, 'MP3X', 'MPEG2, Layer 3 DLNA profile MP3X ok' );
 }
 
 # MPEG2.5, Layer 3, 8k / 8kHz
@@ -73,6 +75,7 @@ eval {
     
     is( $info->{bitrate}, 8000, 'MPEG2.5, Layer 3 bitrate ok' );
     is( $info->{samplerate}, 8000, 'MPEG2.5, Layer 3 samplerate ok' );
+    ok( !exists $info->{dlna_profile}, 'MPEG2.5, Layer 3 no DLNA profile ok' );
 }
 
 # MPEG1, Layer 3, ~40k / 32kHz VBR

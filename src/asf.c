@@ -428,6 +428,9 @@ _parse_file_properties(asfinfo *asf)
   my_hv_store( asf->info, "min_packet_size", newSViv(min_packet_size) );
   my_hv_store( asf->info, "max_packet_size", newSViv(max_packet_size) );
   my_hv_store( asf->info, "max_bitrate", newSViv(max_bitrate) );
+  
+  // DLNA, need to store max_bitrate for later
+  asf->max_bitrate = max_bitrate;
 }
 
 void
@@ -463,7 +466,8 @@ _parse_stream_properties(asfinfo *asf)
   
   if ( IsEqualGUID(&stream_type, &ASF_Audio_Media) ) {
     uint8_t is_wma = 0;
-    uint16_t codec_id;
+    uint16_t codec_id, channels;
+    uint32_t samplerate;
     
     _store_stream_info( stream_number, asf->info, newSVpv("stream_type", 0), newSVpv("ASF_Audio_Media", 0) );
     
@@ -471,16 +475,80 @@ _parse_stream_properties(asfinfo *asf)
     codec_id = buffer_get_short_le(&type_data_buf);
     switch (codec_id) {
       case 0x000a:
+        is_wma = 1;
+        break;
+        
       case 0x0161:
+        is_wma = 1;
+        asf->valid_profiles |= IS_VALID_WMA_BASE | IS_VALID_WMA_FULL;
+        break;
+      
       case 0x0162:
+        is_wma = 1;
+        asf->valid_profiles |= IS_VALID_WMA_PRO;
+        break;
+      
       case 0x0163:
         is_wma = 1;
+        asf->valid_profiles |= IS_VALID_WMA_LSL;
         break;
     }
     
     _store_stream_info( stream_number, asf->info, newSVpv("codec_id", 0), newSViv(codec_id) );
-    _store_stream_info( stream_number, asf->info, newSVpv("channels", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
-    _store_stream_info( stream_number, asf->info, newSVpv("samplerate", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
+    
+    channels = buffer_get_short_le(&type_data_buf);
+    _store_stream_info( stream_number, asf->info, newSVpv("channels", 0), newSViv(channels) );
+    
+    samplerate = buffer_get_int_le(&type_data_buf);
+    _store_stream_info( stream_number, asf->info, newSVpv("samplerate", 0), newSViv(samplerate) );
+    
+    // Determine DLNA profile    
+    if (channels > 2) {
+      asf->valid_profiles &= ~IS_VALID_WMA_BASE;
+      asf->valid_profiles &= ~IS_VALID_WMA_FULL;
+      
+      if (codec_id == 0x0163) {
+        asf->valid_profiles &= ~IS_VALID_WMA_LSL;
+        asf->valid_profiles |= IS_VALID_WMA_LSL_MULT5;
+      }
+    }
+    
+    if (samplerate > 48000) {
+      asf->valid_profiles &= ~IS_VALID_WMA_BASE;
+      asf->valid_profiles &= ~IS_VALID_WMA_FULL;
+      
+      if (samplerate > 96000) {
+        asf->valid_profiles &= ~IS_VALID_WMA_PRO;
+        asf->valid_profiles &= ~IS_VALID_WMA_LSL; // XXX check N1/N2 defs
+        asf->valid_profiles &= ~IS_VALID_WMA_LSL_MULT5;
+      }
+    }
+    
+    if (asf->max_bitrate > 192999) {
+      asf->valid_profiles &= ~IS_VALID_WMA_BASE;
+
+      if (asf->max_bitrate > 384999) {
+        asf->valid_profiles &= ~IS_VALID_WMA_FULL;
+
+        if (asf->max_bitrate > 1499999) {
+          asf->valid_profiles &= ~IS_VALID_WMA_PRO;
+          asf->valid_profiles &= ~IS_VALID_WMA_LSL; // XXX check N1/N2 defs
+          asf->valid_profiles &= ~IS_VALID_WMA_LSL_MULT5;
+        }
+      }
+    }
+    
+    if (asf->valid_profiles & IS_VALID_WMA_BASE)
+      my_hv_store( asf->info, "dlna_profile", newSVpvn("WMABASE", 7) );
+    else if (asf->valid_profiles & IS_VALID_WMA_FULL)
+      my_hv_store( asf->info, "dlna_profile", newSVpvn("WMAFULL", 7) );
+    else if (asf->valid_profiles & IS_VALID_WMA_PRO)
+      my_hv_store( asf->info, "dlna_profile", newSVpvn("WMAPRO", 6) );
+    else if (asf->valid_profiles & IS_VALID_WMA_LSL)
+      my_hv_store( asf->info, "dlna_profile", newSVpvn("WMALSL", 6) );
+    else if (asf->valid_profiles & IS_VALID_WMA_LSL_MULT5)
+      my_hv_store( asf->info, "dlna_profile", newSVpvn("WMALSL_MULT5", 12) );
+    
     _store_stream_info( stream_number, asf->info, newSVpv("avg_bytes_per_sec", 0), newSViv( buffer_get_int_le(&type_data_buf) ) );
     _store_stream_info( stream_number, asf->info, newSVpv("block_alignment", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );
     _store_stream_info( stream_number, asf->info, newSVpv("bits_per_sample", 0), newSViv( buffer_get_short_le(&type_data_buf) ) );

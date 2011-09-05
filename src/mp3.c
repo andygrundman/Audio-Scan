@@ -529,6 +529,46 @@ _parse_xing(mp3info *mp3)
   return 1;
 }
 
+static int
+_is_mp3x_profile(mp3info *mp3)
+{
+  if (mp3->first_frame->layerID != LAYER3_ID)
+    return 0;
+    
+  if (mp3->first_frame->mpegID != MPEG1_ID && mp3->first_frame->mpegID != MPEG2_ID)
+    return 0;
+  
+  if (mp3->first_frame->samplerate != 16000
+    && mp3->first_frame->samplerate != 22050
+    && mp3->first_frame->samplerate != 24000)
+    return 0;
+  
+  if (mp3->bitrate >= 8 && mp3->bitrate <= 320)
+    return 1;
+ 
+  return 0;
+}
+
+static int
+_is_mp3_profile(mp3info *mp3)
+{
+  if (mp3->first_frame->layerID != LAYER3_ID)
+    return 0;
+  
+  if (mp3->first_frame->mpegID != MPEG1_ID)
+    return 0;
+  
+  if (mp3->first_frame->samplerate != 32000
+    && mp3->first_frame->samplerate != 44100
+    && mp3->first_frame->samplerate != 48000)
+    return 0;
+  
+  if (mp3->bitrate >= 32 && mp3->bitrate <= 320)
+    return 1;
+  
+  return 0;
+}
+
 mp3info *
 _mp3_parse(PerlIO *infile, char *file, HV *info)
 {
@@ -851,7 +891,13 @@ _mp3_parse(PerlIO *infile, char *file, HV *info)
   if (mp3->vbr == ABR || mp3->vbr == VBR) {
     my_hv_store( info, "vbr", newSViv(1) );
   }
-
+  
+  // DLNA profile detection
+  if (_is_mp3x_profile(mp3))
+    my_hv_store( info, "dlna_profile", newSVpvn( "MP3X", 4 ) );
+  else if (_is_mp3_profile(mp3))
+    my_hv_store( info, "dlna_profile", newSVpvn( "MP3", 3 ) );
+  
 out:
 
   return mp3;

@@ -16,6 +16,12 @@
  
 #define ASF_BLOCK_SIZE 8192
 
+#define IS_VALID_WMA_BASE       (1)
+#define IS_VALID_WMA_FULL       (1 << 1)
+#define IS_VALID_WMA_PRO        (1 << 2)
+#define IS_VALID_WMA_LSL        (1 << 3)
+#define IS_VALID_WMA_LSL_MULT5  (1 << 4)
+
 #undef DEFINE_GUID
 
 #define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
@@ -170,6 +176,11 @@ typedef struct asfinfo {
   HV *tags;
   
   uint8_t seeking;      // flag if we're seeking
+  
+  // DLNA profile detection bitfield
+  uint8_t valid_profiles;
+  uint32_t max_bitrate;
+  
   uint16_t spec_count;
   struct asf_index_specs *specs;
 } asfinfo;

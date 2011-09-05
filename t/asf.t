@@ -2,10 +2,12 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 137;
+use Test::More tests => 143;
 use Test::Warn;
 
 use Audio::Scan;
+
+# TODO: LSL_MULT5 profile test (lossless, channels > 2)
 
 my $HAS_ENCODE;
 eval {
@@ -42,6 +44,7 @@ eval {
     is( $info->{seekable}, 1, 'Seekable ok' );
     is( $info->{send_duration_ms}, 1857, 'Send duration ok' );
     is( $info->{song_length_ms}, 1023, 'Song length ok' );
+    is( $info->{dlna_profile}, 'WMABASE', 'DLNA profile WMABASE ok' );
     
     is( ref $info->{streams}, 'ARRAY', 'Streams ok' );
     
@@ -161,6 +164,7 @@ eval {
     
     is( $info->{codec_list}->[0]->{name}, 'Windows Media Audio 10 Professional', 'WMA 10 Pro ok' );
     is( $info->{streams}->[0]->{codec_id}, 0x0162, 'WMA 10 Pro codec ID ok' );
+    is( $info->{dlna_profile}, 'WMAPRO', 'WMA 10 Pro DLNA profile WMAPRO ok' );
 }
 
 # WMA Lossless file
@@ -173,6 +177,7 @@ eval {
     is( $info->{streams}->[0]->{codec_id}, 0x0163, 'WMA Lossless codec ID ok' );
     is( $info->{streams}->[0]->{avg_bitrate}, 607494, 'WMA Lossless average bitrate ok' );
     is( $info->{lossless}, 1, 'WMA Lossless flag ok' );
+    is( $info->{dlna_profile}, 'WMALSL', 'WMA Lossless DLNA profile WMALSL ok' );
 }
 
 # WMA Voice file with duplicate tags
@@ -183,6 +188,7 @@ eval {
     my $tags = $s->{tags};
     
     is( $info->{streams}->[0]->{codec_id}, 0x000a, 'WMA Voice codec ID ok' );
+    ok( !exists $info->{dlna_profile}, 'WMA Voice no DLNA profile ok' );
     
     # Note these are out of order because they are written to different objects by MP3tag
     is( ref $tags->{'WM/Composer'}, 'ARRAY', 'Multiple composer tags ok' );
@@ -215,6 +221,7 @@ eval {
     
     is( $info->{codec_list}->[0]->{name}, 'Windows Media Audio 9.2', 'WMV audio track ok' );
     is( $info->{codec_list}->[1]->{name}, 'Windows Media Video 9', 'WMV video track ok' );
+    is( $info->{dlna_profile}, 'WMAFULL', 'WMV with audio DLNA profile WMAFULL ok' );
     
     is( $info->{streams}->[0]->{stream_type}, 'ASF_Audio_Media', 'WMV audio stream ok' );
     is( $info->{streams}->[1]->{stream_type}, 'ASF_Video_Media', 'WMV video stream ok' );
@@ -274,6 +281,7 @@ eval {
     is( $info->{streams}->[1]->{codec_id}, 85, 'MP3 codec ID ok' );
     is( $info->{streams}->[0]->{width}, 320, 'JFIF width ok' );
     is( $info->{streams}->[0]->{height}, 240, 'JFIF height ok' );
+    ok( !exists $info->{dlna_profile}, 'MP3 codec no DLNA profile ok' );
 }
 
 # Bug 14788, multiple tags where one is an integer, caused a crash
