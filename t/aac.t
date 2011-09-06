@@ -2,10 +2,19 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 37;
+use Test::More tests => 39;
 use Test::Warn;
 
 use Audio::Scan;
+
+# TODO: DLNA profile tests
+#   AAC_ADTS_320
+#   HEAAC_L2_ADTS
+#   HEAAC_L3_ADTS
+#   AAC_ADTS
+#   HEAAC_MULT5_ADTS
+#   AAC_MULT5_ADTS
+#   Non-compliant file
 
 # Mono ADTS file
 {
@@ -21,6 +30,7 @@ use Audio::Scan;
     is( $info->{profile}, 'LC', 'Profile ok' );
     is( $info->{samplerate}, 44100, 'Samplerate ok' );
     is( $info->{song_length_ms}, 441, 'Duration ok' );
+    is( $info->{dlna_profile}, 'AAC_ADTS_192', 'DLNA profile AAC_ADTS_192 ok' );
 }
 
 # Stereo ADTS file
@@ -73,6 +83,7 @@ use Audio::Scan;
     is( $info->{channels}, 2, 'Leading junk channels ok' );
     is( $info->{profile}, 'LC', 'Leading junk profile ok' );
     is( $info->{samplerate}, 44100, 'Leading junk samplerate ok' );
+    is( $info->{dlna_profile}, 'HEAAC_L2_ADTS_320', 'Leading junk DLNA profile HEAAC_L2_ADTS_320 ok' );
 }
 
 # Bug 16874, truncated with a partial header

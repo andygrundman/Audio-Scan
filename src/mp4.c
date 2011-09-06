@@ -516,7 +516,141 @@ _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
         uint32_t bitrate = _bitrate(file_size - SvIV(*audio_offset), song_length_ms);
       
         my_hv_store( info, "avg_bitrate", newSVuv(bitrate) );
+        mp4->bitrate = bitrate;
       }
+    }
+  }
+  
+  // DLNA detection, based on code from libdlna
+  if (!mp4->dlna_invalid && mp4->samplerate && mp4->bitrate && mp4->channels) {
+    switch (mp4->audio_object_type) {
+      case AAC_LC:
+      case AAC_LC_ER:
+      {
+        if (mp4->samplerate < 8000 || mp4->samplerate > 48000)
+          break;
+        
+        if (mp4->channels <= 2) {
+          if (mp4->bitrate <= 192000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_ISO_192", 0) );
+          else if (mp4->bitrate <= 320000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_ISO_320", 0) );
+          else if (mp4->bitrate <= 576000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_ISO", 0) );
+        }
+        else if (mp4->channels <= 6) {
+          if (mp4->bitrate <= 1440000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_MULT5_ISO", 0) );
+        }
+        
+        break;
+      }
+      
+      case AAC_LTP:
+      case AAC_LTP_ER:
+      {
+        if (mp4->samplerate < 8000)
+          break;
+        
+        if (mp4->samplerate <= 48000) {
+          if (mp4->channels <= 2 && mp4->bitrate <= 576000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_LTP_ISO", 0) );
+        }
+        else if (mp4->samplerate <= 96000) {
+          if (mp4->channels <= 6 && mp4->bitrate <= 2880000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_LTP_MULT5_ISO", 0) );
+          else if (mp4->channels <= 8 && mp4->bitrate <= 4032000)
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_LTP_MULT7_ISO", 0) );
+        }
+        
+        break;
+      }
+      
+      case AAC_HE:
+      case AAC_HE_L3:
+      {
+        if (mp4->samplerate < 8000)
+          break;
+        
+        if (mp4->samplerate <= 24000) {
+          if (mp4->channels > 2)
+            break;
+          
+          if (mp4->bitrate <= 128000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L2_ISO_128", 0) );
+          else if (mp4->bitrate <= 320000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L2_ISO_320", 0) );
+          else if (mp4->bitrate <= 576000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L2_ISO", 0) );
+        }
+        else if (mp4->samplerate <= 48000) {
+          if (mp4->channels <= 2 && mp4->bitrate <= 576000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L3_ISO", 0) );
+          else if (mp4->channels <= 6 && mp4->bitrate <= 1440000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_MULT5_ISO", 0) );
+          else if (mp4->channels <= 8 && mp4->bitrate <= 4032000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_MULT7", 0) );
+        }
+        else if (mp4->samplerate <= 96000) {
+          if (mp4->channels <= 8 && mp4->bitrate <= 4032000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_MULT7", 0) );
+        }
+        
+        break;
+      }
+      
+      case AAC_PARAM_ER:
+      {
+        if (mp4->samplerate < 8000)
+          break;
+        
+        if (mp4->samplerate <= 24000) {
+          if (mp4->channels > 2)
+            break;
+          
+          if (mp4->bitrate <= 128000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_L2_128", 0) );
+          else if (mp4->bitrate <= 320000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_L2_320", 0) );
+          else if (mp4->bitrate <= 576000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_L2", 0) );
+        }
+        else if (mp4->samplerate <= 48000) {
+          if (mp4->channels <= 2 && mp4->bitrate <= 576000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_L3", 0) );
+          else if (mp4->channels <= 6 && mp4->bitrate <= 1440000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_L4", 0) );
+          else if (mp4->channels <= 6 && mp4->bitrate <= 2880000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_MULT5", 0) );
+          else if (mp4->channels <= 8 && mp4->bitrate <= 4032000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_MULT7", 0) );
+        }
+        else if (mp4->samplerate <= 96000) {
+          if (mp4->channels <= 8 && mp4->bitrate <= 4032000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAACv2_MULT7", 0) );
+        }
+        
+        break;
+      }
+      
+      case AAC_BSAC_ER:
+      {
+        if (mp4->samplerate < 16000 || mp4->samplerate > 48000)
+          break;
+
+        if (mp4->bitrate > 128000)
+          break;
+
+        if (mp4->channels <= 2)
+          my_hv_store( info, "dlna_profile", newSVpv("BSAC_ISO", 0) );
+        else if (mp4->channels <= 6)
+          my_hv_store( info, "dlna_profile", newSVpv("BSAC_MULT5_ISO", 0) );
+
+        break;
+      }
+      
+      default:
+        break;
     }
   }
   
@@ -814,6 +948,7 @@ _mp4_read_box(mp4info *mp4)
     // or handle it some other way
     if ( !mp4->seen_moov ) {
       my_hv_store( mp4->info, "leading_mdat", newSVuv(1) );
+      mp4->dlna_invalid = 1; // DLNA 8.6.34.8, moov must be before mdat
     }
     
     // Record audio offset and length
@@ -925,6 +1060,9 @@ _mp4_parse_tkhd(mp4info *mp4)
   version = buffer_get_char(mp4->buf);
   buffer_consume(mp4->buf, 3); // flags
   
+  // XXX DLNA Requirement [8.6.34.5]: For the default audio track, "Track_enabled"
+  // must be set to the value of 1 in the "flags" field of Track Header Box of the track.
+  
   if (version == 0) { // 32-bit values
     // Skip ctime and mtime
     buffer_consume(mp4->buf, 8);
@@ -1025,6 +1163,8 @@ _mp4_parse_mdhd(mp4info *mp4)
   else {
     return 0;
   }
+  
+  mp4->samplerate = timescale;
     
   // Skip rest
   buffer_consume(mp4->buf, 4);
@@ -1095,7 +1235,8 @@ _mp4_parse_mp4a(mp4info *mp4)
   // Skip reserved
   buffer_consume(mp4->buf, 16);
   
-  my_hv_store( trackinfo, "channels", newSVuv( buffer_get_short(mp4->buf) ) );
+  mp4->channels = buffer_get_short(mp4->buf);
+  my_hv_store( trackinfo, "channels", newSVuv(mp4->channels) );
   my_hv_store( trackinfo, "bits_per_sample", newSVuv( buffer_get_short(mp4->buf) ) );
   
   // Skip reserved
@@ -1166,6 +1307,7 @@ _mp4_parse_esds(mp4info *mp4)
       avg_bitrate += SvIV(*(my_hv_fetch(mp4->info, "avg_bitrate")));
     }
     my_hv_store( mp4->info, "avg_bitrate", newSVuv(avg_bitrate) );
+    mp4->bitrate = avg_bitrate;
   }
   
   // verify DecSpecificInfoTag
@@ -1200,6 +1342,7 @@ _mp4_parse_esds(mp4info *mp4)
         // Don't worry about the extended samplerate (24 bits) for now
         samplerate = samplerate_table[samplerate];
         my_hv_store( trackinfo, "samplerate", newSVuv(samplerate) );
+        mp4->samplerate = samplerate;
         
         // skip channel configuration (4 bits)
         buffer_get_bits(mp4->buf, 4);
@@ -1217,6 +1360,7 @@ _mp4_parse_esds(mp4info *mp4)
     }
     
     my_hv_store( trackinfo, "audio_object_type", newSVuv(aot) );
+    mp4->audio_object_type = aot;
     
     // Skip rest of box
     buffer_get_bits(mp4->buf, len);
@@ -1251,7 +1395,8 @@ _mp4_parse_alac(mp4info *mp4)
   // Skip reserved
   buffer_consume(mp4->buf, 16);
   
-  my_hv_store( trackinfo, "channels", newSVuv( buffer_get_short(mp4->buf) ) );
+  mp4->channels = buffer_get_short(mp4->buf);
+  my_hv_store( trackinfo, "channels", newSVuv(mp4->channels) );
   my_hv_store( trackinfo, "bits_per_sample", newSVuv( buffer_get_short(mp4->buf) ) );
   
   // Skip reserved

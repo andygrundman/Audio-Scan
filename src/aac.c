@@ -204,6 +204,39 @@ aac_parse_adts(PerlIO *infile, char *file, off_t audio_size, Buffer *buf, HV *in
   else
     length = 1;
   
+  // DLNA profile detection
+  // XXX Does not detect HEAAC_L3_ADTS
+  if (samplerate >= 8000) {
+    if (profile == 1) { // LC
+      if (channels <= 2) {
+        if (bitrate <= 192) {
+          if (samplerate <= 24000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L2_ADTS_320", 0) ); // XXX shouldn't really use samplerate for AAC vs AACplus
+          else
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_ADTS_192", 0) );
+        }
+        else if (bitrate <= 320) {
+          if (samplerate <= 24000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L2_ADTS_320", 0) );
+          else
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_ADTS_320", 0) );
+        }
+        else {
+          if (samplerate <= 24000)
+            my_hv_store( info, "dlna_profile", newSVpv("HEAAC_L2_ADTS", 0) );
+          else
+            my_hv_store( info, "dlna_profile", newSVpv("AAC_ADTS", 0) );
+        }
+      }
+      else if (channels <= 6) {
+        if (samplerate <= 24000)
+          my_hv_store( info, "dlna_profile", newSVpv("HEAAC_MULT5_ADTS", 0) );
+        else
+          my_hv_store( info, "dlna_profile", newSVpv("AAC_MULT5_ADTS", 0) );
+      }
+    }
+  }
+  
   // Samplerate <= 24000 is AACplus and the samplerate is doubled
   if (samplerate <= 24000)
     samplerate *= 2;

@@ -2,9 +2,27 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 112;
+use Test::More tests => 118;
 
 use Audio::Scan;
+
+# TODO: DLNA profile tests:
+#  AAC_ISO
+#  AAC_MULT5_ISO
+#  AAC_LTP_ISO
+#  AAC_LTP_MULT5_ISO
+#  AAC_LTP_MULT7_ISO
+#  HEAAC_L2_ISO_128
+#  HEAAC_L2_ISO_320
+#  HEAAC_L2_ISO
+#  HEAAC_MULT5_ISO
+#  HEAAC_MULT7
+#  HEAACv2_L2_128
+#  HEAACv2_L2_320
+#  HEAACv2_L3
+#  HEAACv2_L4
+#  HEAACv2_MULT5
+#  HEAACv2_MULT7
 
 # AAC file from iTunes 8.1.1
 {
@@ -27,6 +45,7 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 69, 'Song length ok' );
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{avg_bitrate}, 96000, 'Avg bitrate ok' );
+    is( $info->{dlna_profile}, 'AAC_ISO_192', 'DLNA profile AAC_ISO_192 ok' );
     
     is( $track->{audio_object_type}, 2, 'Audio object type ok' );
     is( $track->{audio_type}, 64, 'Audio type ok' );
@@ -83,6 +102,7 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 10, 'ALAC song length ok' );
     is( $info->{samplerate}, 44100, 'ALAC samplerate ok' );
     is( $info->{avg_bitrate}, 981600, 'ALAC avg bitrate ok' );
+    ok( !exists $info->{dlna_profile}, 'ALAC no DLNA profile ok' );
     
     is( $track->{duration}, 10, 'ALAC duration ok' );
     is( $track->{encoding}, 'alac', 'ALAC encoding ok' );
@@ -106,6 +126,7 @@ use Audio::Scan;
     is( $info->{song_length_ms}, 69845, 'Leading MDAT length ok' );
     is( $info->{samplerate}, 44100, 'Leading MDAT samplerate ok' );
     is( $info->{avg_bitrate}, 128000, 'Leading MDAT bitrate ok' );
+    ok( !exists $info->{dlna_profile}, 'Leading MDAT no DLNA profile ok' );
     
     is( $tags->{DAY}, '-001', 'Leading MDAT DAY ok' );
     is( $tags->{TOO}, 'avc2.0.11.1110', 'Leading MDAT TOO ok' );
@@ -134,6 +155,7 @@ use Audio::Scan;
     
     is( $info->{samplerate}, 88200, '88.2 sample rate ok' );
     is( $info->{song_length_ms}, 179006, '88.2 song length ok' );
+    ok( !exists $info->{dlna_profile}, '88.2 no DLNA profile ok' );
 }
 
 # Multiple covers, bug 14476
@@ -192,6 +214,7 @@ use Audio::Scan;
     is( $info->{samplerate}, 96000, 'HD-AAC samplerate ok' );
     is( $info->{song_length_ms}, 409130, 'HD-AAC song length ok' );
     is( $info->{avg_bitrate}, 4, 'HD-AAC avg bitrate ok' );
+    ok( !exists $info->{dlna_profile}, 'HD-AAC no DLNA profile ok' );
     
     my $track1 = $info->{tracks}->[0];
     my $track2 = $info->{tracks}->[1];
@@ -212,6 +235,7 @@ use Audio::Scan;
     my $info = $s->{info};
     
     is( $info->{song_length_ms}, 263433, 'MP4 hint track song_length_ms ok' );
+    is( $info->{dlna_profile}, 'AAC_ISO_320', 'MP4 hint track DLNA profile AAC_ISO_320 ok' );
     is( $info->{tracks}->[0]->{duration}, 263433, 'MP4 hint track track 1 duration ok' );
     is( $info->{tracks}->[1]->{duration}, 0, 'MP4 hint track track 2 duration ok' );
 }

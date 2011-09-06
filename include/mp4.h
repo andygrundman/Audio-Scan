@@ -18,6 +18,36 @@
 
 #define FOURCC_EQ(a, b) ((a)[0] == (b)[0] && (a)[1] == (b)[1] && (a)[2] && (b)[2] && (a)[3] == (b)[3])
 
+typedef enum {
+  AAC_INVALID   =  0, 
+  AAC_MAIN      =  1, /* AAC Main */
+  AAC_LC        =  2, /* AAC Low complexity */
+  AAC_SSR       =  3, /* AAC SSR */
+  AAC_LTP       =  4, /* AAC Long term prediction */
+  AAC_HE        =  5, /* AAC High efficiency (SBR) */
+  AAC_SCALE     =  6, /* Scalable */
+  AAC_TWINVQ    =  7, /* TwinVQ */
+  AAC_CELP      =  8, /* CELP */
+  AAC_HVXC      =  9, /* HVXC */
+  AAC_TTSI      = 12, /* TTSI */
+  AAC_MS        = 13, /* Main synthetic */
+  AAC_WAVE      = 14, /* Wavetable synthesis */
+  AAC_MIDI      = 15, /* General MIDI */
+  AAC_FX        = 16, /* Algorithmic Synthesis and Audio FX */
+  AAC_LC_ER     = 17, /* AAC Low complexity with error recovery */
+  AAC_LTP_ER    = 19, /* AAC Long term prediction with error recovery */
+  AAC_SCALE_ER  = 20, /* AAC scalable with error recovery */
+  AAC_TWINVQ_ER = 21, /* TwinVQ with error recovery */
+  AAC_BSAC_ER   = 22, /* BSAC with error recovery */
+  AAC_LD_ER     = 23, /* AAC LD with error recovery */
+  AAC_CELP_ER   = 24, /* CELP with error recovery */
+  AAC_HXVC_ER   = 25, /* HXVC with error recovery */
+  AAC_HILN_ER   = 26, /* HILN with error recovery */
+  AAC_PARAM_ER  = 27, /* Parametric with error recovery */
+  AAC_SSC       = 28, /* AAC SSC */
+  AAC_HE_L3     = 31, /* Reserved : seems to be HeAAC L3 */
+} aac_object_type;
+
 const uint32_t samplerate_table[16] = {
   96000, 88200, 64000, 48000, 44100, 32000, 24000,
   22050, 16000, 12000, 11025, 8000, 7350, -1, -1, 0
@@ -52,6 +82,13 @@ typedef struct mp4info {
   uint32_t current_track;
   uint32_t track_count;
   uint8_t seen_moov;
+  uint8_t dlna_invalid;
+  
+  // Things needed for DLNA detection
+  uint8_t audio_object_type;
+  uint16_t channels;
+  uint32_t samplerate;
+  uint32_t bitrate;
   
   // Data structures used to support seeking
   // Based on code from Rockbox
