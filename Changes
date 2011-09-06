@@ -2,7 +2,7 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-0.91
+0.91    2011-09-06
         - MP3, MP4, WMA, WAV, AIFF, ADTS AAC: Added DLNA audio profile detection as
           $info->{dlna_profile}.
 
