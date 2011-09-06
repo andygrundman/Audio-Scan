@@ -2,9 +2,11 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 53;
+use Test::More tests => 55;
 
 use Audio::Scan;
+
+# TODO: LPCM_low profile test
 
 # WAV file with ID3 tags
 {
@@ -27,6 +29,7 @@ use Audio::Scan;
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{song_length_ms}, 10, 'Song length ok' );
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 version ok' );
+    is( $info->{dlna_profile}, 'LPCM', 'DLNA profile ok' );
     
     is( ref $tags->{COMM}, 'ARRAY', 'COMM ok' );
     is( $tags->{TALB}, 'WAV Album', 'TALB ok' );
@@ -60,6 +63,7 @@ use Audio::Scan;
     is( $info->{peak}->[1]->{position}, 47, '32-bit WAV Peak 2 ok' );
     like( $info->{peak}->[0]->{value}, qr/^0.477/, '32-bit WAV Peak 1 value ok' );
     like( $info->{peak}->[1]->{value}, qr/^0.476/, '32-bit WAV Peak 2 value ok' );
+    ok( !exists $info->{dlna_profile}, '32-bit WAV no DLNA profile ok' );
 }
 
 # MP3 in WAV

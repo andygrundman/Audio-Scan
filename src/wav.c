@@ -225,14 +225,22 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
 void
 _parse_wav_fmt(Buffer *buf, uint32_t chunk_size, HV *info)
 {
+  uint32_t samplerate;
+  uint16_t channels, bps;
   uint16_t format = buffer_get_short_le(buf);
   
   my_hv_store( info, "format", newSVuv(format) );
-  my_hv_store( info, "channels", newSVuv( buffer_get_short_le(buf) ) );
-  my_hv_store( info, "samplerate", newSVuv( buffer_get_int_le(buf) ) );
+  
+  channels = buffer_get_short_le(buf);
+  my_hv_store( info, "channels", newSVuv(channels) );
+  
+  samplerate = buffer_get_int_le(buf);
+  my_hv_store( info, "samplerate", newSVuv(samplerate) );
   my_hv_store( info, "bitrate", newSVuv( buffer_get_int_le(buf) * 8 ) );
   my_hv_store( info, "block_align", newSVuv( buffer_get_short_le(buf) ) );
-  my_hv_store( info, "bits_per_sample", newSVuv( buffer_get_short_le(buf) ) );
+  
+  bps = buffer_get_short_le(buf);
+  my_hv_store( info, "bits_per_sample", newSVuv(bps) );
   
   if ( chunk_size > 16 ) {
     uint16_t extra_len = buffer_get_short_le(buf);
@@ -242,6 +250,14 @@ _parse_wav_fmt(Buffer *buf, uint32_t chunk_size, HV *info)
       DEBUG_TRACE(" skipping extra_len bytes in fmt: %d\n", extra_len);
       buffer_consume(buf, extra_len);
     }
+  }
+  
+  // DLNA
+  if (channels <= 2 && bps == 16) {
+    if (samplerate == 44100 || samplerate == 48000)
+      my_hv_store( info, "dlna_profile", newSVpv("LPCM", 0) );
+    else if (samplerate >= 8000 && samplerate <= 32000)
+      my_hv_store( info, "dlna_profile", newSVpv("LPCM_low", 0) );
   }
 }
 
@@ -449,5 +465,13 @@ _parse_aiff_comm(Buffer *buf, uint32_t chunk_size, HV *info)
     
     my_hv_store( info, "compression_name", newSVpvn( buffer_ptr(buf), chunk_size - 22 ) );
     buffer_consume(buf, chunk_size - 22);
+  }
+  
+  // DLNA
+  if (channels <= 2 && bits_per_sample == 16) {
+    if (samplerate == 44100 || samplerate == 48000)
+      my_hv_store( info, "dlna_profile", newSVpv("LPCM", 0) );
+    else if (samplerate >= 8000 && samplerate <= 32000)
+      my_hv_store( info, "dlna_profile", newSVpv("LPCM_low", 0) );
   }
 }

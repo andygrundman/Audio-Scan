@@ -2,9 +2,11 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 29;
+use Test::More tests => 31;
 
 use Audio::Scan;
+
+# TODO: LPCM_low profile test
 
 # AIFF file with ID3 tags (tagged by iTunes)
 {
@@ -26,6 +28,7 @@ use Audio::Scan;
     is( $info->{samplerate}, 44100, 'Sample rate ok' );
     is( $info->{song_length_ms}, 10, 'Song length ok' );
     is( $info->{id3_version}, 'ID3v2.2.0', 'ID3 version ok' );
+    is( $info->{dlna_profile}, 'LPCM', 'DLNA profile ok' );
     
     is( $tags->{TALB}, '...And So It Goes', 'TALB ok' );
     is( $tags->{TCON}, 'Electronica/Dance', 'TCON ok' );
@@ -65,6 +68,7 @@ use Audio::Scan;
     is( $info->{peak}->[1]->{position}, 47, '32-bit AIFF Peak 2 ok' );
     like( $info->{peak}->[0]->{value}, qr/^0.477/, '32-bit AIFF Peak 1 value ok' );
     like( $info->{peak}->[1]->{value}, qr/^0.476/, '32-bit AIFF Peak 2 value ok' );
+    ok( !exists $info->{dlna_profile}, '32-bit AIFF no DLNA profile ok' );
 }
 
 sub _f {

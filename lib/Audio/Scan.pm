@@ -724,6 +724,7 @@ The following metadata about a file may be returned.
     bits_per_sample
     block_align
     channels
+    dlna_profile (if file is compliant)
     file_size
     format (WAV format code, 1 == PCM)
     id3_version (if an ID3v2 tag is found)
@@ -777,6 +778,7 @@ The following metadata about a file may be returned.
     channels
     compression_name (if AIFC)
     compression_type (if AIFC)
+    dlna_profile (if file is compliant)
     file_size
     id3_version (if an ID3v2 tag is found)
     samplerate (in kHz)
