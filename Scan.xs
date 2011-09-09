@@ -11,6 +11,13 @@
 # pragma warning( disable: 4711 )
 #endif
 
+// Headers for stat support
+#ifdef _MSC_VER
+# include <windows.h>
+#else
+# include <sys/stat.h>
+#endif
+
 #include "common.c"
 #include "ape.c"
 #include "id3.c"
@@ -27,11 +34,16 @@
 #include "wavpack.c"
 
 #include "md5.c"
+#include "jenkins_hash.c"
 
 #define FILTER_TYPE_INFO 0x01
 #define FILTER_TYPE_TAGS 0x02
 
 #define MD5_BUFFER_SIZE 4096
+
+#ifndef MAX_PATH
+#define MAX_PATH 1024
+#endif
 
 struct _types {
   char *type;
@@ -48,7 +60,7 @@ typedef struct {
 
 struct _types audio_types[] = {
   {"mp4", {"mp4", "m4a", "m4b", "m4p", "m4v", "m4r", "k3g", "skm", "3gp", "3g2", "mov", 0}},
-  {"aac", {"aac", 0}},
+  {"aac", {"aac", "adts", 0}},
   {"mp3", {"mp3", "mp2", 0}},
   {"ogg", {"ogg", "oga", 0}},
   {"mpc", {"mpc", "mp+", "mpp", 0}},
@@ -161,6 +173,36 @@ out:
   buffer_free(&buf);
 }
 
+static uint32_t
+_generate_hash(const char *file)
+{
+  char hashstr[MAX_PATH];
+  int mtime = 0;
+  uint64_t size = 0;
+  uint32_t hash;
+
+#ifdef _MSC_VER
+  BOOL fOk;
+  WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+
+  fOk = GetFileAttributesEx(file, GetFileExInfoStandard, (void *)&fileInfo);
+  mtime = fileInfo.ftLastWriteTime.dwLowDateTime;
+  size = (uint64_t)fileInfo.nFileSizeLow;
+#else
+  struct stat buf;
+
+  if (stat(file, &buf) != -1) {
+    mtime = (int)buf.st_mtime;
+    size = (uint64_t)buf.st_size;
+  }
+#endif
+
+  sprintf(hashstr, "%s%d%llu", file, mtime, size);
+  hash = hashlittle(hashstr, strlen(hashstr), 0);
+  
+  return hash;
+}
+
 MODULE = Audio::Scan		PACKAGE = Audio::Scan
 
 HV *
@@ -201,6 +243,9 @@ CODE:
     ) {
       _generate_md5(infile, SvPVX(path), md5_size, md5_offset, info);
     }
+    
+    // Generate hash value
+    my_hv_store(info, "jenkins_hash", newSVuv( _generate_hash(SvPVX(path)) ));
 
     // Info may be used in tag function, i.e. to find tag version
     hv_store( RETVAL, "info", 4, newRV_noinc( (SV *)info ), 0 );

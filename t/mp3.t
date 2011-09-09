@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 388;
+use Test::More tests => 389;
 use Test::Warn;
 
 use Audio::Scan;
@@ -30,6 +30,7 @@ eval {
     is( $info->{bitrate}, 192000, 'MPEG1, Layer 2 bitrate ok' );
     is( $info->{file_size}, 82756, 'MPEG1, Layer 2 file size ok' );
     is( $info->{samplerate}, 44100, 'MPEG1, Layer 2 samplerate ok' );
+    like( $info->{jenkins_hash}, qr/^\d+$/, 'Jenkins hash ok' );
 }
 
 # MPEG2, Layer 2, 96k / 16khz mono
