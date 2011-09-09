@@ -34,7 +34,6 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 -------------------------------------------------------------------------------
 */
 
-#include <stdint.h>     /* defines uint32_t etc */
 #ifdef linux
 #include <sys/param.h>  /* attempt to define endianness */
 #include <endian.h>     /* attempt to define endianness */
