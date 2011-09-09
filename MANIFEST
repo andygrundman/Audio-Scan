@@ -37,6 +37,7 @@ src/id3_compat.gperf
 src/id3_frametype.c
 src/id3_frametype.gperf
 src/id3_genre.dat
+src/jenkins_hash.c
 src/mac.c
 src/md5.c
 src/mp3.c
