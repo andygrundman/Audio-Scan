@@ -45,7 +45,9 @@ typedef enum {
   AAC_HILN_ER   = 26, /* HILN with error recovery */
   AAC_PARAM_ER  = 27, /* Parametric with error recovery */
   AAC_SSC       = 28, /* AAC SSC */
-  AAC_HE_L3     = 31, /* Reserved : seems to be HeAAC L3 */
+  AAC_PS        = 29, /* Parametric Stereo */ 
+  AAC_ESCAPE    = 31, /* Escape */
+  AAC_SLS       = 37, /* Scalable Lossless */
 } aac_object_type;
 
 const uint32_t samplerate_table[16] = {

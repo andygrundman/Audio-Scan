@@ -567,7 +567,6 @@ _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       }
       
       case AAC_HE:
-      case AAC_HE_L3:
       {
         if (mp4->samplerate < 8000)
           break;
@@ -600,6 +599,7 @@ _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       }
       
       case AAC_PARAM_ER:
+      case AAC_PS:
       {
         if (mp4->samplerate < 8000)
           break;
@@ -1338,25 +1338,43 @@ _mp4_parse_esds(mp4info *mp4)
       uint32_t samplerate = buffer_get_bits(mp4->buf, 4);
       len -= 4;
       
-      if ( samplerate != 0xF ) {
-        // Don't worry about the extended samplerate (24 bits) for now
+      if (samplerate == 0xF) { // XXX need test file with 24-bit samplerate field
+        samplerate = buffer_get_bits(mp4->buf, 24);
+        len -= 24;
+      }
+      else {
         samplerate = samplerate_table[samplerate];
-        my_hv_store( trackinfo, "samplerate", newSVuv(samplerate) );
-        mp4->samplerate = samplerate;
+      }
+      
+      // Channel configuration (4 bits)
+      // XXX This is sometimes wrong (1 when it should be 2)
+      mp4->channels = buffer_get_bits(mp4->buf, 4);
+      my_hv_store( trackinfo, "channels", newSVuv(mp4->channels) );
+      len -= 4;
+      
+      if (aot == AAC_SLS) {
+        // Read some SLS-specific config
+        // bits per sample (3 bits) { 8, 16, 20, 24 }
+        uint8_t bps = buffer_get_bits(mp4->buf, 3);
+        len -= 3;
         
-        // skip channel configuration (4 bits)
-        buffer_get_bits(mp4->buf, 4);
+        my_hv_store( trackinfo, "bits_per_sample", newSVuv( bps_table[bps] ) );
+      }
+      else if (aot == AAC_HE || aot == AAC_PS) {
+        // Read extended samplerate info
+        samplerate = buffer_get_bits(mp4->buf, 4);
         len -= 4;
-        
-        if ( aot == 37 ) {
-          // Read some SLS-specific config
-          // bits per sample (3 bits) { 8, 16, 20, 24 }
-          uint8_t bps = buffer_get_bits(mp4->buf, 3);
-          len -= 3;
-          
-          my_hv_store( trackinfo, "bits_per_sample", newSVuv( bps_table[bps] ) );
+        if (samplerate == 0xF) { // XXX need test file with 24-bit samplerate field
+          samplerate = buffer_get_bits(mp4->buf, 24);
+          len -= 24;
+        }
+        else {
+          samplerate = samplerate_table[samplerate];
         }
       }
+      
+      my_hv_store( trackinfo, "samplerate", newSVuv(samplerate) );
+      mp4->samplerate = samplerate;
     }
     
     my_hv_store( trackinfo, "audio_object_type", newSVuv(aot) );

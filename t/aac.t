@@ -16,6 +16,10 @@ use Audio::Scan;
 #   AAC_MULT5_ADTS
 #   Non-compliant file
 
+# Failing profiles:
+#   O-AAC_ADTS_192-stereo-22.05kHz-45.adts (detects as HEAAC due to low samplerate)
+#   O-AAC_ADTS_192-stereo-48kHz-141.adts (detects as AAC_ADTS_320 because bitrate is too high)
+
 # Mono ADTS file
 {
     my $s = Audio::Scan->scan( _f('mono.aac') );

@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 118;
+use Test::More tests => 120;
 
 use Audio::Scan;
 
@@ -23,6 +23,9 @@ use Audio::Scan;
 #  HEAACv2_L4
 #  HEAACv2_MULT5
 #  HEAACv2_MULT7
+
+# Failing profiles:
+#   O-HEAAC_ISO_128-stereo-16kHz-12.mp4 (channels 1, should be 2)
 
 # AAC file from iTunes 8.1.1
 {
@@ -238,6 +241,19 @@ use Audio::Scan;
     is( $info->{dlna_profile}, 'AAC_ISO_320', 'MP4 hint track DLNA profile AAC_ISO_320 ok' );
     is( $info->{tracks}->[0]->{duration}, 263433, 'MP4 hint track track 1 duration ok' );
     is( $info->{tracks}->[1]->{duration}, 0, 'MP4 hint track track 2 duration ok' );
+}
+
+# HE-AAC file, tests that we got the right samplerate from esds
+{
+    my $s = Audio::Scan->scan( _f('heaac.mp4') );
+    
+    my $info = $s->{info};
+    
+    is( $info->{samplerate}, 16000, 'HE-AAC main samplerate 16000 ok' );
+    is( $info->{tracks}->[0]->{samplerate}, 16000, 'HE-AAC track 1 samplerate 16000 ok' );
+    
+    # XXX this should be 2
+    #is( $info->{tracks}->[0]->{channels}, 2, 'HE-AAC track 1 channels 2 ok' );
 }
 
 # Find frame
