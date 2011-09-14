@@ -41,10 +41,6 @@
 
 #define MD5_BUFFER_SIZE 4096
 
-#ifndef MAX_PATH
-#define MAX_PATH 1024
-#endif
-
 struct _types {
   char *type;
   char *suffix[15];
@@ -176,7 +172,7 @@ out:
 static uint32_t
 _generate_hash(const char *file)
 {
-  char hashstr[MAX_PATH];
+  char hashstr[1024];
   int mtime = 0;
   uint64_t size = 0;
   uint32_t hash;
@@ -197,7 +193,8 @@ _generate_hash(const char *file)
   }
 #endif
 
-  sprintf(hashstr, "%s%d%llu", file, mtime, size);
+  memset(hashstr, 0, sizeof(hashstr));
+  snprintf(hashstr, sizeof(hashstr) - 1, "%s%d%llu", file, mtime, size);
   hash = hashlittle(hashstr, strlen(hashstr), 0);
   
   return hash;
