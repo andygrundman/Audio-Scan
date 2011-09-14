@@ -1512,13 +1512,6 @@ asf_find_frame(PerlIO *infile, char *file, int time_offset)
   // We'll need to reuse the scratch buffer
   Newz(0, asf->scratch, sizeof(Buffer), Buffer);
   
-  // Only support seeking if index is available
-  // XXX try to seek anyway without an index, using FLAC binary search method
-  if ( !asf->spec_count ) {
-    LOG_WARN("No ASF_Index object available, not seeking\n");
-    goto out;
-  }
-  
   // No seeking without at least 1 stream
   if ( !my_hv_exists(info, "streams") ) {
     DEBUG_TRACE("No streams found in file, not seeking\n");
@@ -1535,13 +1528,14 @@ asf_find_frame(PerlIO *infile, char *file, int time_offset)
     goto out;
   }
   
-  if (asf->spec_count) {
+  song_length_ms = SvIV( *(my_hv_fetch( info, "song_length_ms" )) );
+  
+  if (time_offset > song_length_ms)
+    time_offset = song_length_ms;
+  
+  // Use ASF_Index if available
+  if ( asf->spec_count ) {
     // Use the index to find the nearest offset    
-    song_length_ms = SvIV( *(my_hv_fetch( info, "song_length_ms" )) );
-    
-    if (time_offset > song_length_ms)
-      time_offset = song_length_ms;
-    
     offset_index = time_offset / asf->specs[0].time_interval;
     
     if (offset_index >= asf->specs[0].entry_count)
@@ -1561,55 +1555,70 @@ asf_find_frame(PerlIO *infile, char *file, int time_offset)
     
       offset_index--;
     }
+  }
+  
+  // Calculate seek position using bitrate
+  else if (asf->max_bitrate) {
+    float bytes_per_ms = asf->max_bitrate / 8000.0;
+    int packet = (int)((bytes_per_ms * time_offset) / max_packet_size);
+    
+    frame_offset = asf->audio_offset + (packet * max_packet_size);
+    
+    DEBUG_TRACE("seeking to data packet %d @ %d, via max_bitrate (bytes_per_ms %.2f, time_offset %d, packet size %d)\n",
+      packet, frame_offset, bytes_per_ms, time_offset, max_packet_size);
+  }
+  else {
+    // No ASF_Index, no max_bitrate, probably an invalid file
+    goto out;
+  }
         
-    // Double-check above frame, make sure we have the right one
-    // with a timestamp within our desired range
-    while ( !found ) {
-      int time, duration;
+  // Double-check above frame, make sure we have the right one
+  // with a timestamp within our desired range
+  while ( !found && frame_offset >= 0 ) {
+    int time, duration;
+    
+    DEBUG_TRACE("Checking for frame with timestamp %d at %d\n", time_offset, frame_offset);
+  
+    if ( frame_offset > asf->file_size - 64 ) {
+      DEBUG_TRACE("  Offset too large: %d\n", frame_offset);
+      break;
+    }
+  
+    time = _timestamp(asf, frame_offset, &duration);
+  
+    DEBUG_TRACE("  Timestamp for frame at %d: %d, duration: %d\n", frame_offset, time, duration);
+  
+    if (time < 0) {
+      DEBUG_TRACE("  Invalid timestamp, giving up\n");
+      break;
+    }
+  
+    if ( time + duration >= time_offset && time <= time_offset ) {
+      DEBUG_TRACE("  Found frame at offset %d\n", frame_offset);
+      found = 1;
+    }
+    else {
+      int delta = time_offset - time;
       
-      DEBUG_TRACE("Checking for frame with timestamp %d at %d\n", time_offset, frame_offset);
-    
-      if ( frame_offset > asf->file_size - 64 ) {
-        DEBUG_TRACE("  Offset too large: %d\n", frame_offset);
+      DEBUG_TRACE("  Wrong frame, delta: %d\n", delta);
+      
+      if (
+        (delta < 0 && (frame_offset - max_packet_size) < asf->audio_offset)
+        ||
+        (delta > 0 && (frame_offset + max_packet_size) > (asf->audio_offset + asf->audio_size - 64))
+      ) {
+        // Reached the first/last audio packet, break out
+        DEBUG_TRACE("  Giving up, reached the beginning or end of audio\n");
         break;
       }
-    
-      time = _timestamp(asf, frame_offset, &duration);
-    
-      DEBUG_TRACE("  Timestamp for frame at %d: %d, duration: %d\n", frame_offset, time, duration);
-    
-      if (time < 0) {
-        DEBUG_TRACE("  Invalid timestamp, giving up\n");
-        break;
-      }
-    
-      if ( time + duration >= time_offset && time <= time_offset ) {
-        DEBUG_TRACE("  Found frame at offset %d\n", frame_offset);
-        found = 1;
+      
+      // XXX probably could be more efficient using a binary search,
+      // but with the use of an index we should already be very close to the right place
+      if (delta > 0) {
+        frame_offset += max_packet_size;
       }
       else {
-        int delta = time_offset - time;
-        
-        DEBUG_TRACE("  Wrong frame, delta: %d\n", delta);
-        
-        if (
-          (delta < 0 && (frame_offset - max_packet_size) < asf->audio_offset)
-          ||
-          (delta > 0 && (frame_offset + max_packet_size) > (asf->audio_offset + asf->audio_size - 64))
-        ) {
-          // Reached the first/last audio packet, break out
-          DEBUG_TRACE("  Giving up, reached the beginning or end of audio\n");
-          break;
-        }
-        
-        // XXX probably could be more efficient using a binary search,
-        // but with the use of an index we should already be very close to the right place
-        if (delta > 0) {
-          frame_offset += max_packet_size;
-        }
-        else {
-          frame_offset -= max_packet_size;
-        }
+        frame_offset -= max_packet_size;
       }
     }
   }

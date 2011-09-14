@@ -2,8 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 143;
-use Test::Warn;
+use Test::More tests => 142;
 
 use Audio::Scan;
 
@@ -351,12 +350,8 @@ eval {
 
 # Find frame CBR with no ASF_Index object
 {
-    my $offset;
-    warning_like { $offset = Audio::Scan->find_frame( _f('wma92-32k.wma'), 1360 ) }
-        [ qr/No ASF_Index object available, not seeking/ ],
-        'Find frame warning for no ASF_Index ok';
-    
-    is( $offset, -1, 'Find frame CBR ok' );
+    my $offset = Audio::Scan->find_frame( _f('wma92-32k.wma'), 740 );
+    is( $offset, 6679, 'Find frame CBR without ASF_Index ok' );
 }
 
 sub _f {
