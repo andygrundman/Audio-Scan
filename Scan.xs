@@ -32,6 +32,8 @@
 #include "wav.c"
 #include "flac.c"
 #include "wavpack.c"
+#include "dsf.c"
+#include "dsdiff.c"
 
 #include "md5.c"
 #include "jenkins_hash.c"
@@ -67,6 +69,8 @@ struct _types audio_types[] = {
   {"asf", {"wma", "asf", "wmv", 0}},
   {"wav", {"wav", "aif", "aiff", 0}},
   {"wvp", {"wv", 0}},
+  {"dsf", {"dsf", 0}},
+  {"dff", {"dff", 0}},
   {0, {0, 0}}
 };
 
@@ -81,6 +85,8 @@ static taghandler taghandlers[] = {
   { "asf", get_asf_metadata, 0, asf_find_frame, 0 },
   { "wav", get_wav_metadata, 0, 0, 0 },
   { "wvp", get_ape_metadata, get_wavpack_info, 0 },
+  { "dsf", get_dsf_metadata, 0, 0, 0 },
+  { "dff", get_dsdiff_metadata, 0, 0, 0 },
   { NULL, 0, 0, 0 }
 };
 
