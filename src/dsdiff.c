@@ -48,6 +48,7 @@ typedef struct {
   uint64_t metadata_offset; 
   uint64_t sample_count;
   uint64_t offset;
+  uint64_t audio_offset;
   char *tag_diar_artist; 
   char *tag_diti_title;
 } dsdiff_info;
@@ -155,7 +156,9 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   dsdiff.channel_num = 0;
   dsdiff.sampling_frequency = 0;
   dsdiff.metadata_offset = 0; 
+  dsdiff.sample_count = 0;
   dsdiff.offset = 0;
+  dsdiff.audio_offset = 0;
   dsdiff.tag_diar_artist = NULL; 
   dsdiff.tag_diti_title = NULL;
 
@@ -216,6 +219,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 	flags |= parse_diin_chunk(&dsdiff, total_size - dsdiff.offset);
       } else if (!strcmp(chunk_id, "DSD ")) {
 	dsdiff.sample_count = 8 * chunk_size / dsdiff.channel_num;
+	dsdiff.audio_offset = dsdiff.offset;
 	flags |= DSD_CK;
       }
 
@@ -240,12 +244,14 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     };
     
 #ifdef DEBUG
+    PDEBUG(dsdiff.debug, "audio_offset: %" PRIu64 "\n", dsdiff.audio_offset);
     PDEBUG(dsdiff.debug, "audio_size: %" PRIu64 "\n", dsdiff.sample_count / 8 * dsdiff.channel_num);
     PDEBUG(dsdiff.debug, "samplerate: %" PRIu32 "\n", dsdiff.sampling_frequency);
     PDEBUG(dsdiff.debug, "song_length_ms: %f\n", (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency);
     PDEBUG(dsdiff.debug, "channels: %" PRIu32 "\n", dsdiff.channel_num);
 #endif
 
+    my_hv_store( info, "audio_offset", newSVuv(dsdiff.audio_offset) );
     my_hv_store( info, "audio_size", newSVuv(dsdiff.sample_count / 8 * dsdiff.channel_num) );
     my_hv_store( info, "samplerate", newSVuv(dsdiff.sampling_frequency) );
     my_hv_store( info, "song_length_ms", newSVuv( (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency ) );
