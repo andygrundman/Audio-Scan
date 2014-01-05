@@ -88,8 +88,6 @@ parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
 	dsdiff->tag_diti_title = (char *)malloc(count + 1);
 	strncpy(dsdiff->tag_diti_title, (char *)buffer_ptr(dsdiff->buf), count);
 	dsdiff->tag_diti_title[count] = '\0';
-      } else if ( !strcmp(chunk_id, "ID3 ") ) {
-	dsdiff->metadata_offset = dsdiff->offset + ck_offset;
       }
 
       ck_offset += chunk_size;
@@ -216,11 +214,13 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       if (!strcmp(chunk_id, "PROP")) {
 	flags |= parse_prop_chunk(&dsdiff, chunk_size);
       } else if (!strcmp(chunk_id, "DIIN")) {
-	flags |= parse_diin_chunk(&dsdiff, total_size - dsdiff.offset);
+	flags |= parse_diin_chunk(&dsdiff, chunk_size);
       } else if (!strcmp(chunk_id, "DSD ")) {
 	dsdiff.sample_count = 8 * chunk_size / dsdiff.channel_num;
 	dsdiff.audio_offset = dsdiff.offset;
 	flags |= DSD_CK;
+      }	else if ( !strcmp(chunk_id, "ID3 ") ) {
+	dsdiff.metadata_offset = dsdiff.offset;
       }
 
       if ( flags & ERROR_CK ) {
@@ -230,7 +230,6 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       };
 
       dsdiff.offset += chunk_size;
-      if (flags == (DSD_CK | DIIN_CK | PROP_CK)) break;
     }
 
 #ifdef DEBUG

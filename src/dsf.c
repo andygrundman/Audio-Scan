@@ -80,8 +80,17 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       goto out;
     }
 
-    buffer_consume(&buf, 8);
-    sample_bytes = buffer_get_int64_le(&buf);
+    buffer_consume(&buf, 4);
+    
+    if ( strncmp( (char *)buffer_ptr(&buf), "data", 4 ) ) {
+      PerlIO_printf(PerlIO_stderr(), "Invalid DSF file: missing data header: %s\n", file);
+      err = -1;
+      goto out;
+    }
+
+    buffer_consume(&buf, 4);
+
+    sample_bytes = buffer_get_int64_le(&buf) - 12;
 
     my_hv_store( info, "audio_offset", newSVuv( 28 + 52 + 12 ) );
     my_hv_store( info, "audio_size", newSVuv(sample_bytes) );
