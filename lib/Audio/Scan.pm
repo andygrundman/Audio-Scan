@@ -830,7 +830,7 @@ Musepack uses APEv2 tags.  They are returned as a hash of key/value pairs.
 
 =head1 WAVPACK
 
-=head2
+=head2 INFO
 
 The following metadata about a file may be returned.
 
@@ -851,7 +851,44 @@ The following metadata about a file may be returned.
 
 WavPack uses APEv2 tags.  They are returned as a hash of key/value pairs.
 
-=head1 
+=head1 DSF
+
+=head2 INFO
+
+The following metadata about a file may be returned.
+
+    audio_offset
+    audio_size
+    bits_per_sample
+    channels
+    song_length_ms
+    samplerate
+    block_size_per_channel
+
+=head2 TAGS
+
+ID3v2 tags can be embedded within DSF files.  These are returned exactly as for MP3 files.
+
+=head1 DSDIFF (DFF)
+
+=head2 INFO
+
+The following metadata about a file may be returned.
+
+    audio_offset
+    audio_size
+    bits_per_sample
+    channels
+    song_length_ms
+    samplerate
+    tag_diti_title
+    tag_diar_artist
+
+=head2 TAGS
+
+No separate tags are supported by the DSDIFF format.
+
+=head1
 
 =head1 THANKS
 
