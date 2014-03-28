@@ -61,6 +61,7 @@ parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
   while (ck_offset < size) {
       char chunk_id[5];
       uint64_t chunk_size;
+	  uint32_t count;
       
       buffer_clear(dsdiff->buf);
       PerlIO_seek(dsdiff->infile, dsdiff->offset + ck_offset, SEEK_SET);
@@ -78,13 +79,13 @@ parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
 
       if ( !strcmp(chunk_id, "DIAR") ) {
 	if ( !_check_buf(dsdiff->infile, dsdiff->buf, chunk_size, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
-	uint32_t count = buffer_get_int(dsdiff->buf);;
+	count = buffer_get_int(dsdiff->buf);;
 	dsdiff->tag_diar_artist = (char *)malloc(count + 1);
 	strncpy(dsdiff->tag_diar_artist, (char *)buffer_ptr(dsdiff->buf), count);
 	dsdiff->tag_diar_artist[count] = '\0';
       } else if ( !strcmp(chunk_id, "DITI") ) {
 	if ( !_check_buf(dsdiff->infile, dsdiff->buf, chunk_size, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
-	uint32_t count = buffer_get_int(dsdiff->buf);;
+	count = buffer_get_int(dsdiff->buf);;
 	dsdiff->tag_diti_title = (char *)malloc(count + 1);
 	strncpy(dsdiff->tag_diti_title, (char *)buffer_ptr(dsdiff->buf), count);
 	dsdiff->tag_diti_title[count] = '\0';
@@ -145,6 +146,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   int err = 0;
   uint64_t total_size;
   dsdiff_info dsdiff;
+  unsigned char *bptr;
 
   dsdiff.infile = infile;
   dsdiff.buf = &buf;
@@ -278,7 +280,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 	goto out;
       }
       
-      unsigned char *bptr = buffer_ptr(&buf);
+      bptr = buffer_ptr(&buf);
       if (
 	  (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
 	  bptr[3] < 0xff && bptr[4] < 0xff &&

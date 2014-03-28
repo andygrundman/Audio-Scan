@@ -25,6 +25,7 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   uint64_t chunk_size, total_size, metadata_offset, sample_count, sample_bytes;
   uint32_t format_version, format_id, channel_type, channel_num, 
     sampling_frequency, block_size_per_channel, bits_per_sample;
+  unsigned char *bptr;
 
   file_size = _file_size(infile);
   
@@ -107,7 +108,7 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 	goto out;
       }
 
-      unsigned char *bptr = buffer_ptr(&buf);
+      bptr = buffer_ptr(&buf);
       if (
 	  (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
 	  bptr[3] < 0xff && bptr[4] < 0xff &&
