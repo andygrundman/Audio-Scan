@@ -2,6 +2,10 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
+0.94    TDB
+        - DSF/DFF: Support dsd file scanning for dsd and dsdiff files.
+        - AIFF: Fixed scanning of 24 bit files.
+
 0.93    2011-09-14
         - ASF: Support seeking in a file without an ASF_Index object.
         - Don't use MAX_PATH because this limits path names to only 260 chars on Win32.

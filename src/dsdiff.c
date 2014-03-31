@@ -20,29 +20,12 @@
 #define ERROR_CK (uint8_t)128
 #include "dsdiff.h"
 
-#ifdef DEBUG
-#define DLOG "/tmp/dsdiff.debug"
-
-void PDEBUG(FILE *debug, char* fmt, ...) {
-  va_list args;
-  va_start(args,fmt);
-  vfprintf(debug,fmt,args);
-  fflush(debug);
-  va_end(args);
-}
-#endif
-
 typedef struct {
   PerlIO *infile;
   Buffer *buf;
   char *file;
   HV *info;
   HV *tags;
-
-#ifdef DEBUG
-  FILE *debug;
-#endif
-
   uint32_t channel_num;
   uint32_t sampling_frequency;
   uint64_t metadata_offset; 
@@ -57,43 +40,41 @@ static uint8_t
 parse_diin_chunk(dsdiff_info *dsdiff, uint64_t size)
 {
   uint64_t ck_offset = 0;
-
+	
   while (ck_offset < size) {
-      char chunk_id[5];
-      uint64_t chunk_size;
-	  uint32_t count;
-      
-      buffer_clear(dsdiff->buf);
-      PerlIO_seek(dsdiff->infile, dsdiff->offset + ck_offset, SEEK_SET);
-
-      if ( !_check_buf(dsdiff->infile, dsdiff->buf, 12, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
-      strncpy(chunk_id, (char *)buffer_ptr(dsdiff->buf), 4);
-      chunk_id[4] = '\0';
-      buffer_consume(dsdiff->buf, 4);
-      chunk_size = buffer_get_int64(dsdiff->buf);
-      ck_offset += 12;
-
-#ifdef DEBUG
-      PDEBUG(dsdiff->debug, "  diin: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
-#endif
-
-      if ( !strcmp(chunk_id, "DIAR") ) {
-	if ( !_check_buf(dsdiff->infile, dsdiff->buf, chunk_size, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
-	count = buffer_get_int(dsdiff->buf);;
-	dsdiff->tag_diar_artist = (char *)malloc(count + 1);
-	strncpy(dsdiff->tag_diar_artist, (char *)buffer_ptr(dsdiff->buf), count);
-	dsdiff->tag_diar_artist[count] = '\0';
-      } else if ( !strcmp(chunk_id, "DITI") ) {
-	if ( !_check_buf(dsdiff->infile, dsdiff->buf, chunk_size, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
-	count = buffer_get_int(dsdiff->buf);;
-	dsdiff->tag_diti_title = (char *)malloc(count + 1);
-	strncpy(dsdiff->tag_diti_title, (char *)buffer_ptr(dsdiff->buf), count);
-	dsdiff->tag_diti_title[count] = '\0';
-      }
-
-      ck_offset += chunk_size;
+    char chunk_id[5];
+		uint64_t chunk_size;
+		uint32_t count;
+    
+		buffer_clear(dsdiff->buf);
+		PerlIO_seek(dsdiff->infile, dsdiff->offset + ck_offset, SEEK_SET);
+		
+		if ( !_check_buf(dsdiff->infile, dsdiff->buf, 12, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
+		strncpy(chunk_id, (char *)buffer_ptr(dsdiff->buf), 4);
+		chunk_id[4] = '\0';
+		buffer_consume(dsdiff->buf, 4);
+		chunk_size = buffer_get_int64(dsdiff->buf);
+		ck_offset += 12;
+		
+		DEBUG_TRACE("  diin: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
+		
+		if ( !strcmp(chunk_id, "DIAR") ) {
+  		if ( !_check_buf(dsdiff->infile, dsdiff->buf, chunk_size, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
+			count = buffer_get_int(dsdiff->buf);;
+			dsdiff->tag_diar_artist = (char *)malloc(count + 1);
+			strncpy(dsdiff->tag_diar_artist, (char *)buffer_ptr(dsdiff->buf), count);
+			dsdiff->tag_diar_artist[count] = '\0';
+		} else if ( !strcmp(chunk_id, "DITI") ) {
+			if ( !_check_buf(dsdiff->infile, dsdiff->buf, chunk_size, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
+			count = buffer_get_int(dsdiff->buf);;
+			dsdiff->tag_diti_title = (char *)malloc(count + 1);
+			strncpy(dsdiff->tag_diti_title, (char *)buffer_ptr(dsdiff->buf), count);
+			dsdiff->tag_diti_title[count] = '\0';
+		}
+		
+		ck_offset += chunk_size;
   }
-
+	
   return DIIN_CK;
 }
 
@@ -101,39 +82,37 @@ static uint8_t
 parse_prop_chunk(dsdiff_info *dsdiff, uint64_t size)
 {
   uint64_t ck_offset = 0;
-
+	
   if ( !_check_buf(dsdiff->infile, dsdiff->buf, 4, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
   if ( strncmp( (char *)buffer_ptr(dsdiff->buf), "SND ", 4 ) ) return 0;
   ck_offset += 4;
-
+	
   while (ck_offset < size) {
-      char chunk_id[5];
-      uint64_t chunk_size;
-      
-      buffer_clear(dsdiff->buf);
-      PerlIO_seek(dsdiff->infile, dsdiff->offset + ck_offset, SEEK_SET);
-
-      if ( !_check_buf(dsdiff->infile, dsdiff->buf, 16, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
-      strncpy(chunk_id, (char *)buffer_ptr(dsdiff->buf), 4);
-      chunk_id[4] = '\0';
-      buffer_consume(dsdiff->buf, 4);
-      chunk_size = buffer_get_int64(dsdiff->buf);
-      ck_offset += 12;
-
-#ifdef DEBUG
-      PDEBUG(dsdiff->debug, "  prop: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
-#endif
-
-      if ( !strcmp(chunk_id, "FS  ") ) {
-	dsdiff->sampling_frequency = buffer_get_int(dsdiff->buf);
-      } else if ( !strcmp(chunk_id, "CHNL") ) {
-	dsdiff->channel_num = (uint32_t)buffer_get_short(dsdiff->buf);
-      }
-      ck_offset += chunk_size;
+		char chunk_id[5];
+		uint64_t chunk_size;
+    
+		buffer_clear(dsdiff->buf);
+		PerlIO_seek(dsdiff->infile, dsdiff->offset + ck_offset, SEEK_SET);
+		
+		if ( !_check_buf(dsdiff->infile, dsdiff->buf, 16, DSDIFF_BLOCK_SIZE) ) return ERROR_CK;
+		strncpy(chunk_id, (char *)buffer_ptr(dsdiff->buf), 4);
+		chunk_id[4] = '\0';
+		buffer_consume(dsdiff->buf, 4);
+		chunk_size = buffer_get_int64(dsdiff->buf);
+		ck_offset += 12;
+		
+		DEBUG_TRACE("  prop: %s : %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff->offset + ck_offset, chunk_size);
+		
+		if ( !strcmp(chunk_id, "FS  ") ) {
+			dsdiff->sampling_frequency = buffer_get_int(dsdiff->buf);
+		} else if ( !strcmp(chunk_id, "CHNL") ) {
+			dsdiff->channel_num = (uint32_t)buffer_get_short(dsdiff->buf);
+		}
+		ck_offset += chunk_size;
   }
-
+	
   if (dsdiff->channel_num == 0 || dsdiff->sampling_frequency == 0) return ERROR_CK;
-
+	
   return PROP_CK;
 }
 
@@ -147,7 +126,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   uint64_t total_size;
   dsdiff_info dsdiff;
   unsigned char *bptr;
-
+	
   dsdiff.infile = infile;
   dsdiff.buf = &buf;
   dsdiff.file = file;
@@ -161,12 +140,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   dsdiff.audio_offset = 0;
   dsdiff.tag_diar_artist = NULL; 
   dsdiff.tag_diti_title = NULL;
-
-#ifdef DEBUG
-  dsdiff.debug = fopen(DLOG, "a");
-  PDEBUG(dsdiff.debug, "DSDIFF: %s\n", file);
-#endif
-
+	
   file_size = _file_size(infile);
   
   buffer_init(&buf, DSDIFF_BLOCK_SIZE);
@@ -180,27 +154,27 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     buffer_consume(&buf, 4);
     total_size = buffer_get_int64(&buf) + 12;
     dsdiff.offset += 12;
-  
+		
     if (strncmp( (char *)buffer_ptr(&buf), "DSD ", 4 ) ) {
       PerlIO_printf(PerlIO_stderr(), "Invalid DSDIFF file header: %s\n", file);
       err = -1;
       goto out;
     }
     dsdiff.offset += 4;
-
+		
     my_hv_store( info, "file_size", newSVuv(file_size) );
-
+		
     while (dsdiff.offset < total_size) {
       char chunk_id[5];
       uint64_t chunk_size;
 
       buffer_clear(&buf);
       PerlIO_seek(infile, dsdiff.offset, SEEK_SET);
-
+			
       if ( !_check_buf(infile, &buf, 12, DSDIFF_BLOCK_SIZE) ) {
-	PerlIO_printf(PerlIO_stderr(), "DSDIFF file error: %s\n", file);
-	err = -1;
-	goto out;
+				PerlIO_printf(PerlIO_stderr(), "DSDIFF file error: %s\n", file);
+				err = -1;
+				goto out;
       };
       
       strncpy(chunk_id, (char *)buffer_ptr(&buf), 4);
@@ -208,50 +182,44 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       buffer_consume(&buf, 4);
       chunk_size = buffer_get_int64(&buf);
       dsdiff.offset += 12;
-
-#ifdef DEBUG
-      PDEBUG(dsdiff.debug, "%s: %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff.offset, chunk_size);
-#endif
-
+			
+      DEBUG_TRACE("%s: %" PRIu64 ",%" PRIu64 "\n", chunk_id, dsdiff.offset, chunk_size);
+			
       if (!strcmp(chunk_id, "PROP")) {
-	flags |= parse_prop_chunk(&dsdiff, chunk_size);
+				flags |= parse_prop_chunk(&dsdiff, chunk_size);
       } else if (!strcmp(chunk_id, "DIIN")) {
-	flags |= parse_diin_chunk(&dsdiff, chunk_size);
+				flags |= parse_diin_chunk(&dsdiff, chunk_size);
       } else if (!strcmp(chunk_id, "DSD ")) {
-	dsdiff.sample_count = 8 * chunk_size / dsdiff.channel_num;
-	dsdiff.audio_offset = dsdiff.offset;
-	flags |= DSD_CK;
+				dsdiff.sample_count = 8 * chunk_size / dsdiff.channel_num;
+				dsdiff.audio_offset = dsdiff.offset;
+				flags |= DSD_CK;
       }	else if ( !strcmp(chunk_id, "ID3 ") ) {
-	dsdiff.metadata_offset = dsdiff.offset;
+				dsdiff.metadata_offset = dsdiff.offset;
       }
-
+			
       if ( flags & ERROR_CK ) {
-	PerlIO_printf(PerlIO_stderr(), "DSDIFF chunk error: %s\n", file);
-	err = -1;
-	goto out;
+				PerlIO_printf(PerlIO_stderr(), "DSDIFF chunk error: %s\n", file);
+				err = -1;
+				goto out;
       };
-
+			
       dsdiff.offset += chunk_size;
     }
-
-#ifdef DEBUG
-    PDEBUG(dsdiff.debug, "Finished parsing...\n");
-#endif
-
+		
+    DEBUG_TRACE("Finished parsing...\n");
+		
     if ((flags & DSD_CK) == 0 || (flags & PROP_CK) == 0) {
       PerlIO_printf(PerlIO_stderr(), "DSDIFF file error: %s\n", file);
       err = -1;
       goto out;
     };
     
-#ifdef DEBUG
-    PDEBUG(dsdiff.debug, "audio_offset: %" PRIu64 "\n", dsdiff.audio_offset);
-    PDEBUG(dsdiff.debug, "audio_size: %" PRIu64 "\n", dsdiff.sample_count / 8 * dsdiff.channel_num);
-    PDEBUG(dsdiff.debug, "samplerate: %" PRIu32 "\n", dsdiff.sampling_frequency);
-    PDEBUG(dsdiff.debug, "song_length_ms: %f\n", (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency);
-    PDEBUG(dsdiff.debug, "channels: %" PRIu32 "\n", dsdiff.channel_num);
-#endif
-
+    DEBUG_TRACE("audio_offset: %" PRIu64 "\n", dsdiff.audio_offset);
+    DEBUG_TRACE("audio_size: %" PRIu64 "\n", dsdiff.sample_count / 8 * dsdiff.channel_num);
+    DEBUG_TRACE("samplerate: %" PRIu32 "\n", dsdiff.sampling_frequency);
+    DEBUG_TRACE("song_length_ms: %f\n", (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency);
+    DEBUG_TRACE("channels: %" PRIu32 "\n", dsdiff.channel_num);
+		
     my_hv_store( info, "audio_offset", newSVuv(dsdiff.audio_offset) );
     my_hv_store( info, "audio_size", newSVuv(dsdiff.sample_count / 8 * dsdiff.channel_num) );
     my_hv_store( info, "samplerate", newSVuv(dsdiff.sampling_frequency) );
@@ -263,30 +231,28 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       my_hv_store( info, "tag_diar_artist", newSVpv(dsdiff.tag_diar_artist, 0) );
       free(dsdiff.tag_diar_artist);
     }
-
+		
     if (dsdiff.tag_diti_title) {
       my_hv_store( info, "tag_diti_title", newSVpv(dsdiff.tag_diti_title, 0) );
       free(dsdiff.tag_diti_title);
     }
-
-#ifdef DEBUG
-    PDEBUG(dsdiff.debug, "Stored info values...\n");
-#endif
-
+		
+    DEBUG_TRACE("Stored info values...\n");
+		
     if (dsdiff.metadata_offset) {
       PerlIO_seek(infile, dsdiff.metadata_offset, SEEK_SET);
       buffer_clear(&buf);
       if ( !_check_buf(infile, &buf, 10, DSDIFF_BLOCK_SIZE) ) {
-	goto out;
+				goto out;
       }
       
       bptr = buffer_ptr(&buf);
       if (
-	  (bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
-	  bptr[3] < 0xff && bptr[4] < 0xff &&
-	  bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
-	  ) {        
-	parse_id3(infile, file, info, tags, dsdiff.metadata_offset, file_size);
+					(bptr[0] == 'I' && bptr[1] == 'D' && bptr[2] == '3') &&
+					bptr[3] < 0xff && bptr[4] < 0xff &&
+					bptr[6] < 0x80 && bptr[7] < 0x80 && bptr[8] < 0x80 && bptr[9] < 0x80
+					) {        
+				parse_id3(infile, file, info, tags, dsdiff.metadata_offset, file_size);
       }
     }
   } else {
@@ -298,12 +264,8 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
  out:
   buffer_free(&buf);
   
-#ifdef DEBUG
-  PDEBUG(dsdiff.debug, "Bye!\n");
-  fclose(dsdiff.debug);
-#endif
-  
   if (err) return err;
   
   return 0;
 }
+
