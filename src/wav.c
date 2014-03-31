@@ -432,6 +432,12 @@ _parse_aiff(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *inf
       buffer_clear(buf);
     }
     else {
+      // sanity check size
+      if (chunk_size > file_size - offset) {
+        DEBUG_TRACE("chunk_size > file_size, skipping\n");
+        return;
+      }
+
       // Make sure we have enough data
       if ( !_check_buf(infile, buf, chunk_size, WAV_BLOCK_SIZE) ) {
         return;
