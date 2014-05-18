@@ -107,6 +107,8 @@ parse_prop_chunk(dsdiff_info *dsdiff, uint64_t size)
 			dsdiff->sampling_frequency = buffer_get_int(dsdiff->buf);
 		} else if ( !strcmp(chunk_id, "CHNL") ) {
 			dsdiff->channel_num = (uint32_t)buffer_get_short(dsdiff->buf);
+		} else if ( !strcmp(chunk_id, "ID3 ") ) {
+		        dsdiff->metadata_offset = dsdiff->offset + ck_offset;
 		}
 		ck_offset += chunk_size;
   }
