@@ -166,7 +166,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 		
     my_hv_store( info, "file_size", newSVuv(file_size) );
 		
-    while (dsdiff.offset < total_size) {
+    while (dsdiff.offset <= total_size - 12) {
       char chunk_id[5];
       uint64_t chunk_size;
 
