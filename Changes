@@ -2,7 +2,11 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-0.94    TDB
+0.95    2014-06-24
+        - Improved DFF parsing for files which end with corrupted chunk
+        - Improved ID3 support for DFF files
+
+0.94    2014-03-31
         - DSF/DFF: Support dsd file scanning for dsd and dsdiff files.
         - AIFF: Fixed scanning of 24 bit files.
 
