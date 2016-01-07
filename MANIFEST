@@ -255,7 +255,3 @@ t/wavpack/zero-first-block.wv
 tools/bench.pl
 tools/leak.c
 tools/leak.pl
-win32/README
-win32/zconf.h
-win32/zlib.h
-win32/zlib.lib
