@@ -2,7 +2,7 @@ package Audio::Scan;
 
 use strict;
 
-our $VERSION = '0.95';
+our $VERSION = '0.96';
 
 require XSLoader;
 XSLoader::load('Audio::Scan', $VERSION);
@@ -892,6 +892,12 @@ No separate tags are supported by the DSDIFF format.
 
 =head1 THANKS
 
+Logitech & Slim Devices, for letting us release so much of our code to the world.
+Long live Squeezebox!
+
+Kimmo Taskinen, Adrian Smith, Clive Messer, and Jurgen Kramer for
+DSF/DSDIFF support and various other fixes.
+
 Some code from the Rockbox project was very helpful in implementing ASF and
 MP4 seeking.
 
@@ -915,13 +921,13 @@ L<http://www.geocities.com/xhelmboyx/quicktime/formats/mp4-layout.txt>
 
 =head1 AUTHORS
 
-Andy Grundman, E<lt>andy@slimdevices.comE<gt>
+Andy Grundman, E<lt>andy@hybridized.orgE<gt>
 
 Dan Sully, E<lt>daniel@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2010 Logitech, Inc.
+Copyright (C) 2010-2011 Logitech, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

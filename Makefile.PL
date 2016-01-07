@@ -33,7 +33,7 @@ WriteMakefile(
     VERSION_FROM      => 'lib/Audio/Scan.pm',
     PREREQ_PM         => { 'Test::Warn' => 0 },
     ABSTRACT_FROM     => 'lib/Audio/Scan.pm',
-    AUTHOR            => 'Andy Grundman <andy@slimdevices.com>',
+    AUTHOR            => 'Andy Grundman <andy@hybridized.org>',
     INC               => join(' ', @INC),
     LIBS              => [ join(' ', @LIBPATH, @LIBS) ],
     DEFINE            => $DEFINES,
