@@ -232,6 +232,7 @@ t/ogg/multiple.ogg
 t/ogg/normal.ogg
 t/ogg/old1.ogg
 t/ogg/old2.ogg
+t/ogg/tachos_melody.ogg
 t/ogg/test.ogg
 t/util.t
 t/wav.t
@@ -252,6 +253,7 @@ t/wavpack/v2.wv
 t/wavpack/v3.wv
 t/wavpack/win-executable.wv
 t/wavpack/zero-first-block.wv
+tools/audio_scan.pl
 tools/bench.pl
 tools/leak.c
 tools/leak.pl

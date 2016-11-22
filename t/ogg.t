@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 70;
+use Test::More tests => 72;
 
 use Audio::Scan;
 
@@ -18,7 +18,7 @@ eval {
 
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     SKIP:
     {
         skip 'Encode is not available', 1 unless $HAS_ENCODE;
@@ -77,12 +77,12 @@ eval {
 # Test COVERART
 {
     local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
-    
+
     my $s = Audio::Scan->scan( _f('large-pagesize.ogg') );
-    
+
     my $tags = $s->{tags};
     my $pic = $tags->{ALLPICTURES}->[0];
-    
+
     is( $pic->{color_index}, 0, 'COVERART color_index ok' );
     is( $pic->{depth}, 0, 'COVERART depth ok' );
     is( $pic->{description}, '', 'COVERART description ok' );
@@ -96,10 +96,10 @@ eval {
 # Test COVERART data
 {
     my $s = Audio::Scan->scan( _f('large-pagesize.ogg') );
-    
+
     my $tags = $s->{tags};
     my $pic = $tags->{ALLPICTURES}->[0];
-    
+
     is( length( $pic->{image_data} ), 78527, 'COVERART real length ok' ); # without base64 encoding
     is( unpack( 'H*', substr( $pic->{image_data}, 0, 4 ) ), 'ffd8ffe0', 'COVERART JPEG picture data ok ');
 }
@@ -107,13 +107,13 @@ eval {
 # Test METADATA_BLOCK_PICTURE
 {
     local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
-    
+
     my $s = Audio::Scan->scan( _f('metadata-block-picture.ogg') );
-    
+
     my $tags = $s->{tags};
     my $pic  = $tags->{ALLPICTURES}->[0];
     my $pic2 = $tags->{ALLPICTURES}->[1];
-    
+
     is( $pic->{color_index}, 0, 'METADATA_BLOCK_PICTURE color_index ok' );
     is( $pic->{depth}, 0, 'METADATA_BLOCK_PICTURE depth ok' );
     is( $pic->{description}, '', 'METADATA_BLOCK_PICTURE description ok' );
@@ -122,21 +122,21 @@ eval {
     is( $pic->{mime_type}, 'image/jpeg', 'METADATA_BLOCK_PICTURE mime_type ok' );
     is( $pic->{picture_type}, 3, 'METADATA_BLOCK_PICTURE picture_type ok' );
     is( $pic->{width}, 0, 'METADATA_BLOCK_PICTURE width ok' );
-    
+
     is( $pic2->{image_data}, 1761, 'METADATA_BLOCK_PICTURE pic2 length ok' );
 }
 
 # Test METADATA_BLOCK_PICTURE data
 {
     my $s = Audio::Scan->scan( _f('metadata-block-picture.ogg') );
-    
+
     my $tags = $s->{tags};
     my $pic  = $tags->{ALLPICTURES}->[0];
     my $pic2 = $tags->{ALLPICTURES}->[1];
-    
+
     is( length( $pic->{image_data} ), 25078, 'METADATA_BLOCK_PICTURE real length ok' );
     is( unpack( 'H*', substr( $pic->{image_data}, 0, 4 ) ), 'ffd8ffe0', 'METADATA_BLOCK_PICTURE JPEG picture data ok ');
-    
+
     is( length( $pic2->{image_data} ), 1761, 'METADATA_BLOCK_PICTURE pic2 real length ok' );
     is( unpack( 'H*', substr( $pic2->{image_data}, 0, 4 ) ), 'ffd8ffe0', 'METADATA_BLOCK_PICTURE JPEG pic2 data ok ');
 }
@@ -176,7 +176,7 @@ eval {
     my $s = Audio::Scan->scan( _f('bug803.ogg') );
 
     my $info = $s->{info};
-    
+
     is($info->{bitrate_average}, 633, 'Bug803 bitrate ok');
     is($info->{song_length_ms}, 219104, 'Bug803 song length ok');
 }
@@ -186,7 +186,7 @@ eval {
 
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     is($info->{bitrate_average}, 534, 'Bug905 bitrate ok');
     is($info->{song_length_ms}, 223484, 'Bug905 song length ok');
     is($tags->{DATE}, '08-05-1998', 'Bug905 date ok');
@@ -195,9 +195,9 @@ eval {
 # Scan via a filehandle
 {
     open my $fh, '<', _f('test.ogg');
-    
+
     my $s = Audio::Scan->scan_fh( ogg => $fh );
-    
+
     my $info = $s->{info};
     my $tags = $s->{tags};
 
@@ -205,53 +205,53 @@ eval {
     is($tags->{YEAR}, 2009, 'Year Tag ok via filehandle');
 
     is($info->{bitrate_average}, 757, 'Bitrate ok via filehandle');
-    
+
     close $fh;
 }
 
 # Find frame offset
 {
     my $offset = Audio::Scan->find_frame( _f('normal.ogg'), 800 );
-    
+
     is( $offset, 12439, 'Find frame ok' );
 }
 
 # Test special case where target sample is in the first frame
 {
     my $offset = Audio::Scan->find_frame( _f('normal.ogg'), 300 );
-    
+
     is( $offset, 3979, 'Find sample in first frame ok' );
 }
 
 {
     open my $fh, '<', _f('normal.ogg');
-    
+
     my $offset = Audio::Scan->find_frame_fh( ogg => $fh, 600 );
-    
+
     is( $offset, 8259, 'Find frame via filehandle ok' );
-    
+
     close $fh;
 }
 
 # Bug 12615, aoTuV-encoded file uncovered bug in offset calculation
 {
     my $s = Audio::Scan->scan( _f('bug12615-aotuv.ogg') );
-    
+
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     is( $info->{audio_offset}, 3970, 'Bug 12615 aoTuV offset ok' );
-    
+
     like( $tags->{VENDOR}, qr/aoTuV/, 'Bug 12615 aoTuV tags ok' );
 }
 
 # Test file with page segments > 128
 {
     my $s = Audio::Scan->scan( _f('large-page-segments.ogg') );
-    
+
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     is( $info->{audio_offset}, 41740, 'Large page segments audio offset ok' );
     is( $tags->{ARTIST}, 'Led Zeppelin', 'Large page segments comments ok' );
 }
@@ -259,11 +259,23 @@ eval {
 # Test file with multiple logical bitstreams
 {
     my $s = Audio::Scan->scan( _f('multiple-bitstreams.ogg') );
-    
+
     my $info = $s->{info};
-    
+
     is( $info->{bitrate_average}, 128000, 'Multiple bitstreams bitrate ok' );
     is( $info->{song_length_ms}, 0, 'Multiple bitstreams length ok' );
+}
+
+# RT 118888, file with bad terminal header page was causing a crash trying to read non-existent comments
+# ogginfo reports:
+# WARNING: Vorbis stream 1 does not have headers correctly framed. Terminal header page contains additional packets or has non-zero granulepos
+{
+    my $s = Audio::Scan->scan( _f('tachos_melody.ogg') );
+
+    my $info = $s->{info};
+
+    is( $info->{audio_size}, 10210, 'Incorrect terminal header page audio_size ok' );
+    is( $info->{song_length_ms}, 387, 'Incorrect terminal header page song_length_ms ok' );
 }
 
 sub _f {

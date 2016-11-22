@@ -3,6 +3,8 @@ Revision history for Audio::Scan
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
 0.96
+        - Ogg: RT #118888, fixed crash when trying to read Vorbis comments in an
+          incorrectly framed file with a bad terminal header page.
         - Removed hints/darwin.pl, don't try to be smarter than Perl about how to build things.
 
 0.95    Unreleased community build
@@ -32,7 +34,7 @@ Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
           and WAV where the tag does not live at the front of the file.
 
 0.89    2011-08-03
-        - APE: Bug 15895, better handling if we have a broken APE tag and run out of 
+        - APE: Bug 15895, better handling if we have a broken APE tag and run out of
           tag data. (Adrian Smith)
         - WMA: Bug 17355, fixed WM/Picture offset calculation when artwork is stored in the
           Header Extension/Metadata Library block.
@@ -234,7 +236,7 @@ Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
         - If the AUDIO_SCAN_NO_ARTWORK environment variable is set, binary artwork tag
           data is instead replaced by the length of the artwork data.  This can save
           memory when scanning a lot of files with potentially large artwork.
-        - Changed method on non-Windows platforms for determining file size to use 
+        - Changed method on non-Windows platforms for determining file size to use
           stat instead of seek/tell.
 
 0.46    2009-10-29 14:00:00
@@ -296,7 +298,7 @@ Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
         - WAV: Fixed reading of files with data chunks having the wrong size.
         - MP4: Fixed parsing of tags with duplicate keys containing integer
           values.
-        
+
 0.39    2009-10-01 16:00:00
         - Bug 14241, fixed Win32 crash when using find_frame on FLAC files.
         - Bug 14476, fixed crash when very large artwork is present (now supports
