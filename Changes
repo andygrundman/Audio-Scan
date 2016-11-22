@@ -2,7 +2,7 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-0.96
+0.96    2016-11-21
         - Ogg: RT #118888, fixed crash when trying to read Vorbis comments in an
           incorrectly framed file with a bad terminal header page.
         - Removed hints/darwin.pl, don't try to be smarter than Perl about how to build things.
