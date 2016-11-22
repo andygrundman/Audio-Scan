@@ -6,6 +6,7 @@ Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
         - Ogg: RT #118888, fixed crash when trying to read Vorbis comments in an
           incorrectly framed file with a bad terminal header page.
         - Removed hints/darwin.pl, don't try to be smarter than Perl about how to build things.
+        - Fixed various minor compiler warnings output by the latest clang on macOS.
 
 0.95    Unreleased community build
         - Improved DFF parsing for files which end with corrupted chunk. (Adrian Smith)

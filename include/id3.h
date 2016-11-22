@@ -13,13 +13,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
- 
+
 #ifdef _MSC_VER
   #include "win32/zlib.h"
 #else
   #include <zlib.h>
 #endif
- 
+
 #define ID3_BLOCK_SIZE 4096
 
 // ID3v1 field frames
@@ -46,7 +46,7 @@ enum {
   ID3_FRAME_FLAG_V23_COMPRESSION         = 0x0080,
   ID3_FRAME_FLAG_V23_ENCRYPTION          = 0x0040,
   ID3_FRAME_FLAG_V23_GROUPINGIDENTITY    = 0x0020,
-  
+
   // v2.4 flags
   ID3_FRAME_FLAG_V24_GROUPINGIDENTITY    = 0x0040,
   ID3_FRAME_FLAG_V24_COMPRESSION         = 0x0008,
@@ -86,10 +86,10 @@ typedef struct id3info {
   Buffer *buf;
   HV *info;
   HV *tags;
-  
+
   // scratch buffer used for UTF-8 decoding each frame
   Buffer *utf8;
-  
+
   uint8_t version_major;
   uint8_t version_minor;
   uint8_t flags;
@@ -135,5 +135,5 @@ uint32_t _id3_deunsync(unsigned char *data, uint32_t length);
 void _id3_skip(id3info *id3, uint32_t size);
 char const * _id3_genre_index(unsigned int index);
 char const * _id3_genre_name(char const *string);
-id3_compat const * _id3_compat_lookup(register char const *, register unsigned int);
-id3_frametype const * _id3_frametype_lookup(register char const *, register unsigned int);
+static id3_compat const * _id3_compat_lookup(register char const *, register unsigned int);
+static id3_frametype const * _id3_frametype_lookup(register char const *, register unsigned int);

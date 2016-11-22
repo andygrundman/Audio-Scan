@@ -29,12 +29,12 @@ Refactored by Dan Sully
 #ifndef _APETAG_H_
 #define _APETAG_H_
 
-#define APE_CHECKED_APE        1 << 0
-#define APE_CHECKED_OFFSET     1 << 1
-#define APE_CHECKED_FIELDS     1 << 2
-#define APE_HAS_APE            1 << 3
-#define APE_HAS_ID3            1 << 4
-#define APE_NO_ID3             1 << 5
+#define APE_CHECKED_APE        (1 << 0)
+#define APE_CHECKED_OFFSET     (1 << 1)
+#define APE_CHECKED_FIELDS     (1 << 2)
+#define APE_HAS_APE            (1 << 3)
+#define APE_HAS_ID3            (1 << 4)
+#define APE_NO_ID3             (1 << 5)
 
 /* Artificial limits -- recommended but can be increased */
 #define APE_MAXIMUM_TAG_SIZE   100 * 1024 // recommended limit is 8KB but have seen files that are larger (Bug 15324)

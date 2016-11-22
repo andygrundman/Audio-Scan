@@ -6,7 +6,7 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
   Buffer header;
   char *bptr;
   int32_t ret = 0;
-  uint32_t header_end;
+  int32_t header_end;
 
   mac_streaminfo *si;
   Newz(0, si, sizeof(mac_streaminfo), mac_streaminfo);
@@ -86,16 +86,16 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
       PerlIO_printf(PerlIO_stderr(), "MAC: [Couldn't read < 3.98 stream header]: %s\n", file);
       goto out;
     }
-    
+
     buffer_consume(&header, 2); // flags
 
     si->channels = buffer_get_short_le(&header);
-    
+
     si->sample_rate = buffer_get_int_le(&header);
 
     buffer_consume(&header, 4); // header size
     buffer_consume(&header, 4); // terminating data bytes
-    
+
     si->total_frames      = buffer_get_int_le(&header);
     si->final_frame       = buffer_get_int_le(&header);
     si->blocks_per_frame  = si->version >= 3950 ? (73728 * 4) : 73728;
@@ -108,9 +108,9 @@ get_macfileinfo(PerlIO *infile, char *file, HV *info)
       PerlIO_printf(PerlIO_stderr(), "MAC: [Couldn't read > 3.98 stream header]: %s\n", file);
       goto out;
     }
-    
+
     buffer_consume(&header, 2);
-    
+
     // unused.
     buffer_get_int_le(&header); // desc bytes
     buffer_get_int_le(&header); // header bytes
