@@ -2,7 +2,7 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-0.97
+0.97    2017-04-27
         - WAV: GH #2, fixed an integer overflow error that could result in an incorrect song_length_ms
           for >16-bit files.
 
