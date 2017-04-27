@@ -193,7 +193,9 @@ _parse_wav(PerlIO *infile, Buffer *buf, char *file, uint32_t file_size, HV *info
           uint32_t num_samples = buffer_get_int_le(buf);
           SV **samplerate = my_hv_fetch( info, "samplerate" );
           if (samplerate != NULL) {
-            my_hv_store( info, "song_length_ms", newSVuv( (num_samples * 1000) / SvIV(*samplerate) ) );
+            DEBUG_TRACE("[wav] Setting song_length_ms from fact chunk: ( num_samples(%d) * 1000 / samplerate(%ld) )\n", num_samples, SvIV(*samplerate));
+            // GH#2, cast num_samples to 64-bit to avoid 32-bit overflow
+            my_hv_store( info, "song_length_ms", newSVuv( ((uint64_t)num_samples * 1000) / SvIV(*samplerate) ) );
           }
         }
         else {

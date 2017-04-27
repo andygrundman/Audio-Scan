@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 55;
+use Test::More tests => 58;
 
 use Audio::Scan;
 
@@ -123,6 +123,17 @@ use Audio::Scan;
     
     is( $info->{audio_offset}, 44, 'bad data size audio offset ok' );
     is( $info->{song_length_ms}, 2977, 'bad data size duration ok' );
+}
+
+# GH #2, bad duration calculated for files where the 'fact' chunk num_samples value is used
+{
+    my $s = Audio::Scan->scan( _f('gh2-wav32-bad-duration.wav') );
+
+    my $info = $s->{info};
+
+    is( $info->{bits_per_sample}, 32, 'GH#2, 32/384 bps ok' );
+    is( $info->{samplerate}, 384000, 'GH#2, 32/384 samplerate ok' );
+    is( $info->{song_length_ms}, 20000, 'GH#2, song_length_ms ok for 32/384 file with a high number of samples' );
 }
 
 sub _f {

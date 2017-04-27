@@ -239,6 +239,7 @@ t/wav.t
 t/wav/8kmp38.wav
 t/wav/bug14462-wav-bad-data-size.wav
 t/wav/bug14462-wav-fmt.wav
+t/wav/gh2-wav32-bad-duration.wav
 t/wav/id3.wav
 t/wav/wav32-info-badchunk.wav
 t/wav/wav32-info-nulls.wav
