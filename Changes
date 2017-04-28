@@ -2,7 +2,7 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-0.98
+0.98    2017-04-28
         - RT #119101, stop including MYMETA files in the tarball.
 
 0.97    2017-04-27
