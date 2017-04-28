@@ -23,8 +23,6 @@ include/wavpack.h
 lib/Audio/Scan.pm
 Makefile.PL
 MANIFEST			This list of files
-MYMETA.json
-MYMETA.yml
 README
 README.win32
 Scan.xs

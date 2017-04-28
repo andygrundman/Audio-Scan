@@ -28,11 +28,19 @@
 \.DS_Store$
 \bautom4te.cache
 \bconfig.status
+\bScan\.bs$
+\bScan\.c$
+\bScan\.o$
 
 # No tarballs!
 \.gz$
 
 # Dev stuff
+^.travis.yml$
 TODO
 t/mp3/source.mp3
 t/mp3/ext
+
+# https://weblog.bulknews.net/stop-shipping-mymeta-to-cpan-b92215a227f6
+^MYMETA\.yml$
+^MYMETA\.json$
