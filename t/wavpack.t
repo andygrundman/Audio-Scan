@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 69;
+use Test::More tests => 79;
 
 use Audio::Scan;
 
@@ -138,6 +138,23 @@ use Audio::Scan;
     is( $info->{samplerate}, 44100, '6channel samplerate ok' );
     is( $info->{song_length_ms}, 30906, '6channel song_length_ms ok' );
     is( $info->{total_samples}, 1362998, '6channel total_samples ok' );
+}
+
+# v5 DSD file
+{
+    my $s = Audio::Scan->scan_info( _f('v5-dsd.wv') );
+    my $info = $s->{info};
+
+    is( $info->{audio_offset}, 0, 'v5-dsd audio_offset ok' );
+    is( $info->{audio_size}, 690, 'v5-dsd audio_size ok' );
+    is( $info->{bitrate}, 5, 'v5-dsd bitrate ok' );
+    is( $info->{bits_per_sample}, 1, 'v5-dsd bits_per_sample ok' );
+    is( $info->{channels}, 2, 'v5-dsd channels ok' );
+    is( $info->{encoder_version}, 0x410, 'v5-dsd encoder_version ok' );
+    is( $info->{file_size}, 690, 'v5-dsd file_size ok' );
+    is( $info->{samplerate}, 2822400, 'v5-dsd samplerate ok' );
+    is( $info->{song_length_ms}, 1044491, 'v5-dsd song_length_ms ok' );
+    is( $info->{total_samples}, 2947973120, 'v5-dsd total_samples ok' );
 }
 
 sub _f {
