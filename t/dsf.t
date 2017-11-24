@@ -9,10 +9,10 @@ use Audio::Scan;
 # DSF64
 {
     my $s = Audio::Scan->scan( _f('dsf64.dsf') );
-    
+
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     is( $info->{audio_offset}, 92, 'Audio offset ok' );
     is( $info->{audio_size}, 40960, 'Audio size ok' );
     is( $info->{bits_per_sample}, 1, 'Bits/sample ok' );
@@ -23,7 +23,7 @@ use Audio::Scan;
     is( $info->{block_size_per_channel}, 4096, 'Block align ok' );
 
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 version ok' );
-    
+
     is( $tags->{TDRC}, '2013-12-29T19:40', 'TALB ok' );
     is( $tags->{TSSE}, 'KORG AudioGate ver.2.3.3 (Windows 7)', 'TCON ok' );
 }
@@ -31,10 +31,10 @@ use Audio::Scan;
 # DSF128
 {
     my $s = Audio::Scan->scan( _f('dsf128.dsf') );
-    
+
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     is( $info->{audio_offset}, 92, 'Audio offset ok' );
     is( $info->{audio_size}, 49152, 'Audio size ok' );
     is( $info->{bits_per_sample}, 1, 'Bits/sample ok' );
@@ -45,7 +45,7 @@ use Audio::Scan;
     is( $info->{block_size_per_channel}, 4096, 'Block align ok' );
 
     is( $info->{id3_version}, 'ID3v2.3.0', 'ID3 version ok' );
-    
+
     is( $tags->{TDRC}, '2013-12-29T19:40', 'TALB ok' );
     is( $tags->{TSSE}, 'KORG AudioGate ver.2.3.3 (Windows 7)', 'TCON ok' );
 }

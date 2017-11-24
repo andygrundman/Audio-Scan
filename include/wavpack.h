@@ -57,9 +57,9 @@ typedef struct wvpinfo {
   off_t file_size;
   off_t file_offset;
   off_t audio_offset;
-  
+
   WavpackHeader *header; // current block header data
-  
+
   uint8_t seeking; // flag if we're seeking
 } wvpinfo;
 

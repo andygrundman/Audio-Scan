@@ -11,7 +11,7 @@ use Audio::Scan;
     my $s = Audio::Scan->scan( _f('silence-44-s.wv'), { md5_size => 4096 } );
     my $info = $s->{info};
     my $tags = $s->{tags};
-    
+
     is( $info->{ape_version}, 'APEv2', 'APE version ok' );
     is( $info->{audio_offset}, 0, 'audio_offset ok' );
     is( $info->{audio_size}, 34782, 'audio_size ok' );
@@ -28,14 +28,14 @@ use Audio::Scan;
 
     is( $tags->{DATE}, 2004, 'DATE ok' );
     is( $tags->{GENRE}, 'Silence', 'GENRE ok' );
-    is( $tags->{TITLE}, 'Silence', 'TITLE ok' );    
+    is( $tags->{TITLE}, 'Silence', 'TITLE ok' );
 }
 
 # Self-extracting file (why?!)
 {
     my $s = Audio::Scan->scan_info( _f('win-executable.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{audio_offset}, 30720, 'EXE audio_offset ok' );
     is( $info->{song_length_ms}, 29507, 'EXE song_length_ms ok' );
 }
@@ -44,7 +44,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('hybrid.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{bitrate}, 199913, 'hybrid bitrate ok' );
     is( $info->{channels}, 2, 'hybrid channels ok' );
     is( $info->{hybrid}, 1, 'hybrid hybrid flag ok' );
@@ -56,7 +56,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('24-bit.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{bits_per_sample}, 24, '24-bit bits_per_sample ok' );
     is( $info->{channels}, 2, '24-bit channels ok' );
     is( $info->{samplerate}, 88200, '24-bit samplerate ok' );
@@ -68,7 +68,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('zero-first-block.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{bits_per_sample}, 16, 'Zero first block bits_per_sample ok' );
     is( $info->{channels}, 2, 'Zero first block channels ok' );
     is( $info->{samplerate}, 44100, 'Zero first block samplerate ok' );
@@ -80,7 +80,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('v3.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{audio_offset}, 0, 'v3 audio_offset ok' );
     is( $info->{bitrate}, 4, 'v3 bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'v3 bits_per_sample ok' );
@@ -96,7 +96,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('v2.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{audio_offset}, 0, 'v2 audio_offset ok' );
     is( $info->{bitrate}, 80, 'v2 bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'v2 bits_per_sample ok' );
@@ -112,7 +112,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('custom-samplerate.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{audio_offset}, 0, 'custom-samplerate audio_offset ok' );
     is( $info->{bitrate}, 149, 'custom-samplerate bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'custom-samplerate bits_per_sample ok' );
@@ -128,7 +128,7 @@ use Audio::Scan;
 {
     my $s = Audio::Scan->scan_info( _f('6channel.wv') );
     my $info = $s->{info};
-    
+
     is( $info->{audio_offset}, 0, '6channel audio_offset ok' );
     is( $info->{bitrate}, 265, '6channel bitrate ok' );
     is( $info->{bits_per_sample}, 16, '6channel bits_per_sample ok' );
@@ -140,6 +140,6 @@ use Audio::Scan;
     is( $info->{total_samples}, 1362998, '6channel total_samples ok' );
 }
 
-sub _f {    
+sub _f {
     return catfile( $FindBin::Bin, 'wavpack', shift );
 }
