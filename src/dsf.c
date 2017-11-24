@@ -104,7 +104,7 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
     if (metadata_offset) {
       PerlIO_seek(infile, metadata_offset, SEEK_SET);
       buffer_clear(&buf);
-      if ( !_check_buf(infile, &buf, 10, WAV_BLOCK_SIZE) ) {
+      if ( !_check_buf(infile, &buf, 10, DSF_BLOCK_SIZE) ) {
 				goto out;
       }
 
