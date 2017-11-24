@@ -11,6 +11,8 @@ Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
           whole-tag unsync bit set. This type of tag is generally harmful to parser performance,
           so this flag might be useful if you want to find and upgrade this type of tag to v2.4.
         - DSF: WAV_BLOCK_SIZE was being used instead of DSF_BLOCK_SIZE. (Kimmo Taskinen)
+        - ID3: Support for reading ID3 tags located >4GB into a file, such as in very large
+          DSF files. (Kimmo Taskinen)
 
 0.98    2017-04-28
         - RT #119101, stop including MYMETA files in the tarball.

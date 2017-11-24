@@ -40,7 +40,7 @@ _varint(unsigned char *buf, int length)
 }
 
 int
-parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, uint32_t seek, off_t file_size)
+parse_id3(PerlIO *infile, char *file, HV *info, HV *tags, off_t seek, off_t file_size)
 {
   int err = 0;
   unsigned char *bptr;
