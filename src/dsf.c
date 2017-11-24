@@ -24,7 +24,7 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   int err = 0;
   uint64_t chunk_size, total_size, metadata_offset, sample_count, sample_bytes;
   uint32_t format_version, format_id, channel_type, channel_num,
-    sampling_frequency, block_size_per_channel, bits_per_sample;
+    sampling_frequency, block_size_per_channel, bits_per_sample, song_length_ms;
   unsigned char *bptr;
 
   file_size = _file_size(infile);
@@ -93,13 +93,16 @@ get_dsf_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
 
     sample_bytes = buffer_get_int64_le(&buf) - 12;
 
+    song_length_ms = ((sample_count * 1.0) / sampling_frequency) * 1000;
+
     my_hv_store( info, "audio_offset", newSVuv( 28 + 52 + 12 ) );
     my_hv_store( info, "audio_size", newSVuv(sample_bytes) );
     my_hv_store( info, "samplerate", newSVuv(sampling_frequency) );
-    my_hv_store( info, "song_length_ms", newSVuv( (sample_count * 1000.) / sampling_frequency ) );
+    my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
     my_hv_store( info, "channels", newSVuv(channel_num) );
     my_hv_store( info, "bits_per_sample", newSVuv(1) );
     my_hv_store( info, "block_size_per_channel", newSVuv(block_size_per_channel) );
+    my_hv_store( info, "bitrate", newSVuv( _bitrate(file_size - (28 + 52 + 12), song_length_ms) ) );
 
     if (metadata_offset) {
       PerlIO_seek(infile, metadata_offset, SEEK_SET);

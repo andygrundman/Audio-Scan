@@ -128,6 +128,7 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
   uint64_t total_size;
   dsdiff_info dsdiff;
   unsigned char *bptr;
+  uint32_t song_length_ms;
 
   dsdiff.infile = infile;
   dsdiff.buf = &buf;
@@ -216,18 +217,21 @@ get_dsdiff_metadata(PerlIO *infile, char *file, HV *info, HV *tags)
       goto out;
     };
 
+    song_length_ms = ((dsdiff.sample_count * 1.0) / dsdiff.sampling_frequency) * 1000;
+
     DEBUG_TRACE("audio_offset: %" PRIu64 "\n", dsdiff.audio_offset);
     DEBUG_TRACE("audio_size: %" PRIu64 "\n", dsdiff.sample_count / 8 * dsdiff.channel_num);
     DEBUG_TRACE("samplerate: %" PRIu32 "\n", dsdiff.sampling_frequency);
-    DEBUG_TRACE("song_length_ms: %f\n", (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency);
+    DEBUG_TRACE("song_length_ms: %u\n", song_length_ms);
     DEBUG_TRACE("channels: %" PRIu32 "\n", dsdiff.channel_num);
 
     my_hv_store( info, "audio_offset", newSVuv(dsdiff.audio_offset) );
     my_hv_store( info, "audio_size", newSVuv(dsdiff.sample_count / 8 * dsdiff.channel_num) );
     my_hv_store( info, "samplerate", newSVuv(dsdiff.sampling_frequency) );
-    my_hv_store( info, "song_length_ms", newSVuv( (dsdiff.sample_count * 1000.) / dsdiff.sampling_frequency ) );
+    my_hv_store( info, "song_length_ms", newSVuv(song_length_ms) );
     my_hv_store( info, "channels", newSVuv(dsdiff.channel_num) );
     my_hv_store( info, "bits_per_sample", newSVuv(1) );
+    my_hv_store( info, "bitrate", newSVuv( _bitrate(file_size - dsdiff.audio_offset, song_length_ms) ) );
 
     if (dsdiff.tag_diar_artist) {
       my_hv_store( info, "tag_diar_artist", newSVpv(dsdiff.tag_diar_artist, 0) );
