@@ -163,6 +163,7 @@ t/mp3/v2.3-null-bytes.mp3
 t/mp3/v2.3-rgad.mp3
 t/mp3/v2.3-sylt.mp3
 t/mp3/v2.3-unsync.mp3
+t/mp3/v2.3-unsync-apic-bad-offset.mp3
 t/mp3/v2.3-utf16any.mp3
 t/mp3/v2.3-utf16be.mp3
 t/mp3/v2.3-utf16le.mp3
