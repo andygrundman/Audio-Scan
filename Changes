@@ -2,7 +2,7 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-0.99
+0.99    2017-11-24
         - Fixed a bug where an incorrect audio offset was returned when using
           NO_ARTWORK and reading a file with an ID3v2.2 or v2.3 unsynchronization bit
           set. The artwork in this type of file is only available when scanning in
