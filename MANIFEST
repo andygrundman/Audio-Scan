@@ -56,6 +56,7 @@ t/04critic.rc
 t/04critic.t
 t/aac.t
 t/aac/id3v2.aac
+t/aac/heaac-3frame.aac
 t/aac/leading-junk.aac
 t/aac/mono.aac
 t/aac/stereo.aac
