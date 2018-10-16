@@ -250,9 +250,6 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     buffer_consume( &ogg_buf, pagelen );
   }
   
-  buffer_clear(&ogg_buf);
-  DEBUG_TRACE("Buffer clear");
-  
   // audio_offset is 28 less because we read the Ogg header
   audio_offset -= 28;
   
@@ -263,8 +260,11 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   my_hv_store( info, "audio_size", newSVuv(audio_size) );
   
   my_hv_store( info, "serial_number", newSVuv(serialno) );
-  DEBUG_TRACE("serial number\n");
+
+  // find the last Ogg page
+
 #define BUF_SIZE 8500 // from vlc
+  
   seek_position = file_size - BUF_SIZE;
   while (1) {
     if ( seek_position < audio_offset ) {
@@ -275,21 +275,16 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     DEBUG_TRACE("Seeking to %d to calculate bitrate/duration\n", (int)seek_position);
     PerlIO_seek(infile, seek_position, SEEK_SET);
 
-    buf_size = PerlIO_read(infile, buffer_append_space(&ogg_buf, BUF_SIZE), BUF_SIZE);
-    if ( buf_size == 0 ) {
-      if ( PerlIO_error(infile) ) {
-        PerlIO_printf(PerlIO_stderr(), "Error reading: %s\n", strerror(errno));
-      }
-      else {
-        PerlIO_printf(PerlIO_stderr(), "File too small. Probably corrupted.\n");
-      }
+    buffer_clear(&ogg_buf);
 
+    if ( !_check_buf(infile, &ogg_buf, OGG_HEADER_SIZE, BUF_SIZE) ) {
       err = -1;
       goto out;
     }
 
     // Find sync
     bptr = (unsigned char *)buffer_ptr(&ogg_buf);
+    buf_size = buffer_len(&ogg_buf);
     last_bptr = bptr;
     // make sure we have room for at least the one ogg page header
     while (buf_size >= OGG_HEADER_SIZE) {
@@ -333,6 +328,7 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     // of page header we will include it in the next read
     seek_position -= (BUF_SIZE - OGG_HEADER_SIZE);
   }
+
 out:
   buffer_free(&ogg_buf);
   buffer_free(&vorbis_buf);

@@ -2,6 +2,9 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
+1.02
+        - Opus: song_length_ms and bitrate_average were not always scanned properly
+
 1.01    2018-07-09
         - Added Opus codec support. (Jeff Muizelaar)
         - ADTS: RT #124525, fixed incorrect duration calcuation due to off-by-one error

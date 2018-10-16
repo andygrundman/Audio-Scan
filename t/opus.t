@@ -106,20 +106,19 @@ eval {
   is($tags->{VENDOR}, 'Encoded with GStreamer Opusenc', 'vendor tag ok' );
 }
 
-# XXX bug: no bitrate/length
 {
   my $s = Audio::Scan->scan( _f('test-8-7.1.opus'), { md5_size => 4096 } );
 
   my $info = $s->{info};
   my $tags = $s->{tags};
   
-  is($info->{bitrate_average}, undef, 'Bitrate ok');
+  is($info->{bitrate_average}, 322280, 'Bitrate ok');
   is($info->{channels}, 8, 'Channels ok');
   is($info->{file_size}, 543119, 'File size ok' );
   is($info->{stereo}, 0, 'Stereo ok');
   is($info->{samplerate}, 48000, 'Sample Rate ok');
   is($info->{input_samplerate}, 44100, 'Input Sample Rate ok');
-  is($info->{song_length_ms}, undef, 'Song length ok');
+  is($info->{song_length_ms}, 13478, 'Song length ok');
   is($info->{audio_offset}, 157, 'Audio offset ok');
   is($info->{audio_size}, 542962, 'Audio size ok');
   is($info->{audio_md5}, 'cc3f80137c82c2be7e83ef5bd33fae1e', 'Audio MD5 ok' );
