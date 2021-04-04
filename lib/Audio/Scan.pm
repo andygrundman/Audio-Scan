@@ -598,6 +598,7 @@ The following metadata about a file is returned:
     maximum_framesize
     audio_md5
     total_samples
+    total_samples_streaminfo
 
 =head2 TAGS
 
