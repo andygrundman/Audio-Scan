@@ -50,7 +50,7 @@ int
 mp4_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info)
 {
   int ret = 1;
-  uint16_t samplerate = 0;
+  uint32_t samplerate = 0;
   uint32_t sound_sample_loc;
   uint32_t i = 0;
   uint32_t j = 0;
