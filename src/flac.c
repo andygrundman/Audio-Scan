@@ -704,6 +704,7 @@ _flac_parse_streaminfo(flacinfo *flac)
   my_hv_store( flac->info, "channels", newSVuv(flac->channels) );
   my_hv_store( flac->info, "bits_per_sample", newSVuv(flac->bits_per_sample) );
   my_hv_store( flac->info, "total_samples", newSVnv(flac->total_samples) );
+  my_hv_store( flac->info, "total_samples_streaminfo", newSVnv(flac->total_samples) );
 
   bptr = buffer_ptr(flac->buf);
   md5 = newSVpvf("%02x", bptr[0]);
