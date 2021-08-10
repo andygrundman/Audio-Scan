@@ -7,7 +7,12 @@ use Getopt::Long;
 my (@INC, @LIBS);
 
 push @INC, '-Iinclude', '-Isrc';
-push @LIBS, '-L win32/ -lzlib';
+if( $^O eq 'MSWin32' ) {
+push @LIBS, '-Lwin32/ -lzlib';
+}
+else {
+push @LIBS, '-lz';
+}
 
 my $inc_files = join(' ', glob 'include/*.h');
 my $src_files = join(' ', glob 'src/*.c');
