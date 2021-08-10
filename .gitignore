@@ -10,3 +10,7 @@ nytprof.out
 *.o
 *.bs
 Scan.c
+Scan.def
+Scan.obj
+scan.pdb
+/win32/
