@@ -275,7 +275,22 @@ _id3_parse_v2(id3info *id3)
     // tested with v2.3-ext-header.mp3
 
     // We don't care about the value of the extended flags or CRC, so just read the size and skip it
-    ehsize = buffer_get_int(id3->buf);
+
+    if (id3->version_major == 3) {
+      // v2.3: 'Extended header size' excludes itself
+      ehsize = buffer_get_int(id3->buf);
+    }
+    else {
+      // v2.4: 'Extended header size' includes itself, and is a synchsafe integer of 4 bytes
+      ehsize = buffer_get_syncsafe(id3->buf, 4);
+      // must be at least 4 bytes
+      if (ehsize < 4 ) {
+        warn("Error: Invalid ID3 extended header - too short (%s)\n", id3->file);
+        ret = 0;
+        goto out;
+      }
+      ehsize -= 4; // adjust to v2.3 basis
+    }
 
     // ehsize may be invalid, tested with v2.3-ext-header-invalid.mp3
     if (ehsize > id3->size_remain - 4) {
