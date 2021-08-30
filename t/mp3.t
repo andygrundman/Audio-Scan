@@ -3,7 +3,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 396;
+use Test::More tests => 397;
 use Test::Warn;
 
 use Audio::Scan;
@@ -1075,6 +1075,14 @@ eval {
     my $tags = $s->{tags};
 
     is( $tags->{TCON}, 'Blues', 'v2.3 extended header ok' );
+}
+
+# v2.4 extended header
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-ext-header.mp3') );
+    my $tags = $s->{tags};
+
+    is( $tags->{TCON}, 'Blues', 'v2.4 extended header ok' );
 }
 
 # MCDI frame

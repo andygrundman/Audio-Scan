@@ -272,7 +272,7 @@ _id3_parse_v2(id3info *id3)
       goto out;
     }
 
-    // tested with v2.3-ext-header.mp3
+    // tested with v2.3-ext-header.mp3 & v2.4-ext-header.mp3
 
     // We don't care about the value of the extended flags or CRC, so just read the size and skip it
 
