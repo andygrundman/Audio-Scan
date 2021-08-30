@@ -283,7 +283,7 @@ _id3_parse_v2(id3info *id3)
     else {
       // v2.4: 'Extended header size' includes itself, and is a synchsafe integer of 4 bytes
       ehsize = buffer_get_syncsafe(id3->buf, 4);
-      // must be at least 4 bytes
+      // must be at least 4 bytes - tested with v2.4-ext-header-invalid-too-short.mp3
       if (ehsize < 4 ) {
         warn("Error: Invalid ID3 extended header - too short (%s)\n", id3->file);
         ret = 0;
@@ -292,7 +292,7 @@ _id3_parse_v2(id3info *id3)
       ehsize -= 4; // adjust to v2.3 basis
     }
 
-    // ehsize may be invalid, tested with v2.3-ext-header-invalid.mp3
+    // ehsize may be invalid, tested with v2.3-ext-header-invalid.mp3 & v2.4-ext-header-invalid.mp3
     if (ehsize > id3->size_remain - 4) {
       warn("Error: Invalid ID3 extended header size (%s)\n", id3->file);
       ret = 0;

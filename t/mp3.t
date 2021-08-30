@@ -3,7 +3,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 397;
+use Test::More tests => 399;
 use Test::Warn;
 
 use Audio::Scan;
@@ -1309,11 +1309,25 @@ eval {
     is( $info->{vbr}, 1, 'Xing without LAME marked as VBR ok' );
 }
 
-# File with extended header bit set but no extended header
+# v2.3 file with extended header bit set but no extended header
 {
     warning_like { Audio::Scan->scan( _f('v2.3-ext-header-invalid.mp3') ); }
         [ qr/Error: Invalid ID3 extended header size/ ],
         'v2.3 invalid extended header ok';
+}
+
+# v2.4 file with extended header bit set but invalid extended header size
+{
+    warning_like { Audio::Scan->scan( _f('v2.4-ext-header-invalid.mp3') ); }
+        [ qr/Error: Invalid ID3 extended header size/ ],
+        'v2.4 invalid extended header ok';
+}
+
+# v2.4 file with extended header bit set but extended header too short
+{
+    warning_like { Audio::Scan->scan( _f('v2.4-ext-header-invalid-too-short.mp3') ); }
+        [ qr/Error: Invalid ID3 extended header - too short/ ],
+        'v2.4 extended header too short ok';
 }
 
 # Bug 15895, bad APE tag
