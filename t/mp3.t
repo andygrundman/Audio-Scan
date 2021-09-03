@@ -3,7 +3,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 396;
+use Test::More tests => 399;
 use Test::Warn;
 
 use Audio::Scan;
@@ -1077,6 +1077,14 @@ eval {
     is( $tags->{TCON}, 'Blues', 'v2.3 extended header ok' );
 }
 
+# v2.4 extended header
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-ext-header.mp3') );
+    my $tags = $s->{tags};
+
+    is( $tags->{TCON}, 'Blues', 'v2.4 extended header ok' );
+}
+
 # MCDI frame
 {
     my $s = Audio::Scan->scan( _f('v2.3-mcdi.mp3') );
@@ -1301,11 +1309,25 @@ eval {
     is( $info->{vbr}, 1, 'Xing without LAME marked as VBR ok' );
 }
 
-# File with extended header bit set but no extended header
+# v2.3 file with extended header bit set but no extended header
 {
     warning_like { Audio::Scan->scan( _f('v2.3-ext-header-invalid.mp3') ); }
         [ qr/Error: Invalid ID3 extended header size/ ],
         'v2.3 invalid extended header ok';
+}
+
+# v2.4 file with extended header bit set but invalid extended header size
+{
+    warning_like { Audio::Scan->scan( _f('v2.4-ext-header-invalid.mp3') ); }
+        [ qr/Error: Invalid ID3 extended header size/ ],
+        'v2.4 invalid extended header ok';
+}
+
+# v2.4 file with extended header bit set but extended header too short
+{
+    warning_like { Audio::Scan->scan( _f('v2.4-ext-header-invalid-too-short.mp3') ); }
+        [ qr/Error: Invalid ID3 extended header - too short/ ],
+        'v2.4 extended header too short ok';
 }
 
 # Bug 15895, bad APE tag
