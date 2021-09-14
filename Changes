@@ -2,9 +2,14 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-1.03   2021-08-09
+1.05    2021-09-10
+	- ID3: Fix v2.4 extended header handling.
+	- WavPack DSD: fix song_length_ms calculation (Kimmo Taskinen).
+
+1.04    2021-08-09
         - MP4: Allow seek with sample rates > 65535 (32 bits)
         - Fixed missing zlib reference in generated Makefile.
+	- Link zlib based on OS.
 
 1.02    2018-10-16
         - Opus: song_length_ms and bitrate_average were not always scanned properly
