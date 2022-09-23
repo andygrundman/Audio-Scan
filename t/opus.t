@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 74;
+use Test::More tests => 88;
 
 use Audio::Scan;
 
@@ -45,6 +45,29 @@ eval {
     is($info->{audio_offset}, 147, 'Audio offset ok');
     is($info->{audio_size}, 24826, 'Audio size ok');
     is($info->{audio_md5}, 'bebb6f0f0a90ce4e4e90635a3c7408d0', 'Audio MD5 ok' );
+}
+
+{
+    local $ENV{AUDIO_SCAN_NO_ARTWORK} = 1;
+    my $s = Audio::Scan->scan( _f('large_embedded_picture.opus'), { md5_size => 4096 } );
+
+    my $info = $s->{info};
+    is($info->{bitrate_average}, 72640, 'Bitrate ok');
+    is($info->{channels}, 1, 'Channels ok');
+    is($info->{file_size}, 205606, 'File size ok');
+    is($info->{stereo}, 0, 'Stereo ok');
+    is($info->{samplerate}, 48000, 'Sample Rate ok');
+    is($info->{input_samplerate}, 44100, 'Input Sample Rate ok');
+    is($info->{song_length_ms}, 100, 'Song length ok');
+    is($info->{audio_offset}, 204698, 'Audio offset ok');
+    is($info->{audio_size}, 908, 'Audio size ok');
+    is($info->{audio_md5}, 'c050e1584b6284c230708b8b0fb2f31e', 'Audio MD5 ok');
+
+    my $tags = $s->{tags};
+    is($tags->{ALLPICTURES}[0]{image_data}, 152291, 'Image size ok');
+    is($tags->{ALLPICTURES}[0]{width}, 500, 'Image width ok');
+    is($tags->{ALLPICTURES}[0]{height}, 500, 'Image height ok');
+    is($tags->{ALLPICTURES}[0]{mime_type}, 'image/png', 'Image type ok');
 }
 
 ## A few of the official Opus test files from https://people.xiph.org/~greg/opus_testvectors/
