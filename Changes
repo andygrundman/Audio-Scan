@@ -2,7 +2,7 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
-Upcoming release
+1.06	2022-11-10
 	- opus: Fix parsing large comment headers (such as large embedded images)
 
 1.05    2021-09-10
