@@ -194,7 +194,17 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     // Copy page into vorbis buffer
     buffer_append( &vorbis_buf, buffer_ptr(&ogg_buf), pagelen );
     DEBUG_TRACE("  Read %d into vorbis buffer\n", pagelen);
-    
+
+    if ( granule_pos != 0 ) {
+      // RFC7845: The granule position MUST be zero for the ID header
+      //          page and the page where the comment header
+      //          completes.
+      //
+      // So, we need to read more pages
+      buffer_consume( &ogg_buf, pagelen );
+      continue;
+    }
+
     // Process vorbis packet
     TOC_byte = buffer_get_char(&vorbis_buf);
     if ( TOC_byte == 'O' ) {
