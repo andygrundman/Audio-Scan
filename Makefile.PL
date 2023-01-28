@@ -4,13 +4,14 @@ use ExtUtils::MakeMaker qw(WriteMakefile);
 use File::Spec::Functions;
 use Getopt::Long;
 
-my (@INC, @LIBS);
+my (@CCFLAGS, @INC, @LIBS);
 
 push @INC, '-Iinclude', '-Isrc';
 if( $^O eq 'MSWin32' ) {
 push @LIBS, '-Lwin32/ -lzlib';
 }
 else {
+push @CCFLAGS, '-Wdeclaration-after-statement';
 push @LIBS, '-lz';
 }
 
@@ -23,6 +24,7 @@ WriteMakefile(
     PREREQ_PM         => { 'Test::Warn' => 0 },
     ABSTRACT_FROM     => 'lib/Audio/Scan.pm',
     AUTHOR            => 'Andy Grundman <andy@hybridized.org>',
+    CCFLAGS           => "$Config::Config{ccflags} " . join(' ', @CCFLAGS),
     INC               => join(' ', @INC),
     LIBS              => [ join(' ', @LIBS) ],
     depend            => { 'Scan.c' => "$inc_files $src_files" },

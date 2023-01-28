@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 88;
+use Test::More tests => 112;
 
 use Audio::Scan;
 
@@ -70,8 +70,38 @@ eval {
     is($tags->{ALLPICTURES}[0]{mime_type}, 'image/png', 'Image type ok');
 }
 
-## A few of the official Opus test files from https://people.xiph.org/~greg/opus_testvectors/
+{
+    my $offset = Audio::Scan->find_frame( _f('3min_noise.opus'), 0 );
 
+    is( $offset, 841, 'Find frame in first page ok' );
+}
+
+{
+    for ( my $ms = 68000; $ms <= 70000; $ms += 100 ) {
+        my $offset = Audio::Scan->find_frame( _f('3min_noise.opus'), $ms );
+        if ( $ms < 69000 ) {
+            is( $offset, 731993, "Wrong offset at $ms ms" );
+        } elsif ($ms < 70000 ) {
+            is( $offset, 742756, "Wrong offset at $ms ms" );
+        } else {
+            is( $offset, 753463, "Wrong offset at $ms ms" );
+        }
+    }
+}
+
+{
+    my $offset = Audio::Scan->find_frame( _f('3min_noise.opus'), 179999 );
+
+    is( $offset, 1936144, 'Find frame in last page ok' );
+}
+
+{
+    my $offset = Audio::Scan->find_frame( _f('3min_noise.opus'), 180000 );
+
+    is( $offset, -1, 'Find frame outside of file not ok' );
+}
+
+## A few of the official Opus test files from https://people.xiph.org/~greg/opus_testvectors/
 {
   my $s = Audio::Scan->scan( _f('failure-end_gp_before_last_packet1.opus'), { md5_size => 4096 } );
 

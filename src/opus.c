@@ -150,8 +150,8 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       page = -1;
       DEBUG_TRACE("Missing page(s) in Ogg file: %s\n", file);
     }
-    
-    DEBUG_TRACE("OggS page %d / packet %d at %d\n", pagenum, packets, (int)(audio_offset - 28));
+
+    DEBUG_TRACE("OggS page %d / packet %d at %d\n", pagenum, packets, (int)(audio_offset - OGG_HEADER_SIZE));
     DEBUG_TRACE("  granule_pos: %llu\n", granule_pos);
     
     // Number of page segments
@@ -245,8 +245,8 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
       	preskip = CONVERT_INT16LE((opushdr+2));
       	my_hv_store( info, "preskip", newSViv(preskip) );
 
-      	my_hv_store( info, "samplerate", newSViv(48000) );
       	samplerate = 48000; // Opus only supports 48k
+      	my_hv_store( info, "samplerate", newSViv(samplerate) );
 
       	input_samplerate = CONVERT_INT32LE((opushdr+4));
       	my_hv_store( info, "input_samplerate", newSViv(input_samplerate) );
@@ -261,8 +261,8 @@ _opus_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   }
   
   // audio_offset is 28 less because we read the Ogg header
-  audio_offset -= 28;
-  
+  audio_offset -= OGG_HEADER_SIZE;
+
   // from the first packet past the comments
   my_hv_store( info, "audio_offset", newSViv(audio_offset) );
   
@@ -353,28 +353,34 @@ static int
 opus_find_frame(PerlIO *infile, char *file, int offset)
 {
   int frame_offset = -1;
+  uint16_t preskip;
   uint32_t samplerate;
   uint32_t song_length_ms;
   uint64_t target_sample;
-  
-  // We need to read all metadata first to get some data we need to calculate
   HV *info = newHV();
   HV *tags = newHV();
+
+  if (offset < 0) {
+    return -1;
+  }
+
+  // We need to read all metadata first to get some data we need to calculate
   if ( _opus_parse(infile, file, info, tags, 1) != 0 ) {
     goto out;
   }
-  
-  song_length_ms = SvIV( *(my_hv_fetch( info, "song_length_ms" )) );
+
+  song_length_ms = SvUV( *(my_hv_fetch( info, "song_length_ms" )) );
   if (offset >= song_length_ms) {
     goto out;
   }
-  
-  samplerate = SvIV( *(my_hv_fetch( info, "samplerate" )) );
-  
+
   // Determine target sample we're looking for
-  target_sample = ((offset - 1) / 10) * (samplerate / 100);
+  samplerate = SvIV( *(my_hv_fetch( info, "samplerate" )) );
+  preskip = SvIV( *(my_hv_fetch( info, "preskip" )) );
+  target_sample = (uint64_t)offset * samplerate / 1000;
+  target_sample += preskip;
+
   DEBUG_TRACE("Looking for target sample %llu\n", target_sample);
-  
   frame_offset = _ogg_binary_search_sample(infile, file, info, target_sample);
 
 out:  
