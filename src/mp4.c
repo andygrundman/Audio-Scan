@@ -687,7 +687,16 @@ _mp4_read_box(mp4info *mp4)
     size = buffer_get_int64(mp4->buf);
     mp4->hsize = 16;
   }
-  if (size != 0) { // if (size == 0) // XXX: size extends to end of file
+
+  if (size == 0) { 
+    // XXX: box extends to end of file
+    /*nothing to do*/ ; // rsize=size=0
+  } 
+  else if (size < mp4->hsize) {
+    PerlIO_printf(PerlIO_stderr(), "Invalid box size in: %s\n", mp4->file);
+    return 0;
+  }
+  else {
     // set size of the remainder of the box
     mp4->rsize = size - mp4->hsize;
   } 
