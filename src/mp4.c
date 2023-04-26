@@ -706,7 +706,7 @@ _mp4_read_box(mp4info *mp4)
   DEBUG_TRACE("%s size %llu\n", type, size);
 
   if (size == mp4->hsize) {
-    DEBUG_TRACE("  Ignoring empty box of type %s\n", type);
+    PerlIO_printf(PerlIO_stderr(), "Ignoring empty box of type %s in: %s\n", type, mp4->file);
     return size;
   }
 
