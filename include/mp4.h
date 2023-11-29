@@ -74,9 +74,9 @@ typedef struct mp4info {
   char *file;
   Buffer *buf;
   uint64_t file_size; // total file size
-  uint64_t size;      // total size
-  uint8_t  hsize;     // header size
-  uint64_t rsize;     // remaining size
+  uint64_t size;      // total size of box; 0 => remainder of file
+  uint8_t  hsize;     // header size in box
+  uint64_t rsize;     // remaining size in box outside header
   uint64_t audio_offset;
   uint64_t audio_size;
   HV *info;
